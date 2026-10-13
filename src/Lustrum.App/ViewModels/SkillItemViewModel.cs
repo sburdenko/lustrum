@@ -1,0 +1,58 @@
+using FluentIcons.Common;
+using Lustrum.Core.Models;
+using CoreHealth = Lustrum.Core.Models.Health;
+
+namespace Lustrum.App.ViewModels;
+
+public sealed class SkillItemViewModel
+{
+    public SkillItemViewModel(Skill skill)
+    {
+        Skill = skill;
+        Health = HealthPresentation.For(skill.Health);
+        Prefix = skill.Kind == SkillKind.Command ? "/" : PluginPrefix(skill);
+        Description = string.IsNullOrWhiteSpace(skill.Description) ? "no description" : skill.Description.ReplaceLineEndings(" ");
+        HasDescription = !string.IsNullOrWhiteSpace(skill.Description);
+        KindIcon = skill.Kind == SkillKind.Command ? Symbol.SlashForward : Symbol.Sparkle;
+        SourceIcon = SourceSymbol(skill.Source.Kind);
+        SourceLabel = SourceLabelFor(skill.Source);
+    }
+
+    public Skill Skill { get; }
+
+    public HealthPresentation Health { get; }
+
+    public string Prefix { get; }
+
+    public string Name => Skill.Name;
+
+    public string Description { get; }
+
+    public bool HasDescription { get; }
+
+    public Symbol KindIcon { get; }
+
+    public Symbol SourceIcon { get; }
+
+    public string SourceLabel { get; }
+
+    public bool ShowHealth => Skill.Health != CoreHealth.Ok;
+
+    public static Symbol SourceSymbol(SourceKind kind) => kind switch
+    {
+        SourceKind.Global => Symbol.Globe,
+        SourceKind.Project => Symbol.Folder,
+        SourceKind.Plugin => Symbol.PuzzlePiece,
+        _ => Symbol.Box,
+    };
+
+    public static string SourceLabelFor(SkillSource source) => source.Kind switch
+    {
+        SourceKind.Global => "Global",
+        SourceKind.Plugin => source.DisplayName.Split(' ')[0],
+        _ => source.DisplayName,
+    };
+
+    private static string PluginPrefix(Skill skill) =>
+        skill.FullName.Length > skill.Name.Length ? skill.FullName[..(skill.FullName.Length - skill.Name.Length)] : string.Empty;
+}

@@ -1,0 +1,83 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using FluentIcons.Common;
+using Lustrum.Core.Models;
+using CoreHealth = Lustrum.Core.Models.Health;
+
+namespace Lustrum.App.ViewModels;
+
+public sealed partial class SkillCardViewModel : ObservableObject
+{
+    [ObservableProperty]
+    private string _body = string.Empty;
+
+    [ObservableProperty]
+    private bool _isBodyLoading = true;
+
+    public SkillCardViewModel(Skill skill, IReadOnlyList<Skill> sameNameElsewhere)
+    {
+        Skill = skill;
+        Health = HealthPresentation.For(skill.Health);
+        Title = skill.InvocationName;
+        Description = string.IsNullOrWhiteSpace(skill.Description) ? "This skill has no description" : skill.Description;
+        KindLabel = skill.Kind == SkillKind.Command ? "command" : "skill";
+        KindIcon = skill.Kind == SkillKind.Command ? Symbol.SlashForward : Symbol.Sparkle;
+        SourceIcon = SkillItemViewModel.SourceSymbol(skill.Source.Kind);
+        SourceLabel = SkillItemViewModel.SourceLabelFor(skill.Source);
+        FolderPath = System.IO.Path.GetDirectoryName(skill.Path)!;
+        Frontmatter = skill.Frontmatter.Select(p => new FrontmatterEntry(p.Key, p.Value)).ToList();
+        Conflicts = sameNameElsewhere
+            .Select(s => new ConflictEntry(SkillItemViewModel.SourceLabelFor(s.Source), s.Path))
+            .ToList();
+        ModifiedText = skill.Modified == DateTimeOffset.MinValue ? "—" : skill.Modified.ToLocalTime().ToString("d MMM yyyy, HH:mm");
+        SizeText = FormatSize(skill.SizeBytes);
+    }
+
+    public Skill Skill { get; }
+
+    public HealthPresentation Health { get; }
+
+    public string Title { get; }
+
+    public string Description { get; }
+
+    public bool IsCommand => Skill.Kind == SkillKind.Command;
+
+    public string KindLabel { get; }
+
+    public Symbol KindIcon { get; }
+
+    public Symbol SourceIcon { get; }
+
+    public string SourceLabel { get; }
+
+    public string FilePath => Skill.Path;
+
+    public string FolderPath { get; }
+
+    public IReadOnlyList<FrontmatterEntry> Frontmatter { get; }
+
+    public bool HasFrontmatter => Frontmatter.Count > 0;
+
+    public IReadOnlyList<string> Files => Skill.Files;
+
+    public bool HasFiles => Skill.Files.Count > 0;
+
+    public IReadOnlyList<ConflictEntry> Conflicts { get; }
+
+    public bool HasConflicts => Conflicts.Count > 0;
+
+    public bool ShowHealth => Skill.Health != CoreHealth.Ok;
+
+    public string ModifiedText { get; }
+
+    public string SizeText { get; }
+
+    private static string FormatSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:0.#} KB",
+        _ => $"{bytes / 1024.0 / 1024.0:0.#} MB",
+    };
+}
+
+public sealed record ConflictEntry(string Source, string Path);
