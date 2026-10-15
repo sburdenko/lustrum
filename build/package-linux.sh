@@ -7,7 +7,7 @@ output="$2"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 stage="$(mktemp -d)"
 appdir="$stage/Lustrum.AppDir"
-tool_url="https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
+tool_url="https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage"
 
 mkdir -p "$appdir/usr/bin"
 cp -R "$app_dir/." "$appdir/usr/bin/"
