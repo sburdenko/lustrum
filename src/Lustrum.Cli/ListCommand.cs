@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Lustrum.Core.Models;
 using Lustrum.Core.Scanning;
+using Lustrum.Core.Settings;
 
 namespace Lustrum.Cli;
 
@@ -47,7 +48,13 @@ internal static class ListCommand
             kind = parsed;
         }
 
-        var scan = await SkillScanner.ScanAsync(ClaudePaths.ForCurrentUser(), cancellationToken: cancellationToken);
+        var settings = SettingsStore.Load(SettingsStore.DefaultPath);
+        if (settings.Warning is { } warning)
+        {
+            await Console.Error.WriteLineAsync($"warning: {warning}");
+        }
+
+        var scan = await SkillScanner.ScanAsync(ClaudePaths.ForCurrentUser(), settings.Settings.ToScanOptions(), cancellationToken);
         foreach (var issue in scan.Issues)
         {
             await Console.Error.WriteLineAsync($"warning: {issue.Path}: {issue.Message}");

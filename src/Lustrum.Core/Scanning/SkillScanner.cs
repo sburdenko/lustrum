@@ -13,7 +13,7 @@ public static class SkillScanner
     {
         var stopwatch = Stopwatch.StartNew();
         var settings = options ?? ScanOptions.Default;
-        var discovered = SourceDiscovery.Discover(paths);
+        var discovered = SourceDiscovery.Discover(paths, settings);
 
         var skills = new ConcurrentBag<Skill>();
         var issues = new ConcurrentBag<ScanIssue>(discovered.Issues);
@@ -52,8 +52,8 @@ public static class SkillScanner
             return;
         }
 
-        Collect(source, SkillKind.Skill, SkillReader.SkillFiles(source), skills, issues);
-        Collect(source, SkillKind.Command, SkillReader.CommandFiles(source), skills, issues);
+        Collect(source, SkillKind.Skill, SkillReader.SkillFiles(source, issues.Add), skills, issues);
+        Collect(source, SkillKind.Command, SkillReader.CommandFiles(source, issues.Add), skills, issues);
     }
 
     private static void Collect(

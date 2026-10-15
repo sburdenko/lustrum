@@ -58,6 +58,25 @@ public class FrontmatterParserTests
     }
 
     [Fact]
+    public void Yaml_error_names_the_file_line_and_the_cause()
+    {
+        var result = FrontmatterParser.Parse("---\nname: ok\ndescription: [unclosed\n---\nbody");
+
+        result.Error.Should().StartWith("Line ");
+        result.Error.Should().NotContain("Exception during deserialization");
+    }
+
+    [Fact]
+    public void Yaml_error_explains_the_syntax_problem_instead_of_an_internal_state_error()
+    {
+        var result = FrontmatterParser.Parse("---\nname: [oops\ndescription: unclosed flow sequence\n---\nbody");
+
+        result.Error.Should().StartWith("Line ");
+        result.Error.Should().NotContain("Operation is not valid");
+        result.Error.Should().NotContain("Exception during deserialization");
+    }
+
+    [Fact]
     public void Allowed_tools_accepts_yaml_list()
     {
         var result = FrontmatterParser.Parse("---\nname: a\ndescription: b\nallowed-tools:\n  - Read\n  - Bash\n---\n");

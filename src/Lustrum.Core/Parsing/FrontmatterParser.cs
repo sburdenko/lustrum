@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using YamlDotNet.Core;
+using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 
 namespace Lustrum.Core.Parsing;
@@ -9,6 +10,7 @@ public static partial class FrontmatterParser
 {
     private const string Fence = "---";
     private const string AllowedToolsKey = "allowed-tools";
+    private const string InvalidSyntax = "syntax error, check brackets, quotes and colons";
 
     private static readonly IDeserializer Yaml = new DeserializerBuilder().Build();
 
@@ -38,9 +40,9 @@ public static partial class FrontmatterParser
         {
             map = Yaml.Deserialize<Dictionary<string, object?>?>(yaml);
         }
-        catch (YamlException ex)
+        catch (Exception ex) when (ex is YamlException or InvalidOperationException)
         {
-            return FrontmatterResult.Invalid(body, ex.Message);
+            return FrontmatterResult.Invalid(body, Describe(SyntaxError(yaml) ?? ex as YamlException));
         }
 
         if (map is null)
@@ -51,6 +53,40 @@ public static partial class FrontmatterParser
         var fields = map.ToDictionary(pair => pair.Key, pair => Stringify(pair.Value));
         var allowedTools = map.TryGetValue(AllowedToolsKey, out var raw) ? ToList(raw) : [];
         return new FrontmatterResult(FrontmatterState.Parsed, fields, allowedTools, body, null);
+    }
+
+    private static YamlException? SyntaxError(string yaml)
+    {
+        try
+        {
+            new YamlStream().Load(new StringReader(yaml));
+            return null;
+        }
+        catch (YamlException ex)
+        {
+            return ex;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    private static string Describe(YamlException? ex)
+    {
+        if (ex is null)
+        {
+            return InvalidSyntax;
+        }
+
+        var cause = ex;
+        while (cause.InnerException is YamlException inner)
+        {
+            cause = inner;
+        }
+
+        var reason = cause.InnerException is null ? cause.Message : InvalidSyntax;
+        return $"Line {cause.Start.Line + 1}: {reason}";
     }
 
     private static int FindClosingFence(string[] lines)

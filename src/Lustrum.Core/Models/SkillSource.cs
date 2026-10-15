@@ -6,4 +6,5 @@ public sealed record SkillSource(
     string DisplayName,
     string RootPath,
     DateTimeOffset? LastSeen,
-    bool Exists);
+    bool Exists,
+    bool IsEnabled = true);

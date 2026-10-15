@@ -13,14 +13,13 @@ internal static class SkillReader
     private const int MaxCommandDepth = 3;
     private const string SkillFileName = "SKILL.md";
 
-    public static IEnumerable<string> SkillFiles(SkillSource source) =>
-        Subdirectories(Path.Combine(source.RootPath, "skills"))
+    public static IEnumerable<string> SkillFiles(SkillSource source, Action<ScanIssue> report) =>
+        SafeFileSystem.Directories(Path.Combine(source.RootPath, "skills"), report)
             .Select(dir => Path.Combine(dir, SkillFileName))
             .Where(File.Exists);
 
-    public static IEnumerable<string> CommandFiles(SkillSource source)
+    public static IEnumerable<string> CommandFiles(SkillSource source, Action<ScanIssue> report)
     {
-        var dir = Path.Combine(source.RootPath, "commands");
         var options = new EnumerationOptions
         {
             RecurseSubdirectories = true,
@@ -28,16 +27,7 @@ internal static class SkillReader
             IgnoreInaccessible = true,
         };
 
-        try
-        {
-            return Directory.Exists(dir)
-                ? Directory.EnumerateFiles(dir, "*.md", options).OrderBy(f => f, StringComparer.Ordinal).ToList()
-                : [];
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return [];
-        }
+        return SafeFileSystem.Files(Path.Combine(source.RootPath, "commands"), "*.md", options, report);
     }
 
     public static (Skill Skill, ScanIssue? Issue) Read(SkillSource source, SkillKind kind, string path)
@@ -54,9 +44,18 @@ internal static class SkillReader
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            var broken = Create(source, kind, path, fallbackName, null, FrontmatterResult.Missing(string.Empty), 0, DateTimeOffset.MinValue, Health.ParseError);
-            return (broken, new ScanIssue(path, $"Cannot read file: {ex.Message}"));
+            return Unreadable(source, kind, path, fallbackName, $"Cannot read file: {ex.Message}");
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return Unreadable(source, kind, path, fallbackName, $"Unexpected error while reading: {ex.Message}");
+        }
+    }
+
+    private static (Skill, ScanIssue?) Unreadable(SkillSource source, SkillKind kind, string path, string fallbackName, string message)
+    {
+        var broken = Create(source, kind, path, fallbackName, null, FrontmatterResult.Missing(string.Empty), 0, DateTimeOffset.MinValue, Health.ParseError);
+        return (broken, new ScanIssue(path, message));
     }
 
     private static (Skill, ScanIssue?) Build(SkillSource source, SkillKind kind, string path, string fallbackName, FileInfo info, FrontmatterResult parsed)
@@ -189,18 +188,6 @@ internal static class SkillReader
                 .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
                 .Take(MaxListedFiles)
                 .ToList();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return [];
-        }
-    }
-
-    private static IEnumerable<string> Subdirectories(string path)
-    {
-        try
-        {
-            return Directory.Exists(path) ? Directory.EnumerateDirectories(path).ToList() : [];
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

@@ -6,7 +6,7 @@ namespace Lustrum.Core.Tests.Fixtures;
 
 public sealed class FakeClaudeHome : IDisposable
 {
-    private readonly string _root = Path.Combine(Path.GetTempPath(), "lustrum-tests-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(LongTempPath(), "lustrum-tests-" + Guid.NewGuid().ToString("N"));
 
     public FakeClaudeHome()
     {
@@ -22,7 +22,7 @@ public sealed class FakeClaudeHome : IDisposable
 
     public string Dir(string relativeToRoot)
     {
-        var path = Path.Combine(_root, relativeToRoot);
+        var path = Path.Combine(_root, relativeToRoot.Replace('/', Path.DirectorySeparatorChar));
         Directory.CreateDirectory(path);
         return path;
     }
@@ -89,6 +89,33 @@ public sealed class FakeClaudeHome : IDisposable
 
         existing[$"{plugin}@{marketplace}"] = [new { scope = "user", installPath, version = "x" }];
         File(Paths.InstalledPluginsJson, JsonSerializer.Serialize(new { version = 2, plugins = existing }));
+    }
+
+    public void EnablePlugins(params (string Key, bool Enabled)[] plugins)
+    {
+        var enabledPlugins = plugins.ToDictionary(p => p.Key, p => p.Enabled);
+        File(Paths.SettingsJson, JsonSerializer.Serialize(new { enabledPlugins }));
+    }
+
+    /// <summary>
+    /// Windows runners report the temp folder with 8.3 short names (RUNNER~1). The project path decoder
+    /// walks real directory names, so the fixture root must use the long names.
+    /// </summary>
+    private static string LongTempPath()
+    {
+        var temp = Path.GetFullPath(Path.GetTempPath());
+        if (!OperatingSystem.IsWindows())
+        {
+            return temp;
+        }
+
+        var current = new DirectoryInfo(Path.GetPathRoot(temp)!);
+        foreach (var segment in temp[current.FullName.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        {
+            current = current.GetDirectories(segment).Single();
+        }
+
+        return current.FullName;
     }
 
     public void Dispose()

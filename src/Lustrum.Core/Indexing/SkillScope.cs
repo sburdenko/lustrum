@@ -37,3 +37,13 @@ public sealed record MarketplaceScope(string Marketplace) : SkillScope
         skill.Source.Kind == SourceKind.Plugin
         && skill.Source.Id.StartsWith($"plugin:{Marketplace}/", StringComparison.Ordinal);
 }
+
+public sealed record EffectiveScope(string ProjectSourceId) : SkillScope
+{
+    public override bool Includes(Skill skill) => skill.Source.Kind switch
+    {
+        SourceKind.Global => true,
+        SourceKind.Plugin => skill.Source.IsEnabled,
+        _ => skill.Source.Id == ProjectSourceId,
+    };
+}
