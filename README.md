@@ -50,7 +50,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 163 tests
+dotnet test                                            # 168 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -287,7 +287,7 @@ data. **Open logs** in the settings panel opens the folder.
 ## CLI
 
 ```text
-lustrum list [--json] [--source global|project|plugin] [--broken]
+lustrum list [--json] [--source global|project|plugin] [--broken] [--project <folder>]
 ```
 
 ```text
@@ -307,9 +307,21 @@ broken-yaml    Global  ParseError          (no description)
 legacy-import  Global  NoFrontmatter       Imports old markdown notes.
 ```
 
+`--project` prints the effective set for one project folder, with an extra column saying what wins. The folder
+needs a `.claude` directory; Claude Code does not have to know about it yet.
+
+```text
+$ lustrum list --project ~/work/storefront --source project
+NAME           SOURCE      HEALTH              IN PROJECT        DESCRIPTION
+checkout-flow  storefront  ok                  loaded            Trace the checkout flow and find where an order can get stuck.
+release-notes  storefront  ok                  overrides Global  Release notes for the storefront: customer-facing wording, no ticket id…
+ui-kit         storefront  ok                  loaded            Use the shared component library correctly: tokens, spacing, accessibil…
+```
+
 `--json` prints the full `Skill` records, including `frontmatter`, `allowedTools`, `files`, `health` and `tags`.
+With `--project`, each record also carries `availability`, `shadowedBy` and `overrides` (skill ids).
 Files that could not be read are reported on stderr as `warning: <path>: <reason>`.
-An unknown `--source` exits with code 2.
+An unknown `--source` or a folder without `.claude` exits with code 2.
 
 ## Repository layout
 
@@ -321,7 +333,8 @@ lustrum/
 │   └── Lustrum.Cli/       list command, table renderer
 ├── tests/
 │   ├── Lustrum.Core.Tests/   scanner, discovery, parser, decoder, search, effective set, problems, settings, watcher
-│   └── Lustrum.App.Tests/    view models, source tree, services
+│   ├── Lustrum.App.Tests/    view models, source tree, services
+│   └── Lustrum.Cli.Tests/    table output
 ├── docs/                  screenshots, Claude Code on-disk notes
 ├── .github/workflows/     CI on three OSes, release archives on tags
 ├── Directory.Build.props  net10.0, nullable, warnings as errors
@@ -330,7 +343,7 @@ lustrum/
 
 ## Tests
 
-163 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+168 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,

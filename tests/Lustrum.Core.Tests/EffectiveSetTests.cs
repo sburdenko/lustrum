@@ -101,6 +101,31 @@ public class EffectiveSetTests : IDisposable
     }
 
     [Fact]
+    public async Task Project_is_found_by_its_folder_path()
+    {
+        var scan = await SkillScanner.ScanAsync(_home.Paths);
+
+        EffectiveSetBuilder.FindProject(scan, _app)!.Id.Should().Be("project:" + _app);
+        EffectiveSetBuilder.FindProject(scan, _app + Path.DirectorySeparatorChar)!.Id.Should().Be("project:" + _app);
+        EffectiveSetBuilder.FindProject(scan, Path.Combine(_app, "nowhere")).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Availability_labels_name_the_winning_and_losing_sources()
+    {
+        _home.GlobalSkill("review", Doc("review"));
+        _home.ProjectSkill(_app, "review", Doc("review"));
+        _home.GlobalSkill("solo", Doc("solo"));
+
+        var set = await BuildFor(_app);
+
+        string Label(SkillSource s) => s.Kind == SourceKind.Global ? "Global" : s.DisplayName;
+        set.Entries.Single(e => e.Availability == Availability.Shadowed).Label(Label).Should().Be("shadowed by app");
+        set.Entries.Single(e => e.Overrides.Count > 0).Label(Label).Should().Be("overrides Global");
+        set.Entries.Single(e => e.Skill.Name == "solo").Label(Label).Should().BeNull();
+    }
+
+    [Fact]
     public async Task Find_returns_the_entry_for_a_skill_id()
     {
         _home.GlobalSkill("g", Doc("g"));

@@ -1,5 +1,6 @@
 using Lustrum.Core.Indexing;
 using Lustrum.Core.Models;
+using Lustrum.Core.Scanning;
 
 namespace Lustrum.Core.Effective;
 
@@ -9,6 +10,8 @@ namespace Lustrum.Core.Effective;
 /// </summary>
 public static class EffectiveSetBuilder
 {
+    private const string ProjectPrefix = "project:";
+
     public static EffectiveSet Build(ScanResult scan, SkillSource project)
     {
         var candidates = scan.Skills.Where(new EffectiveScope(project.Id).Includes).ToList();
@@ -23,6 +26,14 @@ public static class EffectiveSetBuilder
             .Select(s => resolved.GetValueOrDefault(s.Id) ?? Active(s, []))
             .ToList();
         return new EffectiveSet(project, entries);
+    }
+
+    public static SkillSource? FindProject(ScanResult scan, string projectPath)
+    {
+        var wanted = PathKey.Normalize(Path.GetFullPath(projectPath));
+        return scan.Sources.FirstOrDefault(s =>
+            s.Kind == SourceKind.Project
+            && PathKey.Comparer.Equals(PathKey.Normalize(s.Id[ProjectPrefix.Length..]), wanted));
     }
 
     private static IEnumerable<EffectiveEntry> Resolve(IGrouping<string, Skill> sameName)
