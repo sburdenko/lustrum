@@ -12,7 +12,7 @@ public class NavTreeBuilderTests
         var roots = NavTreeBuilder.Build(TestData.Default());
 
         roots.Select(n => n.Title).Should().Equal("All", "Global", "Projects", "Plugins", "Problems");
-        roots.Select(n => n.Count).Should().Equal(4, 2, 1, 1, 1);
+        roots.Select(n => n.Count).Should().Equal(4, 2, 1, 1, 2);
     }
 
     [Fact]
@@ -46,11 +46,11 @@ public class NavTreeBuilderTests
     }
 
     [Fact]
-    public void Problems_counts_broken_skills()
+    public void Problems_counts_broken_skills_and_missing_projects()
     {
         var problems = NavTreeBuilder.Build(TestData.Default()).Single(n => n.Title == "Problems");
 
         problems.Scope.Should().Be(SkillScope.Problems);
-        problems.Count.Should().Be(1);
+        problems.Count.Should().Be(2);
     }
 }

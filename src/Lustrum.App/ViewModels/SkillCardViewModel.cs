@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using FluentIcons.Common;
+using Lustrum.Core.Effective;
 using Lustrum.Core.Models;
 using CoreHealth = Lustrum.Core.Models.Health;
 
@@ -13,8 +14,9 @@ public sealed partial class SkillCardViewModel : ObservableObject
     [ObservableProperty]
     private bool _isBodyLoading = true;
 
-    public SkillCardViewModel(Skill skill, IReadOnlyList<Skill> sameNameElsewhere)
+    public SkillCardViewModel(Skill skill, IReadOnlyList<Skill> sameNameElsewhere, EffectiveEntry? entry = null, string? projectName = null)
     {
+        AvailabilityNote = NoteFor(entry, projectName);
         Skill = skill;
         Health = HealthPresentation.For(skill.Health);
         Title = skill.InvocationName;
@@ -68,9 +70,31 @@ public sealed partial class SkillCardViewModel : ObservableObject
 
     public bool ShowHealth => Skill.Health != CoreHealth.Ok;
 
+    public string? AvailabilityNote { get; }
+
+    public bool HasAvailabilityNote => AvailabilityNote is not null;
+
     public string ModifiedText { get; }
 
     public string SizeText { get; }
+
+    private static string? NoteFor(EffectiveEntry? entry, string? project)
+    {
+        if (entry is null || project is null)
+        {
+            return null;
+        }
+
+        if (entry.ShadowedBy is { } winner)
+        {
+            return $"Not loaded in {project}: the copy in {SkillItemViewModel.SourceLabelFor(winner.Source)} takes precedence";
+        }
+
+        return entry.Overrides.Count > 0
+            ? $"Loaded in {project} instead of the copy in "
+                + string.Join(", ", entry.Overrides.Select(o => SkillItemViewModel.SourceLabelFor(o.Source)).Distinct())
+            : $"Loaded in {project}";
+    }
 
     private static string FormatSize(long bytes) => bytes switch
     {

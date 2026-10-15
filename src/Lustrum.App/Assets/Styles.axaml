@@ -128,6 +128,26 @@
     <Setter Property="Background" Value="{DynamicResource LxSelectedBrush}" />
   </Style>
 
+  <Style Selector="ToggleButton.chip">
+    <Setter Property="Background" Value="{DynamicResource LxNeutralBg}" />
+    <Setter Property="Foreground" Value="{DynamicResource LxNeutralFg}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Padding" Value="10,2" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="ToggleButton.chip:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LxHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LxTextBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.chip:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LxSelectedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LxAccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LxAccentBrush}" />
+  </Style>
+
   <Style Selector="TabControl.card > TabItem">
     <Setter Property="FontSize" Value="13" />
     <Setter Property="Padding" Value="12,6" />

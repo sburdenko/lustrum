@@ -1,6 +1,7 @@
 using FluentIcons.Common;
 using Lustrum.Core.Indexing;
 using Lustrum.Core.Models;
+using Lustrum.Core.Problems;
 
 namespace Lustrum.App.ViewModels;
 
@@ -18,7 +19,7 @@ public static class NavTreeBuilder
             new NavNode("Global", new KindScope(SourceKind.Global), CountKind(SourceKind.Global), Symbol.Globe, []),
             new NavNode("Projects", new KindScope(SourceKind.Project), CountKind(SourceKind.Project), Symbol.FolderOpen, ProjectNodes(scan, CountOf, includeEmptySources)),
             new NavNode("Plugins", new KindScope(SourceKind.Plugin), CountKind(SourceKind.Plugin), Symbol.PuzzlePiece, PluginNodes(scan, CountOf)),
-            new NavNode("Problems", SkillScope.Problems, scan.Skills.Count(SkillScope.Problems.Includes), Symbol.Warning, []),
+            new NavNode("Problems", SkillScope.Problems, ProblemCollector.Collect(scan).Count, Symbol.Warning, []),
         ];
     }
 
@@ -57,8 +58,8 @@ public static class NavTreeBuilder
                         countOf(s),
                         Symbol.PuzzlePiece,
                         [],
-                        IsDimmed: countOf(s) == 0,
-                        Hint: s.RootPath))
+                        IsDimmed: countOf(s) == 0 || !s.IsEnabled,
+                        Hint: s.IsEnabled ? s.RootPath : $"Disabled in Claude Code settings: {s.RootPath}"))
                     .ToList()))
             .ToList();
 

@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fi="using:FluentIcons.Avalonia"
+             xmlns:vm="using:Lustrum.App.ViewModels"
+             x:Class="Lustrum.App.Views.SettingsPanel"
+             x:DataType="vm:MainViewModel"
+             Width="420">
+  <StackPanel Margin="6" Spacing="14" DataContext="{Binding}">
+    <TextBlock Text="Settings" FontSize="16" FontWeight="SemiBold" />
+
+    <StackPanel Spacing="4">
+      <TextBlock Text="OWN SKILL PREFIXES" Classes="caption" />
+      <TextBox Text="{Binding SettingsEditor.OwnPrefixesText}" Watermark="sb-, team-" />
+      <TextBlock Text="Comma-separated. Each prefix becomes a filter chip." Classes="tertiary" FontSize="11" />
+    </StackPanel>
+
+    <StackPanel Spacing="4">
+      <TextBlock Text="EXTRA PROJECT ROOTS" Classes="caption" />
+      <TextBox Text="{Binding SettingsEditor.ExtraRootsText}" AcceptsReturn="True" Height="74" TextWrapping="NoWrap"
+               Watermark="~/dev" FontFamily="{StaticResource LxMono}" FontSize="12" />
+      <TextBlock Text="One folder per line. Searched for projects with a .claude folder." Classes="tertiary" FontSize="11" />
+    </StackPanel>
+
+    <Grid ColumnDefinitions="*,12,*">
+      <StackPanel Spacing="4">
+        <TextBlock Text="SEARCH DEPTH" Classes="caption" />
+        <NumericUpDown Value="{Binding SettingsEditor.SearchDepth}" Minimum="0"
+                       Maximum="{Binding SettingsEditor.MaxSearchDepth}" Increment="1" FormatString="0" />
+      </StackPanel>
+      <StackPanel Grid.Column="2" Spacing="4">
+        <TextBlock Text="THEME" Classes="caption" />
+        <ComboBox ItemsSource="{Binding SettingsEditor.Themes}" SelectedItem="{Binding SettingsEditor.SelectedTheme}"
+                  HorizontalAlignment="Stretch" />
+      </StackPanel>
+    </Grid>
+
+    <StackPanel Spacing="4">
+      <TextBlock Text="SKIP FOLDERS" Classes="caption" />
+      <TextBox Text="{Binding SettingsEditor.ExcludedFoldersText}" Watermark="node_modules, bin, obj" />
+    </StackPanel>
+
+    <StackPanel Spacing="4">
+      <TextBlock Text="EDITOR COMMAND" Classes="caption" />
+      <TextBox Text="{Binding SettingsEditor.EditorCommand}" Watermark="code, rider (empty: default app)" />
+    </StackPanel>
+
+    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+      <Button Classes="ghost" Command="{Binding OpenLogsCommand}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <fi:SymbolIcon Symbol="DocumentText" FontSize="14" />
+          <TextBlock Text="Open logs" />
+        </StackPanel>
+      </Button>
+      <Button Grid.Column="2" Classes="ghost" Command="{Binding ResetSettingsEditorCommand}" Content="Reset" />
+      <Button Grid.Column="3" Classes="primary" Command="{Binding ApplySettingsCommand}" Content="Apply and rescan" />
+    </Grid>
+  </StackPanel>
+</UserControl>

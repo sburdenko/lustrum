@@ -1,0 +1,149 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fi="using:FluentIcons.Avalonia"
+             xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
+             xmlns:vm="using:Lustrum.App.ViewModels"
+             x:Class="Lustrum.App.Views.SkillCardPane"
+             x:DataType="vm:MainViewModel">
+  <Border Classes="panel">
+    <Grid>
+              <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" IsVisible="{Binding !HasCard}">
+                <fi:SymbolIcon Symbol="Sparkle" FontSize="38" Foreground="{DynamicResource LxTextTertiaryBrush}" />
+                <TextBlock Text="Select a skill in the list" Classes="secondary" HorizontalAlignment="Center" />
+              </StackPanel>
+
+              <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasCard}">
+                <StackPanel Margin="20,18,20,12" Spacing="12">
+                  <TextBlock Text="{Binding Card.Title}" FontSize="21" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  <WrapPanel>
+                    <Border Classes="pill skill" Classes.command="{Binding Card.IsCommand}" Margin="0,0,6,6">
+                      <StackPanel Orientation="Horizontal" Spacing="5">
+                        <fi:SymbolIcon Symbol="{Binding Card.KindIcon}" />
+                        <TextBlock Text="{Binding Card.KindLabel}" />
+                      </StackPanel>
+                    </Border>
+                    <Border Classes="pill" Margin="0,0,6,6">
+                      <StackPanel Orientation="Horizontal" Spacing="5">
+                        <fi:SymbolIcon Symbol="{Binding Card.SourceIcon}" />
+                        <TextBlock Text="{Binding Card.SourceLabel}" />
+                      </StackPanel>
+                    </Border>
+                    <Border Classes="pill" Margin="0,0,6,6" Classes.ok="{Binding Card.Health.IsOk}"
+                            Classes.warning="{Binding Card.Health.IsWarning}" Classes.error="{Binding Card.Health.IsError}">
+                      <StackPanel Orientation="Horizontal" Spacing="5">
+                        <fi:SymbolIcon Symbol="{Binding Card.Health.Icon}" />
+                        <TextBlock Text="{Binding Card.Health.Text}" />
+                      </StackPanel>
+                    </Border>
+                  </WrapPanel>
+                  <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
+                    <TextBlock Text="{Binding Card.Description}" TextWrapping="Wrap" LineHeight="20" Classes="secondary" Margin="0,0,10,0" />
+                  </ScrollViewer>
+                  <Border Background="{DynamicResource LxAccentSoftBrush}" CornerRadius="8" Padding="12,9"
+                          IsVisible="{Binding Card.HasAvailabilityNote}">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                      <fi:SymbolIcon Symbol="Info" FontSize="16" Foreground="{DynamicResource LxAccentBrush}" VerticalAlignment="Top" />
+                      <TextBlock Grid.Column="1" Text="{Binding Card.AvailabilityNote}" TextWrapping="Wrap" />
+                    </Grid>
+                  </Border>
+                  <WrapPanel>
+                    <Button Classes="primary" Command="{Binding OpenFolderCommand}" Margin="0,0,8,8">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <fi:SymbolIcon Symbol="FolderOpen" FontSize="16" />
+                        <TextBlock Text="Show in folder" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="ghost" Command="{Binding OpenInEditorCommand}" Margin="0,0,8,8">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <fi:SymbolIcon Symbol="Edit" FontSize="16" />
+                        <TextBlock Text="Open in editor" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="ghost" Command="{Binding CopyPathCommand}" Margin="0,0,8,8">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <fi:SymbolIcon Symbol="Copy" FontSize="16" />
+                        <TextBlock Text="Copy path" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="ghost" Command="{Binding CopyInvocationCommand}" Margin="0,0,0,8">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <fi:SymbolIcon Symbol="SlashForward" FontSize="16" />
+                        <TextBlock Text="Copy name" />
+                      </StackPanel>
+                    </Button>
+                  </WrapPanel>
+                </StackPanel>
+
+                <TabControl x:Name="Tabs" Grid.Row="1" Classes="card" Padding="0">
+                  <TabItem Header="Overview">
+                    <ScrollViewer>
+                      <StackPanel Margin="20,14,20,20" Spacing="20">
+
+                        <StackPanel Spacing="8" IsVisible="{Binding Card.HasFrontmatter}">
+                          <TextBlock Text="FRONTMATTER" Classes="caption" />
+                          <Border Classes="panel" Background="{DynamicResource LxPanelAltBrush}" Padding="12,8">
+                            <ItemsControl ItemsSource="{Binding Card.Frontmatter}">
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:FrontmatterEntry">
+                                  <Grid ColumnDefinitions="118,*" Margin="0,4">
+                                    <TextBlock Text="{Binding Key}" Classes="mono tertiary" VerticalAlignment="Top" />
+                                    <SelectableTextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap"
+                                                         FontFamily="{StaticResource LxMono}" FontSize="12" />
+                                  </Grid>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                          </Border>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                          <TextBlock Text="FILE" Classes="caption" />
+                          <SelectableTextBlock Text="{Binding Card.FilePath}" TextWrapping="Wrap"
+                                               FontFamily="{StaticResource LxMono}" FontSize="12" />
+                          <TextBlock Classes="tertiary" FontSize="12">
+                            <Run Text="{Binding Card.SizeText}" /><Run Text="  ·  modified " /><Run Text="{Binding Card.ModifiedText}" />
+                          </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding Card.HasFiles}">
+                          <TextBlock Text="SIBLING FILES" Classes="caption" />
+                          <ItemsControl ItemsSource="{Binding Card.Files}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{Binding}" Classes="mono secondary" Margin="0,2" TextTrimming="CharacterEllipsis" />
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding Card.HasConflicts}">
+                          <TextBlock Text="NAME CONFLICTS" Classes="caption" />
+                          <TextBlock Text="The same name also exists in:" Classes="secondary" />
+                          <ItemsControl ItemsSource="{Binding Card.Conflicts}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate DataType="vm:ConflictEntry">
+                                <StackPanel Margin="0,4" Spacing="2">
+                                  <TextBlock Text="{Binding Source}" FontWeight="SemiBold" />
+                                  <TextBlock Text="{Binding Path}" Classes="mono tertiary" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+
+                      </StackPanel>
+                    </ScrollViewer>
+                  </TabItem>
+
+                  <TabItem Header="Content">
+                    <Grid>
+                      <md:MarkdownScrollViewer Markdown="{Binding Card.Body}" MarkdownStyleName="FluentTheme" Margin="12,6" />
+                      <TextBlock Text="Loading…" Classes="tertiary" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                 IsVisible="{Binding Card.IsBodyLoading}" />
+                    </Grid>
+                  </TabItem>
+                </TabControl>
+              </Grid>
+            </Grid>
+  </Border>
+</UserControl>

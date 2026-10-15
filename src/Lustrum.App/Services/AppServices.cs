@@ -1,0 +1,7 @@
+namespace Lustrum.App.Services;
+
+public sealed record AppServices(
+    IShellService Shell,
+    IClipboardService Clipboard,
+    ISettingsService Settings,
+    IThemeService Theme);

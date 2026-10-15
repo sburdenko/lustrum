@@ -1,4 +1,5 @@
 using FluentIcons.Common;
+using Lustrum.Core.Effective;
 using Lustrum.Core.Models;
 using CoreHealth = Lustrum.Core.Models.Health;
 
@@ -6,9 +7,13 @@ namespace Lustrum.App.ViewModels;
 
 public sealed class SkillItemViewModel
 {
-    public SkillItemViewModel(Skill skill)
+    public SkillItemViewModel(Skill skill, EffectiveEntry? entry = null)
     {
         Skill = skill;
+        Entry = entry;
+        IsShadowed = entry?.Availability == Availability.Shadowed;
+        IsDisabled = skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled;
+        AvailabilityLabel = LabelFor(skill, entry);
         Health = HealthPresentation.For(skill.Health);
         Prefix = skill.Kind == SkillKind.Command ? "/" : PluginPrefix(skill);
         Description = string.IsNullOrWhiteSpace(skill.Description) ? "no description" : skill.Description.ReplaceLineEndings(" ");
@@ -19,6 +24,18 @@ public sealed class SkillItemViewModel
     }
 
     public Skill Skill { get; }
+
+    public EffectiveEntry? Entry { get; }
+
+    public bool IsShadowed { get; }
+
+    public bool IsDisabled { get; }
+
+    public string? AvailabilityLabel { get; }
+
+    public bool HasAvailabilityLabel => AvailabilityLabel is not null;
+
+    public double RowOpacity => IsShadowed || IsDisabled ? 0.5 : 1.0;
 
     public HealthPresentation Health { get; }
 
@@ -52,6 +69,21 @@ public sealed class SkillItemViewModel
         SourceKind.Plugin => source.DisplayName.Split(' ')[0],
         _ => source.DisplayName,
     };
+
+    public static string? LabelFor(Skill skill, EffectiveEntry? entry)
+    {
+        if (entry?.ShadowedBy is { } winner)
+        {
+            return $"shadowed by {SourceLabelFor(winner.Source)}";
+        }
+
+        if (entry is { Overrides.Count: > 0 })
+        {
+            return "overrides " + string.Join(", ", entry.Overrides.Select(o => SourceLabelFor(o.Source)).Distinct());
+        }
+
+        return skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled ? "disabled" : null;
+    }
 
     private static string PluginPrefix(Skill skill) =>
         skill.FullName.Length > skill.Name.Length ? skill.FullName[..(skill.FullName.Length - skill.Name.Length)] : string.Empty;

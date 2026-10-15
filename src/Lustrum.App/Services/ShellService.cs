@@ -30,6 +30,35 @@ public sealed class ShellService : IShellService
         return OpenFolder(Path.GetDirectoryName(path)!);
     }
 
+    public bool OpenInEditor(string path, string command)
+    {
+        var parts = CommandLine.Split(command);
+        if (parts.Count > 0)
+        {
+            return Start(parts[0], [.. parts.Skip(1), path]);
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            return StartWithShell(path);
+        }
+
+        return Start(OperatingSystem.IsMacOS() ? "open" : "xdg-open", path);
+    }
+
+    private static bool StartWithShell(string path)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
+            return true;
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or FileNotFoundException)
+        {
+            return false;
+        }
+    }
+
     private static bool Start(string fileName, params string[] arguments)
     {
         var info = new ProcessStartInfo(fileName) { UseShellExecute = false };

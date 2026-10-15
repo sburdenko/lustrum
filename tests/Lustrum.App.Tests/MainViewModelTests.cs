@@ -2,48 +2,22 @@ using FluentAssertions;
 using Lustrum.App.Services;
 using Lustrum.App.ViewModels;
 using Lustrum.Core.Models;
+using Lustrum.Core.Settings;
 
 namespace Lustrum.App.Tests;
 
 public class MainViewModelTests
 {
-    private sealed class FakeShell : IShellService
-    {
-        public List<string> Revealed { get; } = [];
-
-        public List<string> Opened { get; } = [];
-
-        public bool Succeeds { get; set; } = true;
-
-        public bool OpenFolder(string path)
-        {
-            Opened.Add(path);
-            return Succeeds;
-        }
-
-        public bool RevealFile(string path)
-        {
-            Revealed.Add(path);
-            return Succeeds;
-        }
-    }
-
-    private sealed class FakeClipboard : IClipboardService
-    {
-        public List<string> Texts { get; } = [];
-
-        public Task SetTextAsync(string text)
-        {
-            Texts.Add(text);
-            return Task.CompletedTask;
-        }
-    }
-
     private readonly FakeShell _shell = new();
     private readonly FakeClipboard _clipboard = new();
+    private readonly FakeSettings _settings = new(LustrumSettings.Default);
+    private readonly FakeTheme _theme = new();
 
-    private MainViewModel Create(Func<CancellationToken, Task<ScanResult>>? scan = null) =>
-        new(scan ?? (_ => Task.FromResult(TestData.Default())), _shell, _clipboard);
+    private MainViewModel Create(Func<CancellationToken, Task<ScanResult>>? scan = null)
+    {
+        var run = scan ?? (_ => Task.FromResult(TestData.Default()));
+        return new MainViewModel((_, token) => run(token), new AppServices(_shell, _clipboard, _settings, _theme));
+    }
 
     private async Task<MainViewModel> Scanned()
     {
@@ -152,7 +126,7 @@ public class MainViewModelTests
 
         await vm.RescanCommand.ExecuteAsync(null);
 
-        vm.ScanError.Should().Contain("disk gone");
+        vm.ErrorMessage.Should().Contain("disk gone");
         vm.IsScanning.Should().BeFalse();
     }
 
@@ -203,7 +177,7 @@ public class MainViewModelTests
 
         await vm.RescanCommand.ExecuteAsync(null);
 
-        vm.ScanError.Should().Contain("duplicate key");
+        vm.ErrorMessage.Should().Contain("duplicate key");
     }
 
     [Fact]
@@ -215,7 +189,7 @@ public class MainViewModelTests
 
         vm.OpenFolderCommand.Execute(null);
 
-        vm.ScanError.Should().NotBeNullOrEmpty();
+        vm.ErrorMessage.Should().NotBeNullOrEmpty();
     }
 
     [Theory]

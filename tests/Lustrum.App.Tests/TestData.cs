@@ -43,6 +43,16 @@ internal static class TestData
     public static ScanResult Scan(IReadOnlyList<SkillSource> sources, IReadOnlyList<Skill> skills) =>
         new(sources, skills, [], [], DateTimeOffset.UtcNow, TimeSpan.FromMilliseconds(5));
 
+    public static ScanResult WithShadowing() => Scan(
+        [Global, Project, EmptyProject, Plugin],
+        [
+            Skill(Global, "design", "Global design"),
+            Skill(Global, "notes", "Global notes"),
+            Skill(Project, "design", "Project design"),
+            Skill(EmptyProject, "elsewhere", "Other project"),
+            Skill(Plugin, "ui", "Unity UI"),
+        ]);
+
     public static ScanResult Default() => Scan(
         [Global, Project, EmptyProject, GhostProject, Plugin],
         [
