@@ -44,7 +44,7 @@ public class ProjectPathDecoderTests
     public void Decodes_folder_name_ending_in_a_separator_character()
     {
         using var home = new FakeClaudeHome();
-        var project = home.Project("dev/app.");
+        var project = home.Project("dev/app_");
 
         var decoded = ProjectPathDecoder.Decode(ProjectPathDecoder.Encode(project));
 
