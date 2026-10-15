@@ -45,7 +45,15 @@ Installed plugins live in a cache, several versions side by side:
 
 `~/.claude/plugins/marketplaces/` is the catalogue of what could be installed, not what is.
 
-Code: `SourceDiscovery.InstalledPlugins`, `SourceDiscovery.CachedPlugins` (fallback when the registry is missing).
+`~/.claude/settings.json` can switch plugins off:
+
+```json
+{ "enabledPlugins": { "<plugin>@<marketplace>": false } }
+```
+
+Only an explicit `false` counts as disabled; a plugin that is not listed is treated as enabled.
+
+Code: `PluginDiscovery` (registry, cache fallback, `enabledPlugins`).
 
 ## Projects
 
@@ -70,4 +78,4 @@ whose re-encoded name matches.
 The home directory also appears as a project. Its `.claude` folder is the global source, so it is skipped
 to avoid listing every global skill twice.
 
-Code: `ProjectPathDecoder`, `SourceDiscovery.ProjectSources`.
+Code: `ProjectPathDecoder`, `ProjectDiscovery`.
