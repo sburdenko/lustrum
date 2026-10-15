@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Lustrum
+Comment=Inventory of Claude Code skills
+Exec=Lustrum
+Icon=lustrum
+Categories=Development;
+Terminal=false

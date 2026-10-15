@@ -33,13 +33,19 @@ The window keeps itself up to date while you edit skills.
 
 ## Get it
 
-**Prebuilt.** Every `v*` tag publishes self-contained archives to
-[Releases](https://github.com/sburdenko/lustrum/releases) for `win-x64`, `osx-arm64`, `osx-x64` and `linux-x64`.
-No .NET install is needed. Each archive holds the app (`lustrum/Lustrum`) and the CLI (`lustrum/cli/lustrum`).
-The binaries are not signed, so macOS Gatekeeper blocks them until you clear the quarantine flag:
+**Prebuilt.** Every `v*` tag publishes self-contained builds to
+[Releases](https://github.com/sburdenko/lustrum/releases). No .NET install is needed.
+
+| Platform | Download | Contents |
+|---|---|---|
+| macOS (Apple silicon, Intel) | `lustrum-<tag>-osx-arm64.zip`, `lustrum-<tag>-osx-x64.zip` | `Lustrum.app` and `cli/lustrum` |
+| Linux x64 | `Lustrum-<tag>-x86_64.AppImage`, `lustrum-<tag>-linux-x64.tar.gz` | AppImage of the app; archive with the app and the CLI |
+| Windows x64 | `lustrum-<tag>-win-x64.zip` | `Lustrum.exe` and `cli\lustrum.exe` |
+
+The macOS app is ad-hoc signed but not notarized, so Gatekeeper blocks it until you clear the quarantine flag:
 
 ```bash
-xattr -dr com.apple.quarantine lustrum
+xattr -dr com.apple.quarantine Lustrum.app
 ```
 
 **From source.** You need the [.NET 10 SDK](https://dotnet.microsoft.com/download).
@@ -336,7 +342,8 @@ lustrum/
 │   ├── Lustrum.App.Tests/    view models, source tree, services
 │   └── Lustrum.Cli.Tests/    table output
 ├── docs/                  screenshots, Claude Code on-disk notes
-├── .github/workflows/     CI on three OSes, release archives on tags
+├── build/                 packaging scripts: macOS app bundle, Linux AppImage
+├── .github/workflows/     CI on three OSes, release builds on tags
 ├── Directory.Build.props  net10.0, nullable, warnings as errors
 └── lustrum.sln
 ```
@@ -369,7 +376,7 @@ dotnet test
 - The effective set follows two rules: project over global for the same name, and plugins only when enabled in the
   user-level `~/.claude/settings.json`. Project-level settings files are not read.
 - The window has only been run on macOS; on Windows and Linux only the tests run in CI.
-- Release binaries are unsigned and are plain executables, not an `.app`, installer or AppImage.
+- The macOS app is not notarized, and there is no Windows installer.
 
 ## Name
 
