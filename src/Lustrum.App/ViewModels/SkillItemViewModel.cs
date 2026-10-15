@@ -70,20 +70,9 @@ public sealed class SkillItemViewModel
         _ => source.DisplayName,
     };
 
-    public static string? LabelFor(Skill skill, EffectiveEntry? entry)
-    {
-        if (entry?.ShadowedBy is { } winner)
-        {
-            return $"shadowed by {SourceLabelFor(winner.Source)}";
-        }
-
-        if (entry is { Overrides.Count: > 0 })
-        {
-            return "overrides " + string.Join(", ", entry.Overrides.Select(o => SourceLabelFor(o.Source)).Distinct());
-        }
-
-        return skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled ? "disabled" : null;
-    }
+    public static string? LabelFor(Skill skill, EffectiveEntry? entry) =>
+        entry?.Label(SourceLabelFor)
+        ?? (skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled ? "disabled" : null);
 
     private static string PluginPrefix(Skill skill) =>
         skill.FullName.Length > skill.Name.Length ? skill.FullName[..(skill.FullName.Length - skill.Name.Length)] : string.Empty;

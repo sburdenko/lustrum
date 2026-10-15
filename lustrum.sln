@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lustrum.App", "src\Lustrum.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lustrum.App.Tests", "tests\Lustrum.App.Tests\Lustrum.App.Tests.csproj", "{CCD6D5E6-AB60-4EE6-8E18-CE990CC3AD5E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lustrum.Cli.Tests", "tests\Lustrum.Cli.Tests\Lustrum.Cli.Tests.csproj", "{1DEAEF80-5ECA-4307-9E75-F56B7840960D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,18 @@ Global
 		{CCD6D5E6-AB60-4EE6-8E18-CE990CC3AD5E}.Release|x64.Build.0 = Release|Any CPU
 		{CCD6D5E6-AB60-4EE6-8E18-CE990CC3AD5E}.Release|x86.ActiveCfg = Release|Any CPU
 		{CCD6D5E6-AB60-4EE6-8E18-CE990CC3AD5E}.Release|x86.Build.0 = Release|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Debug|x64.Build.0 = Debug|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Debug|x86.Build.0 = Debug|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Release|x64.ActiveCfg = Release|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Release|x64.Build.0 = Release|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Release|x86.ActiveCfg = Release|Any CPU
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -97,5 +111,6 @@ Global
 		{7E40A587-2580-4F30-B948-11692A0B2097} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{A718F9D0-B9B3-4D7C-87D7-D9D8B26C4BD7} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{CCD6D5E6-AB60-4EE6-8E18-CE990CC3AD5E} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{1DEAEF80-5ECA-4307-9E75-F56B7840960D} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
