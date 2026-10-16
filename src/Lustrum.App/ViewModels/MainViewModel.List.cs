@@ -13,6 +13,7 @@ public sealed partial class MainViewModel
         new(SortMode.Name, "By name"),
         new(SortMode.Source, "By source"),
         new(SortMode.Modified, "By date"),
+        new(SortMode.LastUsed, "By last use"),
     ];
 
     private bool _isRefreshingList;
@@ -38,7 +39,7 @@ public sealed partial class MainViewModel
         ? $"{project.DisplayName} · effective set"
         : SelectedNode?.Title ?? "All";
 
-    private IReadOnlyList<string> RequiredTags => Chips.Where(c => c.IsOn).Select(c => c.Tag).ToList();
+    private bool MatchesChips(Skill skill) => Chips.Where(c => c.IsActive).All(c => c.Filter.Matches(skill, Usage));
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private void ClearSearch() => SearchText = string.Empty;
@@ -54,12 +55,18 @@ public sealed partial class MainViewModel
     partial void OnVisibleSkillsChanged(IReadOnlyList<SkillItemViewModel> value) =>
         OnPropertyChanged(nameof(IsEmptyResult));
 
-    private IReadOnlyList<ChipViewModel> BuildChips(IEnumerable<string> activeTags)
+    private IReadOnlyList<ChipViewModel> BuildChips(IEnumerable<string> activeLabels)
     {
-        var chips = FilterChips.Build(_settings.OwnPrefixes, activeTags);
+        var chips = FilterChips.Build(_settings.OwnPrefixes, activeLabels, UsageState.CanJudgeUnused);
         foreach (var chip in chips)
         {
-            chip.PropertyChanged += (_, _) => RefreshList();
+            chip.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(ChipViewModel.IsOn))
+                {
+                    RefreshList();
+                }
+            };
         }
 
         return chips;
@@ -71,9 +78,8 @@ public sealed partial class MainViewModel
         var project = EffectiveProject;
         _effective = project is null ? null : EffectiveSetBuilder.Build(_result, project);
         var scope = project is null ? SelectedNode?.Scope ?? SkillScope.All : new EffectiveScope(project.Id);
-        var tags = RequiredTags;
-        var found = SkillIndex.Search(_result.Skills, new SkillQuery(scope, SearchText, tags));
-        var withBody = WithBodyMatches(found, scope, tags);
+        var found = SkillIndex.Search(_result.Skills, new SkillQuery(scope, SearchText)).Where(MatchesChips).ToList();
+        var withBody = WithBodyMatches(found, scope);
 
         _isRefreshingList = true;
         try
@@ -98,6 +104,9 @@ public sealed partial class MainViewModel
             .ThenBy(s => s.Source.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(s => s.FullName, StringComparer.OrdinalIgnoreCase),
         SortMode.Modified => skills.OrderByDescending(s => s.Modified),
+        SortMode.LastUsed => skills
+            .OrderByDescending(s => Usage?.For(s.FullName)?.LastUsed ?? DateTimeOffset.MinValue)
+            .ThenBy(s => s.FullName, StringComparer.OrdinalIgnoreCase),
         _ => skills,
     };
 }

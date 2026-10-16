@@ -44,6 +44,7 @@ public sealed partial class MainViewModel
             .ToList() ?? [];
 
         var card = new SkillCardViewModel(item.Skill, others, _effective?.Find(item.Skill.Id), _effective?.Project.DisplayName);
+        card.ApplyUsage(UsageState);
         Card = card;
         _ = LoadBodyAsync(card);
     }

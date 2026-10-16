@@ -67,10 +67,11 @@
     </Grid>
 
     <Border Grid.Row="3" Padding="20,6,20,10">
-      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
         <TextBlock Text="{Binding StatusText}" Classes="tertiary" FontSize="12" />
         <TextBlock Grid.Column="1" Text="{Binding WatchStatus}" Classes="tertiary" FontSize="12" Margin="16,0,0,0" />
-        <TextBlock Grid.Column="3" Text="{Binding ErrorMessage}" FontSize="12"
+        <TextBlock Grid.Column="2" Text="{Binding UsageStatus}" Classes="tertiary" FontSize="12" Margin="16,0,0,0" />
+        <TextBlock Grid.Column="4" Text="{Binding ErrorMessage}" FontSize="12"
                    Foreground="{DynamicResource LxErrFgBrush}" TextTrimming="CharacterEllipsis" MaxWidth="640" />
       </Grid>
     </Border>

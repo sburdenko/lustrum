@@ -66,7 +66,7 @@ public sealed class LiveRescan : IDisposable
             return;
         }
 
-        watcher.Changed += () => Dispatcher.UIThread.Post(() => _viewModel.RescanCommand.Execute(null));
+        watcher.Changed += () => Dispatcher.UIThread.Post(() => _ = _viewModel.RescanFromWatcherAsync());
         Replace(watcher, targets);
         _viewModel.WatchStatus = watcher.IsPolling
             ? $"Checking {watcher.WatchedCount} folders every 30 s"

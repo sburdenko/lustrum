@@ -23,7 +23,7 @@ public sealed partial class MainViewModel
         _persistentNotice = null;
         SettingsEditor.Load(settings);
         _services.Theme.Apply(settings.Theme);
-        Chips = BuildChips(RequiredTags);
+        Chips = BuildChips(Chips.Where(c => c.IsOn).Select(c => c.Label).ToList());
         await RescanAsync();
     }
 }

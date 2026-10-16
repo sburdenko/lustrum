@@ -27,6 +27,7 @@ have a few dozen skills:
 - Which ones does project X actually load?
 - Where do names collide, and which copy wins?
 - Which ones are broken (no frontmatter, bad YAML, missing description)?
+- Which ones are never used?
 
 Lustrum scans the disk, builds an immutable snapshot and shows it in a desktop window or prints it from a CLI.
 The window keeps itself up to date while you edit skills.
@@ -56,7 +57,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 168 tests
+dotnet test                                            # 202 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -69,9 +70,10 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 | **Effective set** | Pick a project and tick **Effective set**: the list shows exactly what that project loads, marks skills that are shadowed and says what overrides what. |
 | **Skill list** | Name with plugin prefix, description, source, health marker. Sort by best match, name, source or date. |
 | **Search** | Fuzzy on names, substring on descriptions and tags, ranked by relevance. Optionally searches the text of every `SKILL.md`. |
-| **Filter chips** | One chip per own prefix (`sb-*` by default), plus `plugin`, `command`, `broken`, `duplicate`. Chips combine. |
+| **Filter chips** | One chip per own prefix (`sb-*` by default), plus `plugin`, `command`, `broken`, `duplicate` and `unused`. Chips combine. |
+| **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, read from Claude Code transcripts. Sort by last use. |
 | **Problems** | One list of broken skills (with the YAML line and cause), over-long descriptions, projects whose folder is gone and paths that could not be read. |
-| **Skill card** | Description, health, parsed frontmatter, file path, sibling files, name conflicts, rendered `SKILL.md`. |
+| **Skill card** | Description, health, usage, parsed frontmatter, file path, sibling files, name conflicts, rendered `SKILL.md`. |
 | **Actions** | Show in file manager, open in editor, copy path, copy invocation name (`/deploy`, `unity:ui`). |
 | **Live updates** | File system watchers trigger a rescan half a second after skills or plugin settings change. |
 | **Settings** | Own prefixes, extra project roots, search depth, skipped folders, editor command (quote paths with spaces), theme. |
@@ -96,7 +98,8 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 </tr>
 </table>
 
-The screenshots use a synthetic `~/.claude` tree, not a real machine.
+The screenshots use a synthetic `~/.claude` tree, not a real machine. `dotnet run --project tools/Lustrum.Screenshots`
+rebuilds them in `docs/`.
 
 ## Where it looks
 
@@ -150,15 +153,17 @@ flowchart TB
         problems["Problems<br/>ProblemCollector"]
         watching["Watching<br/>SkillTreeWatcher"]
         settings["Settings<br/>SettingsStore"]
+        usage["Usage<br/>UsageCollector · TranscriptParser"]
     end
 
     disk[("~/.claude<br/>~/.claude.json<br/>&lt;project&gt;/.claude")]
 
-    app --> scanner & index & effective & problems & watching & settings
-    cli --> scanner & settings
+    app --> scanner & index & effective & problems & watching & settings & usage
+    cli --> scanner & settings & usage
     scanner --> parser
     scanner --> disk
     watching --> disk
+    usage --> disk
 ```
 
 ### Scan pipeline
@@ -245,6 +250,24 @@ by score.
 **Search SKILL.md text** runs `SkillBodySearch` 250 ms after you stop typing: it reads each `SKILL.md` body from
 disk, keeps the ones that contain every word and appends them to the results. Bodies are not kept in memory.
 
+### Usage
+
+Claude Code writes every session to `~/.claude/projects/<encoded>/*.jsonl` (subagents included). A skill counts as
+used by Claude when an assistant entry has a `Skill` tool call (`input.skill`), and as used by you when a user entry
+contains `<command-name>/name</command-name>`. Usage is matched to skills by full name (`unity:ui`, `deploy`), so two
+skills with the same name share their numbers.
+
+Those files can add up to gigabytes, so `UsageCollector` reads them incrementally: it remembers, per file, the
+length, the modification time and the offset after the last complete line, and on the next pass reads only what was
+appended. A hash of the first 4 KB catches files that were replaced rather than appended to. Lines are split on raw
+bytes and only lines that contain one of the two markers are decoded and parsed. Lines over 16 MB (pasted images,
+huge tool output) are skipped. On one machine with 1.4 GB of transcripts the first pass took 0.3 s and the next one
+7 ms.
+
+The window collects usage in the background after the first scan and again on every manual rescan; file-watcher
+rescans leave it alone. The cache lives in memory, so each launch starts with a full pass. Until usage is known, the
+`unused` chip is disabled; it stays disabled when no transcripts exist, because then every skill would look unused.
+
 ### Live updates
 
 `WatchTargets` picks what to watch. Skill and command folders and the plugin cache are watched recursively.
@@ -293,7 +316,7 @@ data. **Open logs** in the settings panel opens the folder.
 ## CLI
 
 ```text
-lustrum list [--json] [--source global|project|plugin] [--broken] [--project <folder>]
+lustrum list [--json] [--source global|project|plugin] [--broken] [--project <folder>] [--usage] [--unused]
 ```
 
 ```text
@@ -324,24 +347,31 @@ release-notes  storefront  ok                  overrides Global  Release notes f
 ui-kit         storefront  ok                  loaded            Use the shared component library correctly: tokens, spacing, accessibil…
 ```
 
+`--usage` adds `USES` and `LAST USED` columns read from the transcripts, `--unused` keeps only skills with no
+recorded use. Both work with `--project`. Without any transcripts `--unused` refuses to run instead of reporting
+every skill as unused.
+
 `--json` prints the full `Skill` records, including `frontmatter`, `allowedTools`, `files`, `health` and `tags`.
-With `--project`, each record also carries `availability`, `shadowedBy` and `overrides` (skill ids).
+With `--project`, each record also carries `availability`, `shadowedBy` and `overrides` (skill ids); with `--usage`,
+a `usage` object.
 Files that could not be read are reported on stderr as `warning: <path>: <reason>`.
-An unknown `--source` or a folder without `.claude` exits with code 2.
+An unknown `--source`, a folder without `.claude` or `--unused` without transcripts exits with code 2.
 
 ## Repository layout
 
 ```text
 lustrum/
 ├── src/
-│   ├── Lustrum.Core/      Models/ Parsing/ Scanning/ Indexing/ Effective/ Problems/ Settings/ Watching/
+│   ├── Lustrum.Core/      Models/ Parsing/ Scanning/ Indexing/ Effective/ Problems/ Settings/ Watching/ Usage/
 │   ├── Lustrum.App/       Views/ ViewModels/ Services/ Assets/
 │   └── Lustrum.Cli/       list command, table renderer
 ├── tests/
-│   ├── Lustrum.Core.Tests/   scanner, discovery, parser, decoder, search, effective set, problems, settings, watcher
+│   ├── Lustrum.Core.Tests/   scanner, discovery, parser, decoder, search, effective set, problems, settings, watcher, usage
 │   ├── Lustrum.App.Tests/    view models, source tree, services
 │   └── Lustrum.Cli.Tests/    table output
 ├── docs/                  screenshots, Claude Code on-disk notes
+├── tools/
+│   └── Lustrum.Screenshots/  renders the README screenshots from a synthetic ~/.claude
 ├── build/                 packaging scripts: macOS app bundle, Linux AppImage
 ├── .github/workflows/     CI on three OSes, release builds on tags
 ├── Directory.Build.props  net10.0, nullable, warnings as errors
@@ -350,14 +380,14 @@ lustrum/
 
 ## Tests
 
-168 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+202 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,
 oversized frontmatter, native and polling file watching. The App tests drive `MainViewModel` with a fake scan
 function, shell, clipboard, settings and theme, including overlapping rescans and the effective set.
 
-Measured with coverlet: 93% of lines in `Lustrum.Core`, 81% in the view models.
+Measured with coverlet: 91% of lines in `Lustrum.Core`, 83% in the view models.
 
 ```bash
 dotnet test
@@ -377,6 +407,7 @@ dotnet test
   user-level `~/.claude/settings.json`. Project-level settings files are not read.
 - The window has only been run on macOS; on Windows and Linux only the tests run in CI.
 - The macOS app is not notarized, and there is no Windows installer.
+- Usage is counted by skill name from transcripts whose format Anthropic does not document.
 
 ## Name
 
