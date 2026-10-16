@@ -79,7 +79,15 @@
                     <ScrollViewer>
                       <StackPanel Margin="20,14,20,20" Spacing="20">
 
-                        <StackPanel Spacing="8" IsVisible="{Binding Card.HasFrontmatter}">
+                        <StackPanel Spacing="6">
+                  <TextBlock Text="USAGE" Classes="caption" />
+                  <TextBlock Text="{Binding Card.UsageText}" TextWrapping="Wrap" />
+                  <TextBlock Classes="tertiary" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Card.HasUsageProjects}">
+                    <Run Text="In " /><Run Text="{Binding Card.UsageProjects}" />
+                  </TextBlock>
+                </StackPanel>
+
+                <StackPanel Spacing="8" IsVisible="{Binding Card.HasFrontmatter}">
                           <TextBlock Text="FRONTMATTER" Classes="caption" />
                           <Border Classes="panel" Background="{DynamicResource LxPanelAltBrush}" Padding="12,8">
                             <ItemsControl ItemsSource="{Binding Card.Frontmatter}">

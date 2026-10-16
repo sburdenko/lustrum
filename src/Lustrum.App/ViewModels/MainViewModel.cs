@@ -5,12 +5,14 @@ using Lustrum.Core.Indexing;
 using Lustrum.Core.Models;
 using Lustrum.Core.Scanning;
 using Lustrum.Core.Settings;
+using Lustrum.Core.Usage;
 
 namespace Lustrum.App.ViewModels;
 
 public sealed partial class MainViewModel : ObservableObject
 {
     private readonly Func<ScanOptions, CancellationToken, Task<ScanResult>> _scan;
+    private readonly Func<CancellationToken, Task<UsageReport>> _usageSource;
     private readonly AppServices _services;
     private CancellationTokenSource? _scanCancellation;
     private ScanResult _result = Empty;
@@ -41,9 +43,13 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string? _errorMessage;
 
-    public MainViewModel(Func<ScanOptions, CancellationToken, Task<ScanResult>> scan, AppServices services)
+    public MainViewModel(
+        Func<ScanOptions, CancellationToken, Task<ScanResult>> scan,
+        Func<CancellationToken, Task<UsageReport>> usage,
+        AppServices services)
     {
         _scan = scan;
+        _usageSource = usage;
         _services = services;
         _settings = services.Settings.Current;
         _persistentNotice = services.Settings.Warning;
@@ -61,6 +67,14 @@ public sealed partial class MainViewModel : ObservableObject
 
     [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task RescanAsync()
+    {
+        await ScanAsync();
+        _ = RefreshUsageAsync();
+    }
+
+    public Task RescanFromWatcherAsync() => ScanAsync();
+
+    private async Task ScanAsync()
     {
         _scanCancellation?.Cancel();
         var cancellation = new CancellationTokenSource();

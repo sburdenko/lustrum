@@ -7,6 +7,7 @@ using Lustrum.App.ViewModels;
 using Lustrum.App.Views;
 using Lustrum.Core.Scanning;
 using Lustrum.Core.Settings;
+using Lustrum.Core.Usage;
 
 namespace Lustrum.App;
 
@@ -24,8 +25,10 @@ public sealed class App : Application
             var log = new ScanLog(settings.LogFolder, SinceStart);
             var paths = ClaudePaths.ForCurrentUser();
             var window = new MainWindow();
+            var usage = new UsageCollector();
             var viewModel = new MainViewModel(
                 (options, token) => Task.Run(() => SkillScanner.ScanAsync(paths, options, token), token),
+                token => Task.Run(() => usage.CollectAsync(paths.ProjectsDir, token), token),
                 new AppServices(new ShellService(), new AvaloniaClipboardService(window), settings, new ThemeService()));
             var live = new LiveRescan(viewModel, paths);
             viewModel.ScanApplied += log.Record;

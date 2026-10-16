@@ -5,6 +5,7 @@ using Lustrum.Core.Indexing;
 using Lustrum.Core.Models;
 using Lustrum.Core.Scanning;
 using Lustrum.Core.Settings;
+using Lustrum.Core.Usage;
 
 namespace Lustrum.App.Tests;
 
@@ -24,6 +25,7 @@ public class FeatureViewModelTests
                 _scanOptions.Add(options);
                 return Task.FromResult(result);
             },
+            _ => Task.FromResult(UsageReport.Empty),
             new AppServices(_shell, _clipboard, _settings, _theme));
     }
 
@@ -98,7 +100,7 @@ public class FeatureViewModelTests
     {
         var vm = await Scanned();
 
-        vm.Chips.Select(c => c.Label).Should().Equal("sb-*", "plugin", "command", "broken", "duplicate");
+        vm.Chips.Select(c => c.Label).Should().Equal("sb-*", "plugin", "command", "broken", "duplicate", "unused");
     }
 
     [Fact]

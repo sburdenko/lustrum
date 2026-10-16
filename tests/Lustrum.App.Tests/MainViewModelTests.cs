@@ -3,6 +3,7 @@ using Lustrum.App.Services;
 using Lustrum.App.ViewModels;
 using Lustrum.Core.Models;
 using Lustrum.Core.Settings;
+using Lustrum.Core.Usage;
 
 namespace Lustrum.App.Tests;
 
@@ -16,7 +17,7 @@ public class MainViewModelTests
     private MainViewModel Create(Func<CancellationToken, Task<ScanResult>>? scan = null)
     {
         var run = scan ?? (_ => Task.FromResult(TestData.Default()));
-        return new MainViewModel((_, token) => run(token), new AppServices(_shell, _clipboard, _settings, _theme));
+        return new MainViewModel((_, token) => run(token), _ => Task.FromResult(UsageReport.Empty), new AppServices(_shell, _clipboard, _settings, _theme));
     }
 
     private async Task<MainViewModel> Scanned()

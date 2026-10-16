@@ -34,7 +34,8 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="vm:ChipViewModel">
-              <ToggleButton Classes="chip" Content="{Binding Label}" IsChecked="{Binding IsOn}" Margin="0,0,6,4" />
+              <ToggleButton Classes="chip" Content="{Binding Label}" IsChecked="{Binding IsOn}" Margin="0,0,6,4"
+                            IsEnabled="{Binding IsAvailable}" ToolTip.Tip="{Binding Hint}" />
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>

@@ -21,7 +21,7 @@ public sealed partial class MainViewModel
         StartBodySearch();
     }
 
-    private IReadOnlyList<Skill> WithBodyMatches(IReadOnlyList<Skill> found, SkillScope scope, IReadOnlyList<string> tags)
+    private IReadOnlyList<Skill> WithBodyMatches(IReadOnlyList<Skill> found, SkillScope scope)
     {
         if (!SearchInContent || _contentMatches.Text != SearchText || _contentMatches.Ids.Count == 0)
         {
@@ -33,7 +33,7 @@ public sealed partial class MainViewModel
             _contentMatches.Ids.Contains(s.Id)
             && !already.Contains(s.Id)
             && scope.Includes(s)
-            && tags.All(s.Tags.Contains));
+            && MatchesChips(s));
         return found.Concat(extra).ToList();
     }
 

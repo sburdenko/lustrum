@@ -14,6 +14,13 @@ public sealed partial class SkillCardViewModel : ObservableObject
     [ObservableProperty]
     private bool _isBodyLoading = true;
 
+    [ObservableProperty]
+    private string _usageText = "Reading Claude Code transcripts…";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUsageProjects))]
+    private string _usageProjects = string.Empty;
+
     public SkillCardViewModel(Skill skill, IReadOnlyList<Skill> sameNameElsewhere, EffectiveEntry? entry = null, string? projectName = null)
     {
         AvailabilityNote = NoteFor(entry, projectName);
@@ -70,6 +77,8 @@ public sealed partial class SkillCardViewModel : ObservableObject
 
     public bool ShowHealth => Skill.Health != CoreHealth.Ok;
 
+    public bool HasUsageProjects => UsageProjects.Length > 0;
+
     public string? AvailabilityNote { get; }
 
     public bool HasAvailabilityNote => AvailabilityNote is not null;
@@ -77,6 +86,15 @@ public sealed partial class SkillCardViewModel : ObservableObject
     public string ModifiedText { get; }
 
     public string SizeText { get; }
+
+    public void ApplyUsage(UsageState state)
+    {
+        UsageText = state.Describe(Skill);
+        var usage = state.Report?.For(Skill.FullName);
+        UsageProjects = usage is null
+            ? string.Empty
+            : string.Join(", ", usage.Projects.Select(p => System.IO.Path.GetFileName(p.TrimEnd('/', '\\'))).Distinct());
+    }
 
     private static string? NoteFor(EffectiveEntry? entry, string? project)
     {
