@@ -148,6 +148,30 @@
     <Setter Property="BorderBrush" Value="{DynamicResource LxAccentBrush}" />
   </Style>
 
+  <Style Selector="ListBox.segments">
+    <Setter Property="Background" Value="{DynamicResource LxNeutralBg}" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="2" />
+  </Style>
+  <Style Selector="ListBox.segments > ListBoxItem">
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="ListBox.segments > ListBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LxPanelBrush}" />
+  </Style>
+  <Style Selector="ListBox.segments > ListBoxItem:selected TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource LxAccentBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="ListBox.segments > ListBoxItem:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LxHoverBrush}" />
+  </Style>
+  <Style Selector="ListBox.segments > ListBoxItem:selected:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LxPanelBrush}" />
+  </Style>
+
   <Style Selector="Border.diff">
     <Setter Property="Padding" Value="4,1" />
   </Style>

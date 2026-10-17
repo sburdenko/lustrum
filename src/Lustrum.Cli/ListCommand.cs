@@ -30,6 +30,7 @@ internal static class ListCommand
         var broken = new Option<bool>("--broken") { Description = "Only skills with a health problem" };
         var usage = new Option<bool>("--usage") { Description = "Add how often and when each skill was used, read from Claude Code transcripts" };
         var unused = new Option<bool>("--unused") { Description = "Only skills with no recorded use in Claude Code transcripts" };
+        var missing = new Option<bool>("--missing") { Description = "With --project: skills on this machine that the project does not load" };
         var project = new Option<string?>("--project")
         {
             Description = "Show what Claude Code loads in this project folder: its skills, global skills and enabled plugins",
@@ -42,6 +43,7 @@ internal static class ListCommand
         command.Options.Add(project);
         command.Options.Add(usage);
         command.Options.Add(unused);
+        command.Options.Add(missing);
         command.SetAction(async (parseResult, cancellationToken) =>
             await RunAsync(
                 new ListRequest(
@@ -50,7 +52,8 @@ internal static class ListCommand
                     parseResult.GetValue(broken),
                     parseResult.GetValue(project),
                     parseResult.GetValue(usage),
-                    parseResult.GetValue(unused)),
+                    parseResult.GetValue(unused),
+                    parseResult.GetValue(missing)),
                 cancellationToken));
         return command;
     }
@@ -67,6 +70,12 @@ internal static class ListCommand
             }
 
             kind = parsed;
+        }
+
+        if (request.Missing && request.Project is null)
+        {
+            await Console.Error.WriteLineAsync("--missing needs --project <folder>.");
+            return UsageError;
         }
 
         var scan = await ScanAsync(request.Project, cancellationToken);
@@ -97,6 +106,15 @@ internal static class ListCommand
         }
 
         var included = selected.Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
+        if (request.Missing)
+        {
+            var absent = MissingSetBuilder.Build(scan, target).Entries.Where(e => included.Contains(e.Skill.Id)).ToList();
+            Console.WriteLine(request.AsJson
+                ? JsonSerializer.Serialize(absent.Select(e => new { e.Skill, LoadedHere = e.LoadedHere?.Id }), JsonOptions)
+                : SkillTable.Render(absent));
+            return 0;
+        }
+
         var entries = EffectiveSetBuilder.Build(scan, target).Entries.Where(e => included.Contains(e.Skill.Id)).ToList();
         var table = request.WithUsage && report is not null ? SkillTable.Render(entries, report) : SkillTable.Render(entries);
         Console.WriteLine(request.AsJson ? JsonSerializer.Serialize(entries.Select(e => ToJson(e, report)), JsonOptions) : table);
@@ -165,5 +183,5 @@ internal static class ListCommand
         Overrides = entry.Overrides.Select(o => o.Id).ToList(),
     };
 
-    private sealed record ListRequest(bool AsJson, string? Source, bool BrokenOnly, string? Project, bool WithUsage, bool UnusedOnly);
+    private sealed record ListRequest(bool AsJson, string? Source, bool BrokenOnly, string? Project, bool WithUsage, bool UnusedOnly, bool Missing);
 }

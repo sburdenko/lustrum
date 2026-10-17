@@ -7,13 +7,13 @@ namespace Lustrum.App.ViewModels;
 
 public sealed class SkillItemViewModel
 {
-    public SkillItemViewModel(Skill skill, EffectiveEntry? entry = null)
+    public SkillItemViewModel(Skill skill, EffectiveEntry? entry = null, MissingEntry? missing = null)
     {
         Skill = skill;
         Entry = entry;
         IsShadowed = entry?.Availability == Availability.Shadowed;
         IsDisabled = skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled;
-        AvailabilityLabel = LabelFor(skill, entry);
+        AvailabilityLabel = missing is not null ? missing.Reason(SourceLabelFor) : LabelFor(skill, entry);
         Health = HealthPresentation.For(skill.Health);
         Prefix = skill.Kind == SkillKind.Command ? "/" : PluginPrefix(skill);
         Description = string.IsNullOrWhiteSpace(skill.Description) ? "no description" : skill.Description.ReplaceLineEndings(" ");

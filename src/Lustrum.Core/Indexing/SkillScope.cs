@@ -47,3 +47,8 @@ public sealed record EffectiveScope(string ProjectSourceId) : SkillScope
         _ => skill.Source.Id == ProjectSourceId,
     };
 }
+
+public sealed record MissingScope(string ProjectSourceId) : SkillScope
+{
+    public override bool Includes(Skill skill) => !new EffectiveScope(ProjectSourceId).Includes(skill);
+}

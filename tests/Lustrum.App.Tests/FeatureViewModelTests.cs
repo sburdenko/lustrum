@@ -36,6 +36,9 @@ public class FeatureViewModelTests
         return vm;
     }
 
+    private static ProjectViewOption View(MainViewModel vm, ProjectView view) =>
+        vm.ProjectViews.Single(v => v.View == view);
+
     private static NavNode Node(MainViewModel vm, string title) =>
         Flatten(vm.NavRoots).First(n => n.Title == title);
 
@@ -48,10 +51,10 @@ public class FeatureViewModelTests
         var vm = await Scanned();
 
         vm.SelectedNode = Node(vm, "Global");
-        vm.CanShowEffectiveSet.Should().BeFalse();
+        vm.CanChooseProjectView.Should().BeFalse();
 
         vm.SelectedNode = Node(vm, "app");
-        vm.CanShowEffectiveSet.Should().BeTrue();
+        vm.CanChooseProjectView.Should().BeTrue();
     }
 
     [Fact]
@@ -60,7 +63,7 @@ public class FeatureViewModelTests
         var vm = await Scanned();
         vm.SelectedNode = Node(vm, "app");
 
-        vm.ShowEffectiveSet = true;
+        vm.SelectedProjectView = View(vm, ProjectView.Effective);
 
         vm.ListTitle.Should().Be("app · effective set");
         vm.VisibleSkills.Select(s => s.Skill.FullName).Should().BeEquivalentTo("design", "design", "notes", "unity:ui");
@@ -75,7 +78,7 @@ public class FeatureViewModelTests
     {
         var vm = await Scanned();
         vm.SelectedNode = Node(vm, "app");
-        vm.ShowEffectiveSet = true;
+        vm.SelectedProjectView = View(vm, ProjectView.Effective);
 
         vm.SelectedSkill = vm.VisibleSkills.Single(s => s.IsShadowed);
 
@@ -87,12 +90,63 @@ public class FeatureViewModelTests
     {
         var vm = await Scanned();
         vm.SelectedNode = Node(vm, "app");
-        vm.ShowEffectiveSet = true;
+        vm.SelectedProjectView = View(vm, ProjectView.Effective);
 
         vm.SelectedNode = Node(vm, "Global");
 
         vm.VisibleSkills.Should().OnlyContain(s => s.Skill.Source.Kind == SourceKind.Global);
         vm.VisibleSkills.Should().OnlyContain(s => !s.IsShadowed);
+    }
+
+    [Fact]
+    public async Task Project_view_starts_on_own_skills()
+    {
+        var vm = await Scanned();
+
+        vm.SelectedNode = Node(vm, "app");
+
+        vm.SelectedProjectView.View.Should().Be(ProjectView.Own);
+        vm.ListTitle.Should().Be("app");
+        vm.VisibleSkills.Should().OnlyContain(s => s.Skill.Source.Kind == SourceKind.Project);
+    }
+
+    [Fact]
+    public async Task Missing_view_lists_what_the_project_does_not_load()
+    {
+        var vm = await Scanned();
+        vm.SelectedNode = Node(vm, "app");
+
+        vm.SelectedProjectView = View(vm, ProjectView.Missing);
+
+        vm.ListTitle.Should().Be("app · missing");
+        var item = vm.VisibleSkills.Should().ContainSingle().Subject;
+        item.Skill.Name.Should().Be("elsewhere");
+        item.AvailabilityLabel.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Missing_view_card_explains_why()
+    {
+        var vm = await Scanned();
+        vm.SelectedNode = Node(vm, "app");
+        vm.SelectedProjectView = View(vm, ProjectView.Missing);
+
+        vm.SelectedSkill = vm.VisibleSkills.Single();
+
+        vm.Card!.AvailabilityNote.Should().Be("Not loaded in app: it is stored in empty");
+    }
+
+    [Fact]
+    public async Task Chosen_view_is_kept_when_moving_to_another_project()
+    {
+        var vm = await Scanned();
+        vm.ShowEmptySources = true;
+        vm.SelectedNode = Node(vm, "app");
+        vm.SelectedProjectView = View(vm, ProjectView.Missing);
+
+        vm.SelectedNode = Node(vm, "empty");
+
+        vm.ListTitle.Should().Be("empty · missing");
     }
 
     [Fact]

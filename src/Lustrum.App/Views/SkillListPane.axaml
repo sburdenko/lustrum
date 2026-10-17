@@ -12,9 +12,20 @@
           <TextBlock Text="{Binding VisibleSkills.Count}" Classes="tertiary" VerticalAlignment="Center" IsVisible="{Binding !IsProblemsView}" />
           <TextBlock Text="{Binding VisibleProblems.Count}" Classes="tertiary" VerticalAlignment="Center" IsVisible="{Binding IsProblemsView}" />
         </StackPanel>
-        <CheckBox Grid.Column="1" IsChecked="{Binding ShowEffectiveSet}" IsVisible="{Binding CanShowEffectiveSet}"
-                  Content="Effective set" FontSize="12" Margin="0,0,12,0"
-                  ToolTip.Tip="Show what Claude Code loads in this project: its skills, global skills and enabled plugins" />
+        <ListBox Grid.Column="1" Classes="segments" Margin="0,0,12,0" VerticalAlignment="Center"
+                 ItemsSource="{Binding ProjectViews}" SelectedItem="{Binding SelectedProjectView}"
+                 IsVisible="{Binding CanChooseProjectView}">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="vm:ProjectViewOption">
+              <TextBlock Text="{Binding Title}" ToolTip.Tip="{Binding Hint}" FontSize="12" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
         <ComboBox Grid.Column="2" Classes="quiet" ItemsSource="{Binding Sorts}" SelectedItem="{Binding SelectedSort}"
                   MinWidth="140" FontSize="12" IsVisible="{Binding !IsProblemsView}">
           <ComboBox.ItemTemplate>

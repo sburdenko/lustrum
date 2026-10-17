@@ -83,4 +83,17 @@ public class SkillTableTests
         lines[0].Should().Contain("IN PROJECT").And.Contain("USES");
         lines[1].Should().Contain("loaded").And.Contain("2026-10-02");
     }
+
+    [Fact]
+    public void Missing_table_says_where_each_skill_lives()
+    {
+        var other = new SkillSource("project:/dev/other", SourceKind.Project, "other", "/dev/other/.claude", null, true);
+        var entries = new[] { new MissingEntry(Skill(other, "theirs"), null), new MissingEntry(Skill(other, "review"), Skill(Global, "review")) };
+
+        var lines = SkillTable.Render(entries).Split('\n');
+
+        lines[0].Should().Contain("NOTE");
+        lines[1].Should().NotContain("loaded here");
+        lines[2].Should().Contain("loaded here from Global");
+    }
 }

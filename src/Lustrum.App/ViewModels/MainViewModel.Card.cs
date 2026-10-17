@@ -45,7 +45,8 @@ public sealed partial class MainViewModel
             .Where(s => s.Id != item.Skill.Id)
             .ToList() ?? [];
 
-        var card = new SkillCardViewModel(item.Skill, others, _effective?.Find(item.Skill.Id), _effective?.Project.DisplayName);
+        var project = _effective?.Project ?? _missing?.Project;
+        var card = new SkillCardViewModel(item.Skill, others, _effective?.Find(item.Skill.Id), project?.DisplayName, _missing?.Find(item.Skill.Id));
         card.ApplyUsage(UsageState);
         card.SelectedTab = _cardTab == SkillCardViewModel.CompareTab && !card.HasConflicts ? 0 : _cardTab;
         card.PropertyChanged += (_, e) =>

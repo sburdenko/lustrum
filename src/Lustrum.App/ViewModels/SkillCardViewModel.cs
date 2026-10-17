@@ -27,9 +27,16 @@ public sealed partial class SkillCardViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasUsageProjects))]
     private string _usageProjects = string.Empty;
 
-    public SkillCardViewModel(Skill skill, IReadOnlyList<Skill> sameNameElsewhere, EffectiveEntry? entry = null, string? projectName = null)
+    public SkillCardViewModel(
+        Skill skill,
+        IReadOnlyList<Skill> sameNameElsewhere,
+        EffectiveEntry? entry = null,
+        string? projectName = null,
+        MissingEntry? missing = null)
     {
-        AvailabilityNote = NoteFor(entry, projectName);
+        AvailabilityNote = missing is not null && projectName is not null
+            ? $"Not loaded in {projectName}: {missing.Reason(SkillItemViewModel.SourceLabelFor) ?? $"it is stored in {SkillItemViewModel.SourceLabelFor(skill.Source)}"}"
+            : NoteFor(entry, projectName);
         Skill = skill;
         Health = HealthPresentation.For(skill.Health);
         Title = skill.InvocationName;
