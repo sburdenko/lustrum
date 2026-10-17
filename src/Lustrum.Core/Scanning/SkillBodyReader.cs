@@ -12,7 +12,7 @@ public static class SkillBodyReader
 
     public static string ReadText(string path)
     {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var stream = SharedFile.OpenRead(path);
         var buffer = new byte[(int)Math.Min(stream.Length, MaxBytes)];
         var read = stream.ReadAtLeast(buffer, buffer.Length, throwOnEndOfStream: false);
         return Encoding.UTF8.GetString(buffer, 0, read).TrimStart('\uFEFF');

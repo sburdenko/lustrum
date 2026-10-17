@@ -13,13 +13,21 @@ internal static class SkillReader
     private const int MaxCommandDepth = 3;
     private const string SkillFileName = "SKILL.md";
 
-    public static IEnumerable<string> SkillFiles(SkillSource source, Action<ScanIssue> report) =>
-        SafeFileSystem.Directories(Path.Combine(source.RootPath, "skills"), report)
-            .Select(dir => Path.Combine(dir, SkillFileName))
-            .Where(File.Exists);
+    public static IEnumerable<string> SkillFiles(SkillSource source, Action<ScanIssue> report)
+    {
+        var folders = source.Layout == SourceLayout.Flat
+            ? SyncedDiscovery.Visible(source.RootPath, report)
+            : SafeFileSystem.Directories(Path.Combine(source.RootPath, "skills"), report);
+        return folders.Select(dir => Path.Combine(dir, SkillFileName)).Where(File.Exists);
+    }
 
     public static IEnumerable<string> CommandFiles(SkillSource source, Action<ScanIssue> report)
     {
+        if (source.Layout == SourceLayout.Flat)
+        {
+            return [];
+        }
+
         var options = new EnumerationOptions
         {
             RecurseSubdirectories = true,
@@ -120,11 +128,11 @@ internal static class SkillReader
         DateTimeOffset modified,
         Health health)
     {
-        var plugin = source.Kind == SourceKind.Plugin ? PluginName(source) : null;
+        var prefix = source.Namespace;
         return new Skill(
             StableId(source, path),
             name,
-            plugin is null ? name : $"{plugin}:{name}",
+            prefix is null ? name : $"{prefix}:{name}",
             description,
             kind,
             source,
@@ -152,15 +160,9 @@ internal static class SkillReader
         return $"{source.Id}#{relative}";
     }
 
-    private static string PluginName(SkillSource source)
-    {
-        var tail = source.Id["plugin:".Length..];
-        return tail[(tail.IndexOf('/') + 1)..];
-    }
-
     private static string ReadHead(string path)
     {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var stream = SharedFile.OpenRead(path);
         var buffer = new byte[HeadBytes];
         var read = stream.Read(buffer, 0, buffer.Length);
         return System.Text.Encoding.UTF8.GetString(buffer, 0, read);

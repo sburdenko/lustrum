@@ -100,7 +100,7 @@ public class FeatureViewModelTests
     {
         var vm = await Scanned();
 
-        vm.Chips.Select(c => c.Label).Should().Equal("sb-*", "plugin", "command", "broken", "duplicate", "unused");
+        vm.Chips.Select(c => c.Label).Should().Equal("sb-*", "plugin", "synced", "command", "broken", "duplicate", "unused");
     }
 
     [Fact]

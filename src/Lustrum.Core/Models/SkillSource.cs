@@ -7,4 +7,11 @@ public sealed record SkillSource(
     string RootPath,
     DateTimeOffset? LastSeen,
     bool Exists,
-    bool IsEnabled = true);
+    bool IsEnabled = true,
+    string? Namespace = null,
+    SourceLayout Layout = SourceLayout.Standard)
+{
+    public const string AccountSkillsNamespace = "anthropic-skills";
+
+    public bool IsNamespaced => Namespace is not null;
+}

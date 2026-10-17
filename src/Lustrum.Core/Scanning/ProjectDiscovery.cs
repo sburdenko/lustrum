@@ -98,7 +98,7 @@ internal static class ProjectDiscovery
 
         try
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(paths.ClaudeJson));
+            using var doc = JsonDocument.Parse(SharedFile.ReadAllText(paths.ClaudeJson));
             return doc.RootElement.ValueKind == JsonValueKind.Object
                 && doc.RootElement.TryGetProperty("projects", out var projects)
                 && projects.ValueKind == JsonValueKind.Object

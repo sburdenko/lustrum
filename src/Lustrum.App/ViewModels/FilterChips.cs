@@ -2,7 +2,7 @@ namespace Lustrum.App.ViewModels;
 
 public static class FilterChips
 {
-    private static readonly string[] FixedTags = ["plugin", "command", "broken", "duplicate"];
+    private static readonly string[] FixedTags = ["plugin", "synced", "command", "broken", "duplicate"];
 
     public static IReadOnlyList<ChipViewModel> Build(IReadOnlyList<string> ownPrefixes, IEnumerable<string> activeLabels, bool canJudgeUnused)
     {

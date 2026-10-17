@@ -55,6 +55,23 @@ Only an explicit `false` counts as disabled; a plugin that is not listed is trea
 
 Code: `PluginDiscovery` (registry, cache fallback, `enabledPlugins`).
 
+## Synced from claude.ai
+
+The Claude desktop app copies the skills and plugins of the signed-in claude.ai account to disk:
+
+```text
+~/.claude/skills/synced/<account>/<name>/SKILL.md     invoked as anthropic-skills:<name>
+~/.claude/skills/synced/<account>/manifest.json
+~/.claude/skills/synced/<account>/.staging/           in-progress sync, ignored
+~/.claude/plugins/synced/<account>/<plugin>/          same layout as an installed plugin
+~/.claude/plugins/synced/<account>/<plugin>~g2/       a newer generation of the same plugin
+```
+
+A plugin folder may be named after the plugin or after an id; the name comes from `.claude-plugin/plugin.json`.
+When several generations exist, Lustrum reads the highest `~gN` (no suffix counts as 1).
+
+Code: `SyncedDiscovery`.
+
 ## Projects
 
 Two places know about projects:

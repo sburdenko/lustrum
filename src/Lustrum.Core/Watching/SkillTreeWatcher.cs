@@ -67,14 +67,34 @@ public sealed class SkillTreeWatcher : IDisposable
             IncludeSubdirectories = target.Recursive,
             NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
         };
-        watcher.Created += (_, _) => _trigger.Signal();
-        watcher.Changed += (_, _) => _trigger.Signal();
-        watcher.Deleted += (_, _) => _trigger.Signal();
-        watcher.Renamed += (_, _) => _trigger.Signal();
+        watcher.Created += (_, e) => SignalUnlessHidden(target, e.FullPath);
+        watcher.Changed += (_, e) => SignalUnlessHidden(target, e.FullPath);
+        watcher.Deleted += (_, e) => SignalUnlessHidden(target, e.FullPath);
+        watcher.Renamed += (_, e) =>
+        {
+            if (!IsHidden(target, e.FullPath) || !IsHidden(target, e.OldFullPath))
+            {
+                _trigger.Signal();
+            }
+        };
         watcher.Error += (_, _) => _trigger.Signal();
         watcher.EnableRaisingEvents = true;
         return watcher;
     }
+
+    private void SignalUnlessHidden(WatchTarget target, string path)
+    {
+        if (!IsHidden(target, path))
+        {
+            _trigger.Signal();
+        }
+    }
+
+    // Sync staging folders and Finder metadata change constantly and never hold skills.
+    private static bool IsHidden(WatchTarget target, string path) =>
+        Path.GetRelativePath(target.Path, path)
+            .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Any(segment => segment.StartsWith('.') && segment is not "." and not "..");
 
     private void Poll()
     {

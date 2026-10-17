@@ -12,6 +12,7 @@ internal static class SourceDiscovery
         var sources = new List<SkillSource> { GlobalSource(paths) };
         sources.AddRange(PluginDiscovery.Discover(paths, issues.Add));
         sources.AddRange(ProjectDiscovery.Discover(paths, options, issues.Add));
+        sources.AddRange(SyncedDiscovery.Discover(paths, issues.Add));
         var unique = sources.DistinctBy(s => s.Id, StringComparer.Ordinal).ToList();
         return new DiscoveredSources(unique, issues);
     }

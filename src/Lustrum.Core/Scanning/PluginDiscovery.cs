@@ -24,7 +24,7 @@ internal static class PluginDiscovery
         var found = new List<(string, string, string)>();
         try
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(registryPath));
+            using var doc = JsonDocument.Parse(SharedFile.ReadAllText(registryPath));
             if (doc.RootElement.ValueKind != JsonValueKind.Object
                 || !doc.RootElement.TryGetProperty("plugins", out var plugins)
                 || plugins.ValueKind != JsonValueKind.Object)
@@ -83,7 +83,7 @@ internal static class PluginDiscovery
 
         try
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(settingsPath));
+            using var doc = JsonDocument.Parse(SharedFile.ReadAllText(settingsPath));
             if (doc.RootElement.ValueKind == JsonValueKind.Object
                 && doc.RootElement.TryGetProperty("enabledPlugins", out var enabled)
                 && enabled.ValueKind == JsonValueKind.Object)
@@ -133,5 +133,6 @@ internal static class PluginDiscovery
             installPath,
             Directory.Exists(installPath) ? Directory.GetLastWriteTimeUtc(installPath) : null,
             Directory.Exists(installPath),
-            enabled);
+            enabled,
+            plugin);
 }

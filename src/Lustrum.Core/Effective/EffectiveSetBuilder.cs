@@ -5,8 +5,9 @@ using Lustrum.Core.Scanning;
 namespace Lustrum.Core.Effective;
 
 /// <summary>
-/// Resolves what Claude Code loads in one project: that project's skills, global skills and enabled
-/// plugins. A project skill wins over a global skill with the same name; plugin skills are always prefixed.
+/// Resolves what Claude Code loads in one project: that project's skills, global skills, enabled plugins and
+/// skills synced from the claude.ai account. A project skill wins over a global skill with the same name;
+/// plugin and synced skills are always prefixed.
 /// </summary>
 public static class EffectiveSetBuilder
 {
@@ -16,7 +17,7 @@ public static class EffectiveSetBuilder
     {
         var candidates = scan.Skills.Where(new EffectiveScope(project.Id).Includes).ToList();
         var resolved = candidates
-            .Where(s => s.Source.Kind != SourceKind.Plugin)
+            .Where(s => !s.Source.IsNamespaced)
             .GroupBy(s => s.Name, StringComparer.Ordinal)
             .SelectMany(Resolve)
             .DistinctBy(e => e.Skill.Id, StringComparer.Ordinal)

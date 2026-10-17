@@ -27,7 +27,7 @@ public static class SettingsStore
 
         try
         {
-            var document = JsonSerializer.Deserialize<SettingsDocument>(File.ReadAllText(path), Json);
+            var document = JsonSerializer.Deserialize<SettingsDocument>(Scanning.SharedFile.ReadAllText(path), Json);
             return new SettingsLoad(ToSettings(document).Normalize(), null);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)

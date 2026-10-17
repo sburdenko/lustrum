@@ -53,4 +53,20 @@ public class NavTreeBuilderTests
         problems.Scope.Should().Be(SkillScope.Problems);
         problems.Count.Should().Be(2);
     }
+
+    [Fact]
+    public void Synced_sources_get_their_own_group_only_when_present()
+    {
+        var scan = TestData.Scan(
+            [TestData.Global, TestData.Account, TestData.SyncedPlugin],
+            [TestData.Skill(TestData.Account, "xlsx"), TestData.Skill(TestData.SyncedPlugin, "critique")]);
+
+        var roots = NavTreeBuilder.Build(scan);
+
+        roots.Select(n => n.Title).Should().Equal("All", "Global", "Projects", "Plugins", "claude.ai", "Problems");
+        var synced = roots.Single(n => n.Title == "claude.ai");
+        synced.Count.Should().Be(2);
+        synced.Children.Select(c => c.Title).Should().Equal("anthropic-skills", "design");
+        NavTreeBuilder.Build(TestData.Default()).Should().NotContain(n => n.Title == "claude.ai");
+    }
 }

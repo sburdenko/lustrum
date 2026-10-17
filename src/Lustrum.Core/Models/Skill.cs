@@ -20,4 +20,6 @@ public sealed record Skill(
     public bool IsBroken => Health is not (Health.Ok or Health.DescriptionTooLong);
 
     public string InvocationName => Kind == SkillKind.Command ? "/" + FullName : FullName;
+
+    public string ConflictKey => Source.IsNamespaced ? FullName : Name;
 }

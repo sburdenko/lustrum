@@ -143,6 +143,23 @@ public class WatchingTests : IDisposable
     }
 
     [Fact]
+    public async Task Changes_inside_dot_folders_are_ignored()
+    {
+        var changed = 0;
+        var options = WatchOptions.Default with { Debounce = TimeSpan.FromMilliseconds(50) };
+        using var watcher = new SkillTreeWatcher(Targets, options);
+        watcher.Changed += () => Interlocked.Increment(ref changed);
+        await Task.Delay(300);
+
+        Directory.CreateDirectory(Path.Combine(_dir, ".staging"));
+        await File.WriteAllTextAsync(Path.Combine(_dir, ".staging", "x.md"), "noise");
+        await File.WriteAllTextAsync(Path.Combine(_dir, "skills", "a", ".DS_Store"), "noise");
+        await Task.Delay(1500);
+
+        changed.Should().Be(0);
+    }
+
+    [Fact]
     public void Missing_directories_are_ignored()
     {
         using var watcher = new SkillTreeWatcher([new WatchTarget(Path.Combine(_dir, "missing"), Recursive: true)], WatchOptions.Default);

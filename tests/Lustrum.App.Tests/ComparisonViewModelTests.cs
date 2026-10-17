@@ -13,7 +13,20 @@ public sealed class ComparisonViewModelTests : IDisposable
 
     public ComparisonViewModelTests() => Directory.CreateDirectory(_dir);
 
-    public void Dispose() => Directory.Delete(_dir, recursive: true);
+    public void Dispose()
+    {
+        for (var attempt = 0; attempt < 20 && Directory.Exists(_dir); attempt++)
+        {
+            try
+            {
+                Directory.Delete(_dir, recursive: true);
+            }
+            catch (IOException)
+            {
+                Thread.Sleep(50);
+            }
+        }
+    }
 
     private string File(string name, string content)
     {

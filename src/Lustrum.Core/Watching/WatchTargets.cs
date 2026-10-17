@@ -22,6 +22,7 @@ public static class WatchTargets
             new(paths.CommandsDir, Recursive: true),
             new(paths.PluginsDir, Recursive: false),
             new(paths.PluginCacheDir, Recursive: true),
+            new(paths.SyncedPluginsDir, Recursive: false),
             new(paths.ProjectsDir, Recursive: false),
         };
 
@@ -30,6 +31,13 @@ public static class WatchTargets
             targets.Add(new WatchTarget(project.RootPath, Recursive: false));
             targets.Add(new WatchTarget(Path.Combine(project.RootPath, "skills"), Recursive: true));
             targets.Add(new WatchTarget(Path.Combine(project.RootPath, "commands"), Recursive: true));
+        }
+
+        foreach (var synced in scan.Sources.Where(s => s.Kind == SourceKind.Synced && s.Layout == SourceLayout.Standard))
+        {
+            targets.Add(new WatchTarget(Path.GetDirectoryName(synced.RootPath)!, Recursive: false));
+            targets.Add(new WatchTarget(Path.Combine(synced.RootPath, "skills"), Recursive: true));
+            targets.Add(new WatchTarget(Path.Combine(synced.RootPath, "commands"), Recursive: true));
         }
 
         return targets.Distinct().ToList();

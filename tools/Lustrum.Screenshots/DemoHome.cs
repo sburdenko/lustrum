@@ -64,15 +64,16 @@ internal sealed partial class DemoHome : IDisposable
         GlobalSkills();
         Projects();
         Plugins();
+        Synced();
         Transcripts();
     }
 
     private void GlobalSkills()
     {
         Skill(Claude, "code-review", "Review a diff for correctness, clarity and risk, with findings ranked by severity.",
-            "allowed-tools: Read, Grep, Bash(git:*)\n", CodeReviewBody, "checklists/security.md", "checklists/performance.md", "scripts/diff-stats.sh");
+            "allowed-tools: Read, Grep, Bash(git:*)\n", CodeReviewBody, false, "checklists/security.md", "checklists/performance.md", "scripts/diff-stats.sh");
         Skill(Claude, "release-notes", "Draft release notes from merged pull requests since the last tag.",
-            "allowed-tools: Bash(git:*), Bash(gh:*)\n", null, "templates/notes.md");
+            "allowed-tools: Bash(git:*), Bash(gh:*)\n", null, false, "templates/notes.md");
         Skill(Claude, "sql-helper", "Write and explain SQL, check query plans and suggest indexes.");
         Skill(Claude, "sb-daily-notes", "Capture the day as short structured notes and carry open items forward.");
         Skill(Claude, "sb-meeting-prep", "Prepare an agenda and talking points from the attendee list and previous notes.");
@@ -121,6 +122,17 @@ internal sealed partial class DemoHome : IDisposable
         Write(Path.Combine(Claude, "plugins", "installed_plugins.json"), JsonSerializer.Serialize(new { version = 2, plugins = _plugins }));
     }
 
+    private void Synced()
+    {
+        var account = Path.Combine(Claude, "skills", "synced", "demo-account");
+        Skill(account, "xlsx", "Create, edit and analyse spreadsheets with formulas and charts.", layoutFlat: true);
+        Skill(account, "pptx", "Build and edit slide decks.", layoutFlat: true);
+        Write(Path.Combine(account, "manifest.json"), "{}");
+        var plugin = Path.Combine(Claude, "plugins", "synced", "demo-account", "design~g2");
+        Write(Path.Combine(plugin, ".claude-plugin", "plugin.json"), JsonSerializer.Serialize(new { name = "design" }));
+        Skill(plugin, "design-critique", "Give structured feedback on a design: hierarchy, contrast, spacing, copy.");
+    }
+
     private void Transcripts()
     {
         var store = Work("storefront");
@@ -131,7 +143,8 @@ internal sealed partial class DemoHome : IDisposable
             User("release-notes", store, "2026-10-12T11:05:00Z"),
             Model("code-review", store, "2026-10-10T10:00:00Z"),
             User("deploy", store, "2026-10-11T17:30:00Z"),
-            Model("data-kit:csv-clean", store, "2026-09-20T08:00:00Z"));
+            Model("data-kit:csv-clean", store, "2026-09-20T08:00:00Z"),
+            Model("anthropic-skills:xlsx", store, "2026-10-08T14:00:00Z"));
         Transcript(mobile,
             Model("release-notes", mobile, "2026-10-05T13:00:00Z"),
             Model("code-review", mobile, "2026-10-14T09:00:00Z"),
@@ -181,9 +194,9 @@ internal sealed partial class DemoHome : IDisposable
         message = new { role = "user", content = $"<command-name>/{command}</command-name>" },
     }, LikeClaudeCode);
 
-    private static void Skill(string root, string name, string description, string extra = "", string? body = null, params string[] files)
+    private static void Skill(string root, string name, string description, string extra = "", string? body = null, bool layoutFlat = false, params string[] files)
     {
-        var folder = Path.Combine(root, "skills", name);
+        var folder = layoutFlat ? Path.Combine(root, name) : Path.Combine(root, "skills", name);
         Write(Path.Combine(folder, "SKILL.md"), $"---\nname: {name}\ndescription: {JsonSerializer.Serialize(description)}\n{extra}---\n{body ?? $"# {name}\n\n{description}\n"}");
         foreach (var file in files)
         {

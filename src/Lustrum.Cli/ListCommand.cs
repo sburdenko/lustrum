@@ -25,7 +25,7 @@ internal static class ListCommand
         var json = new Option<bool>("--json") { Description = "Emit machine-readable JSON" };
         var source = new Option<string?>("--source")
         {
-            Description = "Limit to one source kind: global, project or plugin",
+            Description = "Limit to one source kind: global, project, plugin or synced",
         };
         var broken = new Option<bool>("--broken") { Description = "Only skills with a health problem" };
         var usage = new Option<bool>("--usage") { Description = "Add how often and when each skill was used, read from Claude Code transcripts" };
@@ -62,7 +62,7 @@ internal static class ListCommand
         {
             if (!SkillFilter.SourceNames.TryGetValue(request.Source, out var parsed))
             {
-                await Console.Error.WriteLineAsync($"Unknown source '{request.Source}'. Use global, project or plugin.");
+                await Console.Error.WriteLineAsync($"Unknown source '{request.Source}'. Use global, project, plugin or synced.");
                 return UsageError;
             }
 
