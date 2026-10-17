@@ -162,7 +162,7 @@ internal static class SkillReader
 
     private static string ReadHead(string path)
     {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var stream = SharedFile.OpenRead(path);
         var buffer = new byte[HeadBytes];
         var read = stream.Read(buffer, 0, buffer.Length);
         return System.Text.Encoding.UTF8.GetString(buffer, 0, read);

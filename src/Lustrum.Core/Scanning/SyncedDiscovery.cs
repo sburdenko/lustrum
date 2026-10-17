@@ -74,7 +74,7 @@ internal static partial class SyncedDiscovery
 
         try
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(manifest));
+            using var doc = JsonDocument.Parse(SharedFile.ReadAllText(manifest));
             var name = doc.RootElement.ValueKind == JsonValueKind.Object
                 && doc.RootElement.TryGetProperty("name", out var value)
                 && value.ValueKind == JsonValueKind.String

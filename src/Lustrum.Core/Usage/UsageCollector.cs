@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Lustrum.Core.Models;
+using Lustrum.Core.Scanning;
 
 namespace Lustrum.Core.Usage;
 
@@ -110,7 +111,7 @@ public sealed class UsageCollector
 
     private static byte[] HeadHash(string path, int length)
     {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var stream = SharedFile.OpenRead(path);
         var head = new byte[length];
         var read = stream.ReadAtLeast(head, length, throwOnEndOfStream: false);
         return SHA256.HashData(head.AsSpan(0, read));
@@ -118,7 +119,7 @@ public sealed class UsageCollector
 
     private static (long Offset, long Read) ReadCompleteLines(string path, long start, List<SkillInvocation> found, CancellationToken cancellationToken)
     {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, BufferSize);
+        using var stream = SharedFile.OpenRead(path, BufferSize);
         stream.Seek(start, SeekOrigin.Begin);
         var buffer = new byte[BufferSize];
         var pending = new ArrayBufferWriter<byte>();
