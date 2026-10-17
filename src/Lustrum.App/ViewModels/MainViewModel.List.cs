@@ -18,6 +18,7 @@ public sealed partial class MainViewModel
 
     private bool _isRefreshingList;
     private EffectiveSet? _effective;
+    private MissingSet? _missing;
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -35,9 +36,12 @@ public sealed partial class MainViewModel
 
     public bool IsEmptyResult => !IsScanning && !IsProblemsView && VisibleSkills.Count == 0;
 
-    public string ListTitle => EffectiveProject is { } project
-        ? $"{project.DisplayName} · effective set"
-        : SelectedNode?.Title ?? "All";
+    public string ListTitle => (ActiveView, SelectedProject) switch
+    {
+        (ProjectView.Effective, { } project) => $"{project.DisplayName} · effective set",
+        (ProjectView.Missing, { } project) => $"{project.DisplayName} · missing",
+        _ => SelectedNode?.Title ?? "All",
+    };
 
     private bool MatchesChips(Skill skill) => Chips.Where(c => c.IsActive).All(c => c.Filter.Matches(skill, Usage));
 
@@ -75,16 +79,17 @@ public sealed partial class MainViewModel
     private void RefreshList()
     {
         var keepId = SelectedSkill?.Skill.Id;
-        var project = EffectiveProject;
-        _effective = project is null ? null : EffectiveSetBuilder.Build(_result, project);
-        var scope = project is null ? SelectedNode?.Scope ?? SkillScope.All : new EffectiveScope(project.Id);
+        var project = SelectedProject;
+        _effective = ActiveView == ProjectView.Effective && project is not null ? EffectiveSetBuilder.Build(_result, project) : null;
+        _missing = ActiveView == ProjectView.Missing && project is not null ? MissingSetBuilder.Build(_result, project) : null;
+        var scope = ActiveScope(project);
         var found = SkillIndex.Search(_result.Skills, new SkillQuery(scope, SearchText)).Where(MatchesChips).ToList();
         var withBody = WithBodyMatches(found, scope);
 
         _isRefreshingList = true;
         try
         {
-            VisibleSkills = Sort(withBody).Select(s => new SkillItemViewModel(s, _effective?.Find(s.Id))).ToList();
+            VisibleSkills = Sort(withBody).Select(s => new SkillItemViewModel(s, _effective?.Find(s.Id), _missing?.Find(s.Id))).ToList();
             SelectedSkill = VisibleSkills.FirstOrDefault(s => s.Skill.Id == keepId);
         }
         finally

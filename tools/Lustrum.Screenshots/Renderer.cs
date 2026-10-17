@@ -49,7 +49,7 @@ internal sealed class Renderer(DemoHome demo)
             vm.SelectedNode = Flatten(vm.NavRoots).First(n => n.Title == node);
         }
 
-        vm.ShowEffectiveSet = scenario.Effective;
+        vm.SelectedProjectView = vm.ProjectViews.Single(v => v.View == scenario.View);
         if (scenario.Chip is { } chip)
         {
             vm.Chips.Single(c => c.Label == chip).IsOn = true;

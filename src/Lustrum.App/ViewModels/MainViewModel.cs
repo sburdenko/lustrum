@@ -118,7 +118,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Card = null;
         OnPropertyChanged(nameof(ListTitle));
-        OnPropertyChanged(nameof(CanShowEffectiveSet));
+        OnPropertyChanged(nameof(CanChooseProjectView));
         OnPropertyChanged(nameof(IsProblemsView));
         RefreshList();
     }
