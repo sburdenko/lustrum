@@ -57,7 +57,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 246 tests
+dotnet test                                            # 255 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -67,7 +67,7 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 | | |
 |---|---|
 | **Source tree** | All, Global, Projects, Plugins (marketplace, then plugin), claude.ai (skills and plugins synced from your account), Problems. Every node has a count; disabled plugins and empty projects are dimmed. |
-| **Effective set** | Pick a project and tick **Effective set**: the list shows exactly what that project loads, marks skills that are shadowed and says what overrides what. |
+| **Project views** | Pick a project and switch between **Own** (its skills), **Effective** (exactly what Claude Code loads there, with shadowed skills marked) and **Missing** (skills on this machine it does not load). |
 | **Skill list** | Name with plugin prefix, description, source, health marker. Sort by best match, name, source or date. |
 | **Search** | Fuzzy on names, substring on descriptions and tags, ranked by relevance. Optionally searches the text of every `SKILL.md`. |
 | **Filter chips** | One chip per own prefix (`sb-*` by default), plus `plugin`, `synced`, `command`, `broken`, `duplicate` and `unused`. Chips combine. |
@@ -99,11 +99,11 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 </tr>
 <tr>
 <td width="50%"><img src="docs/compare.png" alt="Line diff between a project copy and the global copy of a skill"/></td>
-<td width="50%"></td>
+<td width="50%"><img src="docs/missing.png" alt="Missing view: skills from other projects that this project does not load"/></td>
 </tr>
 <tr>
 <td align="center"><sub>Compare: project copy against the global one</sub></td>
-<td></td>
+<td align="center"><sub>Missing: what other projects have and this one does not load</sub></td>
 </tr>
 </table>
 
@@ -247,6 +247,12 @@ top of the file.
 enabled plugins and the skills synced from claude.ai. Within one name, a project skill wins over a global one: the winner is `Active` and lists what
 it overrides, the loser is `Shadowed` and points at the winner. Prefixed skills are never shadowed. Skills from other projects are not part of the set.
 
+### Missing
+
+`MissingSetBuilder.Build(scan, project)` is the complement of the effective set: every skill on the machine the
+project does not load, which means skills that live in other projects and skills of disabled plugins. When a
+same-named copy is loaded in the project anyway, the entry says where that copy comes from.
+
 ### Search and scopes
 
 `SkillScope` is a small polymorphic hierarchy rather than a set of flags. Each scope decides for itself
@@ -259,6 +265,7 @@ which skills it includes.
 | `SourceScope(id)` | one project or one plugin |
 | `MarketplaceScope(name)` | every plugin from one marketplace |
 | `EffectiveScope(projectId)` | that project, global skills, enabled plugins and synced skills |
+| `MissingScope(projectId)` | everything `EffectiveScope` leaves out |
 | `ProblemsScope` | anything with a health problem, including `DescriptionTooLong` |
 
 `SkillIndex.Search(skills, new SkillQuery(scope, text, requiredTags))` applies the scope and the tags, then the
@@ -318,8 +325,9 @@ mode is active.
 
 ### The window
 
-`MainViewModel` is split into partial files by concern: list and sorting, content search, effective set,
-problems, card, commands, settings. The view is split the same way into `SourcesPane`, `SkillListPane`,
+`MainViewModel` is split into partial files by concern: list and sorting, content search, project views, usage,
+problems, card, commands, settings. The project view is one `ProjectView` value (`Own`, `Effective`, `Missing`),
+not a set of checkboxes. The view is split the same way into `SourcesPane`, `SkillListPane`,
 `SkillCardPane` and `SettingsPanel`.
 
 | Piece | Role |
@@ -345,7 +353,7 @@ data. **Open logs** in the settings panel opens the folder.
 ## CLI
 
 ```text
-lustrum list [--json] [--source global|project|plugin|synced] [--broken] [--project <folder>] [--usage] [--unused]
+lustrum list [--json] [--source global|project|plugin|synced] [--broken] [--project <folder> [--missing]] [--usage] [--unused]
 lustrum diff <name>
 ```
 
@@ -376,6 +384,9 @@ checkout-flow  storefront  ok                  loaded            Trace the check
 release-notes  storefront  ok                  overrides Global  Release notes for the storefront: customer-facing wording, no ticket id…
 ui-kit         storefront  ok                  loaded            Use the shared component library correctly: tokens, spacing, accessibil…
 ```
+
+`--project <folder> --missing` lists the skills that project does not load, with a `NOTE` column for disabled
+plugins and for names that are loaded from somewhere else. `--missing` without `--project` exits with code 2.
 
 `--usage` adds `USES` and `LAST USED` columns read from the transcripts, `--unused` keeps only skills with no
 recorded use. Both work with `--project`. Without any transcripts `--unused` refuses to run instead of reporting
@@ -414,7 +425,7 @@ lustrum/
 
 ## Tests
 
-246 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+255 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,
