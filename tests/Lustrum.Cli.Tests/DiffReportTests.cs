@@ -21,7 +21,7 @@ public class DiffReportTests
     [Fact]
     public void Project_copy_is_the_base_and_every_other_copy_is_compared_with_it()
     {
-        var report = DiffReport.Render([Skill(Global, "review", "/g/SKILL.md"), Skill(App, "review", "/a/SKILL.md")], p => Files[p]);
+        var report = DiffReport.Render([Skill(Global, "review", "/g/SKILL.md"), Skill(App, "review", "/a/SKILL.md")], p => Files[p]).Text;
 
         report.Should().StartWith("--- app: /a/SKILL.md\n+++ Global: /g/SKILL.md\n");
         report.Should().Contain("-project line").And.Contain("+global line");
@@ -30,7 +30,7 @@ public class DiffReportTests
     [Fact]
     public void A_single_copy_has_nothing_to_compare()
     {
-        DiffReport.Render([Skill(Global, "review", "/g/SKILL.md")], p => Files[p])
+        DiffReport.Render([Skill(Global, "review", "/g/SKILL.md")], p => Files[p]).Text
             .Should().Be("Only one copy of 'review': /g/SKILL.md");
     }
 
@@ -39,8 +39,20 @@ public class DiffReportTests
     {
         var report = DiffReport.Render(
             [Skill(App, "review", "/a/SKILL.md"), Skill(Global, "review", "/missing/SKILL.md")],
-            p => Files.TryGetValue(p, out var text) ? text : throw new FileNotFoundException("gone"));
+            p => Files.TryGetValue(p, out var text) ? text : throw new NotSupportedException("not a file"));
 
-        report.Should().Contain("Could not read /missing/SKILL.md: gone");
+        report.Failed.Should().BeTrue();
+        report.Errors.Should().Contain("Could not read /missing/SKILL.md: not a file");
+    }
+
+    [Fact]
+    public void Identical_pair_still_names_both_copies()
+    {
+        var same = new Dictionary<string, string> { ["/a/SKILL.md"] = "x\n", ["/g/SKILL.md"] = "x\n" };
+
+        var report = DiffReport.Render([Skill(App, "review", "/a/SKILL.md"), Skill(Global, "review", "/g/SKILL.md")], p => same[p]);
+
+        report.Text.Should().Be("--- app: /a/SKILL.md\n+++ Global: /g/SKILL.md\nFiles are identical.");
+        report.Failed.Should().BeFalse();
     }
 }

@@ -3,38 +3,51 @@ using Lustrum.Core.Models;
 
 namespace Lustrum.Cli;
 
+internal sealed record DiffReportResult(string Text, IReadOnlyList<string> Errors)
+{
+    public bool Failed => Errors.Count > 0;
+}
+
 internal static class DiffReport
 {
-    public static string Render(IReadOnlyList<Skill> copies, Func<string, string> readText)
+    public static DiffReportResult Render(IReadOnlyList<Skill> copies, Func<string, string> readText)
     {
         var ordered = copies.OrderBy(c => c.Source.Kind == SourceKind.Project ? 0 : 1).ThenBy(c => c.Source.Kind).ToList();
         var baseCopy = ordered[0];
         if (ordered.Count == 1)
         {
-            return $"Only one copy of '{baseCopy.FullName}': {baseCopy.Path}";
+            return new DiffReportResult($"Only one copy of '{baseCopy.FullName}': {baseCopy.Path}", []);
         }
 
-        if (!TryRead(baseCopy, readText, out var baseText))
+        var errors = new List<string>();
+        if (!TryRead(baseCopy, readText, errors, out var baseText))
         {
-            return baseText;
+            return new DiffReportResult(string.Empty, errors);
         }
 
-        var sections = ordered.Skip(1).Select(other => TryRead(other, readText, out var otherText)
-            ? UnifiedDiff.Format(SkillComparer.Compare(baseText, otherText), Label(baseCopy), Label(other))
-            : otherText);
-        return string.Join("\n\n", sections);
+        var sections = new List<string>();
+        foreach (var other in ordered.Skip(1))
+        {
+            if (TryRead(other, readText, errors, out var otherText))
+            {
+                sections.Add(UnifiedDiff.Format(SkillComparer.Compare(baseText, otherText), Label(baseCopy), Label(other)));
+            }
+        }
+
+        return new DiffReportResult(string.Join("\n\n", sections), errors);
     }
 
-    private static bool TryRead(Skill skill, Func<string, string> readText, out string text)
+    private static bool TryRead(Skill skill, Func<string, string> readText, List<string> errors, out string text)
     {
         try
         {
             text = readText(skill.Path);
             return true;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            text = $"Could not read {skill.Path}: {ex.Message}";
+            errors.Add($"Could not read {skill.Path}: {ex.Message}");
+            text = string.Empty;
             return false;
         }
     }

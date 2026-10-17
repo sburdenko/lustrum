@@ -50,7 +50,7 @@ public sealed partial class MainViewModel
         card.SelectedTab = _cardTab == SkillCardViewModel.CompareTab && !card.HasConflicts ? 0 : _cardTab;
         card.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SkillCardViewModel.SelectedTab))
+            if (ReferenceEquals(Card, card) && e.PropertyName == nameof(SkillCardViewModel.SelectedTab) && card.SelectedTab >= 0)
             {
                 _cardTab = card.SelectedTab;
             }

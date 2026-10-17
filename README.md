@@ -57,7 +57,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 219 tests
+dotnet test                                            # 225 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -281,8 +281,8 @@ rescans leave it alone. The cache lives in memory, so each launch starts with a 
 ### Compare
 
 `SkillComparer` runs a line diff ([DiffPlex](https://github.com/mmanela/diffplex)) over the whole files, frontmatter
-included, after normalising line endings. `DiffFolding` keeps three lines of context around each change and folds
-longer unchanged runs. The card labels the sides plainly: `−` is only in the copy you selected, `+` only in the
+included. Line endings, a byte order mark and trailing blank lines are ignored. `DiffFolding` keeps three lines of
+context around each change and folds longer unchanged runs; the card shows at most 2,000 rows. The card labels the sides plainly: `−` is only in the copy you selected, `+` only in the
 other one. The CLI prints the same diff in unified format.
 
 ### Live updates
@@ -376,7 +376,8 @@ Files that could not be read are reported on stderr as `warning: <path>: <reason
 An unknown `--source`, a folder without `.claude` or `--unused` without transcripts exits with code 2.
 
 `lustrum diff <name>` compares the copies of one name: the project copy (if any) is the base, every other copy is
-diffed against it in unified format. An unknown name exits with code 2.
+diffed against it in unified format. A copy that cannot be read is reported on stderr and the command exits with
+code 1; an unknown name exits with code 2.
 
 ## Repository layout
 
@@ -401,7 +402,7 @@ lustrum/
 
 ## Tests
 
-219 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+225 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,

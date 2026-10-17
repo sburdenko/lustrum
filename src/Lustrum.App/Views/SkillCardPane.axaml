@@ -175,14 +175,20 @@
                           </ComboBox>
                         </Grid>
                         <TextBlock Text="{Binding Card.Comparison.Summary}" TextWrapping="Wrap" />
+                        <TextBlock Text="Comparing…" Classes="tertiary" IsVisible="{Binding Card.Comparison.IsLoading}" />
                         <TextBlock Text="{Binding Card.Comparison.Legend}" Classes="mono tertiary" />
                       </StackPanel>
                       <Border Grid.Row="1" Classes="panel" Background="{DynamicResource LxPanelAltBrush}" Margin="0,10,0,0" Padding="0,6">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto">
                           <ItemsControl ItemsSource="{Binding Card.Comparison.Rows}">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <VirtualizingStackPanel />
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                               <DataTemplate DataType="vm:DiffRowViewModel">
-                                <Border Classes="diff" Classes.here="{Binding IsOnlyHere}" Classes.there="{Binding IsOnlyThere}" Classes.gap="{Binding IsGap}">
+                                <Border Classes="diff" Classes.here="{Binding IsOnlyHere}" Classes.there="{Binding IsOnlyThere}" Classes.gap="{Binding IsFolded}">
                                   <Grid ColumnDefinitions="40,16,*">
                                     <TextBlock Text="{Binding Number}" Classes="mono tertiary" TextAlignment="Right" Margin="0,0,8,0" />
                                     <TextBlock Grid.Column="1" Text="{Binding Prefix}" Classes="mono" />

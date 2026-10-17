@@ -66,8 +66,31 @@ public class SkillComparerTests
     }
 
     [Fact]
-    public void Unified_format_says_when_files_are_identical()
+    public void Unified_format_labels_identical_files_too()
     {
-        UnifiedDiff.Format(SkillComparer.Compare("a", "a"), "l", "r").Should().Be("Files are identical.");
+        UnifiedDiff.Format(SkillComparer.Compare("a", "a"), "l", "r").Should().Be("--- l\n+++ r\nFiles are identical.");
+    }
+
+    [Fact]
+    public void A_single_hidden_line_is_shown_instead_of_folded()
+    {
+        var rows = DiffFolding.Fold(SkillComparer.Compare("a\nb\nc\nd\ne\nf", "A\nb\nc\nd\ne\nF").Lines, context: 2);
+
+        rows.Should().NotContain(r => r is DiffGap);
+    }
+
+    [Fact]
+    public void Byte_order_mark_is_not_part_of_the_text()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"lustrum-bom-{Guid.NewGuid():N}.md");
+        File.WriteAllText(path, "a\nb\n", new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+        try
+        {
+            SkillComparer.Compare(Lustrum.Core.Scanning.SkillBodyReader.ReadText(path), "a\nb\n").IsIdentical.Should().BeTrue();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 }

@@ -32,7 +32,7 @@ public static class DiffFolding
         var keepHead = start == 0 ? 0 : context;
         var keepTail = end == lines.Count ? 0 : context;
         var length = end - start;
-        if (length <= keepHead + keepTail || (start == 0 && end == lines.Count))
+        if (length <= keepHead + keepTail + 1 || (start == 0 && end == lines.Count))
         {
             rows.AddRange(lines.Skip(start).Take(length));
             return;

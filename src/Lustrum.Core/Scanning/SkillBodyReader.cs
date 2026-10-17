@@ -15,6 +15,6 @@ public static class SkillBodyReader
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         var buffer = new byte[(int)Math.Min(stream.Length, MaxBytes)];
         var read = stream.ReadAtLeast(buffer, buffer.Length, throwOnEndOfStream: false);
-        return Encoding.UTF8.GetString(buffer, 0, read);
+        return Encoding.UTF8.GetString(buffer, 0, read).TrimStart('\uFEFF');
     }
 }

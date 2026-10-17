@@ -8,14 +8,14 @@ public static class UnifiedDiff
 
     public static string Format(SkillDiff diff, string leftLabel, string rightLabel)
     {
-        if (diff.IsIdentical)
-        {
-            return "Files are identical.";
-        }
-
         var builder = new StringBuilder();
         builder.Append("--- ").Append(leftLabel).Append('\n');
         builder.Append("+++ ").Append(rightLabel).Append('\n');
+        if (diff.IsIdentical)
+        {
+            return builder.Append("Files are identical.").ToString();
+        }
+
         foreach (var (start, end) in Hunks(diff.Lines))
         {
             AppendHunk(builder, diff.Lines, start, end);

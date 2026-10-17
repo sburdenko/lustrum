@@ -125,6 +125,54 @@ public sealed class ComparisonViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Unexpected_read_errors_are_reported_and_old_rows_cleared()
+    {
+        var vm = await Scanned("a\n", "b\n");
+        var comparison = vm.Card!.Comparison!;
+        vm.Card.CompareWithCommand.Execute(vm.Card.Conflicts.Single());
+        await Loaded(comparison);
+        comparison.Rows.Should().NotBeEmpty();
+
+        var broken = new CompareTarget("broken", TestData.Skill(TestData.Project, "review") with { Path = "bad\0path" });
+        comparison.Target = broken;
+        await Loaded(comparison);
+
+        comparison.Summary.Should().StartWith("Could not compare:");
+        comparison.Rows.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Very_large_diffs_are_capped()
+    {
+        var left = string.Join('\n', Enumerable.Range(0, ComparisonViewModel.MaxRows + 500).Select(i => $"left {i}"));
+        var right = string.Join('\n', Enumerable.Range(0, ComparisonViewModel.MaxRows + 500).Select(i => $"right {i}"));
+        var vm = await Scanned(left, right);
+
+        vm.Card!.CompareWithCommand.Execute(vm.Card.Conflicts.Single());
+        await Loaded(vm.Card.Comparison!);
+
+        var rows = vm.Card.Comparison!.Rows;
+        rows.Should().HaveCount(ComparisonViewModel.MaxRows + 1);
+        rows[^1].Text.Should().Contain("more lines not shown");
+    }
+
+    [Fact]
+    public async Task Compare_again_reloads_the_same_copy()
+    {
+        var vm = await Scanned("a\n", "b\n");
+        var card = vm.Card!;
+        card.CompareWithCommand.Execute(card.Conflicts.Single());
+        await Loaded(card.Comparison!);
+
+        System.IO.File.WriteAllText(Path.Combine(_dir, "project.md"), "a\n");
+        card.CompareWithCommand.Execute(card.Conflicts.Single());
+        await Task.Delay(100);
+        await Loaded(card.Comparison!);
+
+        card.Comparison!.Summary.Should().Be("Identical to the copy in app");
+    }
+
+    [Fact]
     public async Task Skill_without_conflicts_has_no_comparison()
     {
         var vm = await Scanned("a\n", "b\n");

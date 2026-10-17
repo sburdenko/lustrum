@@ -6,6 +6,7 @@ namespace Lustrum.Cli;
 
 internal static class DiffCommand
 {
+    private const int ReadError = 1;
     private const int UsageError = 2;
 
     public static Command Create()
@@ -29,7 +30,17 @@ internal static class DiffCommand
             return UsageError;
         }
 
-        Console.WriteLine(DiffReport.Render(copies, SkillBodyReader.ReadText));
-        return 0;
+        var report = DiffReport.Render(copies, SkillBodyReader.ReadText);
+        if (report.Text.Length > 0)
+        {
+            Console.WriteLine(report.Text);
+        }
+
+        foreach (var error in report.Errors)
+        {
+            await Console.Error.WriteLineAsync(error);
+        }
+
+        return report.Failed ? ReadError : 0;
     }
 }

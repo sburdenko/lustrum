@@ -9,6 +9,7 @@ public sealed record CompareTarget(string Label, Skill Skill);
 
 public sealed partial class ComparisonViewModel : ObservableObject
 {
+    public const int MaxRows = 2000;
     private const int Context = 3;
     private readonly Skill _skill;
     private int _version;
@@ -35,18 +36,29 @@ public sealed partial class ComparisonViewModel : ObservableObject
 
     public string Legend => Target is null ? string.Empty : $"− only in this copy   + only in {Target.Label}";
 
+    public void Reload()
+    {
+        if (Target is { } target)
+        {
+            _ = LoadAsync(target, ++_version);
+        }
+    }
+
     partial void OnTargetChanged(CompareTarget? value)
     {
         OnPropertyChanged(nameof(Legend));
+        var version = ++_version;
         if (value is not null)
         {
-            _ = LoadAsync(value, ++_version);
+            _ = LoadAsync(value, version);
         }
     }
 
     private async Task LoadAsync(CompareTarget target, int version)
     {
         IsLoading = true;
+        Rows = [];
+        Summary = string.Empty;
         try
         {
             var diff = await Task.Run(() => SkillComparer.Compare(
@@ -57,12 +69,12 @@ public sealed partial class ComparisonViewModel : ObservableObject
                 return;
             }
 
-            Rows = DiffFolding.Fold(diff.Lines, Context).Select(DiffRowViewModel.From).ToList();
+            Rows = Cap(DiffFolding.Fold(diff.Lines, Context).Select(DiffRowViewModel.From).ToList());
             Summary = diff.IsIdentical
                 ? $"Identical to the copy in {target.Label}"
                 : $"{Lines(diff.Removed)} only in this copy, {Lines(diff.Added)} only in {target.Label}";
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             if (version == _version)
             {
@@ -78,6 +90,11 @@ public sealed partial class ComparisonViewModel : ObservableObject
             }
         }
     }
+
+    private static IReadOnlyList<DiffRowViewModel> Cap(IReadOnlyList<DiffRowViewModel> rows) =>
+        rows.Count <= MaxRows
+            ? rows
+            : [.. rows.Take(MaxRows), DiffRowViewModel.Folded($"⋯ {rows.Count - MaxRows} more lines not shown")];
 
     private static string Lines(int count) => count == 1 ? "1 line" : $"{count} lines";
 }

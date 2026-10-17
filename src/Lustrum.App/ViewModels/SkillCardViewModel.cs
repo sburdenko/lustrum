@@ -104,7 +104,16 @@ public sealed partial class SkillCardViewModel : ObservableObject
             return;
         }
 
-        Comparison.Target = Comparison.Targets.First(t => ReferenceEquals(t.Skill, entry.Skill));
+        var target = Comparison.Targets.First(t => t.Skill.Id == entry.Skill.Id);
+        if (Comparison.Target == target)
+        {
+            Comparison.Reload();
+        }
+        else
+        {
+            Comparison.Target = target;
+        }
+
         SelectedTab = CompareTab;
     }
 
