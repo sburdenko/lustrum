@@ -148,6 +148,14 @@
     <Setter Property="BorderBrush" Value="{DynamicResource LxAccentBrush}" />
   </Style>
 
+  <Style Selector="Border.diff">
+    <Setter Property="Padding" Value="4,1" />
+  </Style>
+  <Style Selector="Border.diff.here"><Setter Property="Background" Value="{DynamicResource LxErrBg}" /></Style>
+  <Style Selector="Border.diff.there"><Setter Property="Background" Value="{DynamicResource LxOkBg}" /></Style>
+  <Style Selector="Border.diff.gap"><Setter Property="Background" Value="{DynamicResource LxNeutralBg}" /></Style>
+  <Style Selector="Border.diff.gap TextBlock"><Setter Property="Foreground" Value="{DynamicResource LxTextTertiaryBrush}" /></Style>
+
   <Style Selector="TabControl.card > TabItem">
     <Setter Property="FontSize" Value="13" />
     <Setter Property="Padding" Value="12,6" />

@@ -13,6 +13,8 @@ public sealed partial class MainViewModel
     [ObservableProperty]
     private SkillCardViewModel? _card;
 
+    private int _cardTab;
+
     public bool HasCard => Card is not null;
 
     partial void OnCardChanged(SkillCardViewModel? value) => OnPropertyChanged(nameof(HasCard));
@@ -45,6 +47,14 @@ public sealed partial class MainViewModel
 
         var card = new SkillCardViewModel(item.Skill, others, _effective?.Find(item.Skill.Id), _effective?.Project.DisplayName);
         card.ApplyUsage(UsageState);
+        card.SelectedTab = _cardTab == SkillCardViewModel.CompareTab && !card.HasConflicts ? 0 : _cardTab;
+        card.PropertyChanged += (_, e) =>
+        {
+            if (ReferenceEquals(Card, card) && e.PropertyName == nameof(SkillCardViewModel.SelectedTab) && card.SelectedTab >= 0)
+            {
+                _cardTab = card.SelectedTab;
+            }
+        };
         Card = card;
         _ = LoadBodyAsync(card);
     }

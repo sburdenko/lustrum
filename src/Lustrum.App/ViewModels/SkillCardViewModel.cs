@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using FluentIcons.Common;
 using Lustrum.Core.Effective;
 using Lustrum.Core.Models;
@@ -8,11 +9,16 @@ namespace Lustrum.App.ViewModels;
 
 public sealed partial class SkillCardViewModel : ObservableObject
 {
+    public const int CompareTab = 2;
+
     [ObservableProperty]
     private string _body = string.Empty;
 
     [ObservableProperty]
     private bool _isBodyLoading = true;
+
+    [ObservableProperty]
+    private int _selectedTab;
 
     [ObservableProperty]
     private string _usageText = "Reading Claude Code transcripts…";
@@ -35,8 +41,9 @@ public sealed partial class SkillCardViewModel : ObservableObject
         FolderPath = System.IO.Path.GetDirectoryName(skill.Path)!;
         Frontmatter = skill.Frontmatter.Select(p => new FrontmatterEntry(p.Key, p.Value)).ToList();
         Conflicts = sameNameElsewhere
-            .Select(s => new ConflictEntry(SkillItemViewModel.SourceLabelFor(s.Source), s.Path))
+            .Select(s => new ConflictEntry(SkillItemViewModel.SourceLabelFor(s.Source), s.Path, s))
             .ToList();
+        Comparison = sameNameElsewhere.Count > 0 ? new ComparisonViewModel(skill, sameNameElsewhere) : null;
         ModifiedText = skill.Modified == DateTimeOffset.MinValue ? "—" : skill.Modified.ToLocalTime().ToString("d MMM yyyy, HH:mm");
         SizeText = FormatSize(skill.SizeBytes);
     }
@@ -75,6 +82,8 @@ public sealed partial class SkillCardViewModel : ObservableObject
 
     public bool HasConflicts => Conflicts.Count > 0;
 
+    public ComparisonViewModel? Comparison { get; }
+
     public bool ShowHealth => Skill.Health != CoreHealth.Ok;
 
     public bool HasUsageProjects => UsageProjects.Length > 0;
@@ -86,6 +95,35 @@ public sealed partial class SkillCardViewModel : ObservableObject
     public string ModifiedText { get; }
 
     public string SizeText { get; }
+
+    [RelayCommand]
+    private void CompareWith(ConflictEntry entry)
+    {
+        if (Comparison is null)
+        {
+            return;
+        }
+
+        var target = Comparison.Targets.First(t => t.Skill.Id == entry.Skill.Id);
+        if (Comparison.Target == target)
+        {
+            Comparison.Reload();
+        }
+        else
+        {
+            Comparison.Target = target;
+        }
+
+        SelectedTab = CompareTab;
+    }
+
+    partial void OnSelectedTabChanged(int value)
+    {
+        if (value == CompareTab && Comparison is { Target: null, Targets.Count: > 0 })
+        {
+            Comparison.Target = Comparison.Targets[0];
+        }
+    }
 
     public void ApplyUsage(UsageState state)
     {
@@ -122,4 +160,4 @@ public sealed partial class SkillCardViewModel : ObservableObject
     };
 }
 
-public sealed record ConflictEntry(string Source, string Path);
+public sealed record ConflictEntry(string Source, string Path, Skill Skill);

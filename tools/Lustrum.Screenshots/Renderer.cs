@@ -68,7 +68,7 @@ internal sealed class Renderer(DemoHome demo)
 
         if (scenario.Tab > 0)
         {
-            window.GetVisualDescendants().OfType<TabControl>().First().SelectedIndex = scenario.Tab;
+            vm.Card!.SelectedTab = scenario.Tab;
         }
 
         if (scenario.OpenSettings)
