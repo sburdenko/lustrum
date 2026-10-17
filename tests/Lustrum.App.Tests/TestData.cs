@@ -17,11 +17,17 @@ internal static class TestData
         new("project:/dev/gone", SourceKind.Project, "gone", "/dev/gone", null, false);
 
     public static readonly SkillSource Plugin =
-        new("plugin:market/unity", SourceKind.Plugin, "unity (market)", "/plugins/unity", null, true);
+        new("plugin:market/unity", SourceKind.Plugin, "unity (market)", "/plugins/unity", null, true, Namespace: "unity");
+
+    public static readonly SkillSource Account =
+        new("synced:acc/anthropic-skills", SourceKind.Synced, "anthropic-skills (claude.ai)", "/synced/acc", null, true, Namespace: "anthropic-skills", Layout: SourceLayout.Flat);
+
+    public static readonly SkillSource SyncedPlugin =
+        new("synced:acc/design", SourceKind.Synced, "design (claude.ai)", "/synced/design", null, true, Namespace: "design");
 
     public static Skill Skill(SkillSource source, string name, string description = "desc", Health health = Health.Ok)
     {
-        var fullName = source.Kind == SourceKind.Plugin ? $"unity:{name}" : name;
+        var fullName = source.Namespace is { } prefix ? $"{prefix}:{name}" : name;
         return new Skill(
             $"{source.Id}#{name}",
             name,

@@ -11,6 +11,7 @@ internal static class SkillFilter
             ["global"] = SourceKind.Global,
             ["project"] = SourceKind.Project,
             ["plugin"] = SourceKind.Plugin,
+            ["synced"] = SourceKind.Synced,
         };
 
     public static IEnumerable<Skill> Apply(IEnumerable<Skill> skills, SourceKind? source, bool brokenOnly) =>

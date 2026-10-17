@@ -91,6 +91,16 @@ public sealed class FakeClaudeHome : IDisposable
         File(Paths.InstalledPluginsJson, JsonSerializer.Serialize(new { version = 2, plugins = existing }));
     }
 
+    public string SyncedSkill(string account, string folder, string content) =>
+        File(Path.Combine(ClaudeDir, "skills", "synced", account, folder, "SKILL.md"), content);
+
+    public string SyncedPlugin(string account, string folder, string name)
+    {
+        var root = Path.Combine(ClaudeDir, "plugins", "synced", account, folder);
+        File(Path.Combine(root, ".claude-plugin", "plugin.json"), $$"""{ "name": "{{name}}" }""");
+        return root;
+    }
+
     public void EnablePlugins(params (string Key, bool Enabled)[] plugins)
     {
         var enabledPlugins = plugins.ToDictionary(p => p.Key, p => p.Enabled);

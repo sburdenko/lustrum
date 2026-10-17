@@ -41,7 +41,7 @@ public sealed partial class MainViewModel
         }
 
         var others = _result.Conflicts
-            .FirstOrDefault(c => c.Name == item.Skill.Name)?.Skills
+            .FirstOrDefault(c => c.Name == item.Skill.ConflictKey)?.Skills
             .Where(s => s.Id != item.Skill.Id)
             .ToList() ?? [];
 

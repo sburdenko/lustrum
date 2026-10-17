@@ -60,13 +60,14 @@ public sealed class SkillItemViewModel
         SourceKind.Global => Symbol.Globe,
         SourceKind.Project => Symbol.Folder,
         SourceKind.Plugin => Symbol.PuzzlePiece,
+        SourceKind.Synced => Symbol.Cloud,
         _ => Symbol.Box,
     };
 
     public static string SourceLabelFor(SkillSource source) => source.Kind switch
     {
         SourceKind.Global => "Global",
-        SourceKind.Plugin => source.DisplayName.Split(' ')[0],
+        SourceKind.Plugin or SourceKind.Synced => source.Namespace ?? source.DisplayName,
         _ => source.DisplayName,
     };
 

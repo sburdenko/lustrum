@@ -8,11 +8,15 @@ public sealed record ClaudePaths(string Home)
 
     public string CommandsDir => Path.Combine(ClaudeDir, "commands");
 
+    public string SyncedSkillsDir => Path.Combine(SkillsDir, "synced");
+
     public string ProjectsDir => Path.Combine(ClaudeDir, "projects");
 
     public string PluginsDir => Path.Combine(ClaudeDir, "plugins");
 
     public string PluginCacheDir => Path.Combine(PluginsDir, "cache");
+
+    public string SyncedPluginsDir => Path.Combine(PluginsDir, "synced");
 
     public string InstalledPluginsJson => Path.Combine(PluginsDir, "installed_plugins.json");
 

@@ -8,8 +8,8 @@ internal static class ConflictDetector
     {
         var names = SkillTagger.DuplicatedNames(skills);
         return skills
-            .Where(s => s.Source.Kind != SourceKind.Plugin && names.Contains(s.Name))
-            .GroupBy(s => s.Name, StringComparer.Ordinal)
+            .Where(s => names.Contains(s.ConflictKey))
+            .GroupBy(s => s.ConflictKey, StringComparer.Ordinal)
             .Select(g => new Conflict(g.Key, g.ToList()))
             .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();

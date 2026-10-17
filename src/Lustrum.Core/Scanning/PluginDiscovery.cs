@@ -133,5 +133,6 @@ internal static class PluginDiscovery
             installPath,
             Directory.Exists(installPath) ? Directory.GetLastWriteTimeUtc(installPath) : null,
             Directory.Exists(installPath),
-            enabled);
+            enabled,
+            plugin);
 }
