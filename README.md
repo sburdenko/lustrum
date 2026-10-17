@@ -57,7 +57,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 255 tests
+dotnet test                                            # 259 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -386,7 +386,8 @@ ui-kit         storefront  ok                  loaded            Use the shared 
 ```
 
 `--project <folder> --missing` lists the skills that project does not load, with a `NOTE` column for disabled
-plugins and for names that are loaded from somewhere else. `--missing` without `--project` exits with code 2.
+plugins and for names that are loaded from somewhere else; it combines with `--usage`, and `--json` adds `reason`,
+`loadedHere` and `usage`. `--missing` without `--project` exits with code 2.
 
 `--usage` adds `USES` and `LAST USED` columns read from the transcripts, `--unused` keeps only skills with no
 recorded use. Both work with `--project`. Without any transcripts `--unused` refuses to run instead of reporting
@@ -425,7 +426,7 @@ lustrum/
 
 ## Tests
 
-255 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+259 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,

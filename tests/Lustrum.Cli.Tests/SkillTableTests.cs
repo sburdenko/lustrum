@@ -96,4 +96,22 @@ public class SkillTableTests
         lines[1].Should().NotContain("loaded here");
         lines[2].Should().Contain("loaded here from Global");
     }
+
+    [Fact]
+    public void Missing_table_can_show_usage_too()
+    {
+        var other = new SkillSource("project:/dev/other", SourceKind.Project, "other", "/dev/other/.claude", null, true);
+        var report = Lustrum.Core.Usage.UsageReport.Empty with
+        {
+            ByName = new Dictionary<string, Lustrum.Core.Usage.SkillUsage>
+            {
+                ["theirs"] = new("theirs", 5, DateTimeOffset.Parse("2026-10-03T10:00:00Z"), [], 5, 0),
+            },
+        };
+
+        var lines = SkillTable.Render([new MissingEntry(Skill(other, "theirs"), null)], report).Split('\n');
+
+        lines[0].Should().Contain("NOTE").And.Contain("USES");
+        lines[1].Should().Contain("2026-10-03");
+    }
 }

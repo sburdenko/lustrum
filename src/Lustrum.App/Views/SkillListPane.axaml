@@ -12,7 +12,7 @@
           <TextBlock Text="{Binding VisibleSkills.Count}" Classes="tertiary" VerticalAlignment="Center" IsVisible="{Binding !IsProblemsView}" />
           <TextBlock Text="{Binding VisibleProblems.Count}" Classes="tertiary" VerticalAlignment="Center" IsVisible="{Binding IsProblemsView}" />
         </StackPanel>
-        <ListBox Grid.Column="1" Classes="segments" Margin="0,0,12,0" VerticalAlignment="Center"
+        <ListBox Grid.Column="1" Classes="segments" Margin="0,0,12,0" VerticalAlignment="Center" SelectionMode="AlwaysSelected"
                  ItemsSource="{Binding ProjectViews}" SelectedItem="{Binding SelectedProjectView}"
                  IsVisible="{Binding CanChooseProjectView}">
           <ListBox.ItemsPanel>

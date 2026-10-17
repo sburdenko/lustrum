@@ -109,9 +109,10 @@ internal static class ListCommand
         if (request.Missing)
         {
             var absent = MissingSetBuilder.Build(scan, target).Entries.Where(e => included.Contains(e.Skill.Id)).ToList();
+            var missingTable = request.WithUsage && report is not null ? SkillTable.Render(absent, report) : SkillTable.Render(absent);
             Console.WriteLine(request.AsJson
-                ? JsonSerializer.Serialize(absent.Select(e => new { e.Skill, LoadedHere = e.LoadedHere?.Id }), JsonOptions)
-                : SkillTable.Render(absent));
+                ? JsonSerializer.Serialize(absent.Select(e => ToJson(e, report)), JsonOptions)
+                : missingTable);
             return 0;
         }
 
@@ -173,6 +174,14 @@ internal static class ListCommand
         await Console.Error.WriteLineAsync($"No Claude Code transcripts found in '{projects}', so usage is unknown.");
         return null;
     }
+
+    private static object ToJson(MissingEntry entry, UsageReport? usage) => new
+    {
+        entry.Skill,
+        Usage = usage?.For(entry.Skill.FullName),
+        Reason = entry.Reason(s => s.DisplayName),
+        LoadedHere = entry.LoadedHere?.Id,
+    };
 
     private static object ToJson(EffectiveEntry entry, UsageReport? usage) => new
     {

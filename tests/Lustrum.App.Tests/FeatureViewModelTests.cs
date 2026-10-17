@@ -105,7 +105,7 @@ public class FeatureViewModelTests
 
         vm.SelectedNode = Node(vm, "app");
 
-        vm.SelectedProjectView.View.Should().Be(ProjectView.Own);
+        vm.SelectedProjectView!.View.Should().Be(ProjectView.Own);
         vm.ListTitle.Should().Be("app");
         vm.VisibleSkills.Should().OnlyContain(s => s.Skill.Source.Kind == SourceKind.Project);
     }
@@ -134,6 +134,19 @@ public class FeatureViewModelTests
         vm.SelectedSkill = vm.VisibleSkills.Single();
 
         vm.Card!.AvailabilityNote.Should().Be("Not loaded in app: it is stored in empty");
+    }
+
+    [Fact]
+    public async Task A_cleared_view_selection_falls_back_to_own_instead_of_crashing()
+    {
+        var vm = await Scanned();
+        vm.SelectedNode = Node(vm, "app");
+
+        vm.SelectedProjectView = null;
+        var typing = () => vm.SearchText = "design";
+
+        typing.Should().NotThrow();
+        vm.ListTitle.Should().Be("app");
     }
 
     [Fact]

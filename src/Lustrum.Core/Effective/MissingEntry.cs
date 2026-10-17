@@ -9,11 +9,12 @@ public sealed record MissingEntry(Skill Skill, Skill? LoadedHere)
     /// </summary>
     public string? Reason(Func<SkillSource, string> sourceName)
     {
-        if (Skill.Source.IsNamespaced && !Skill.Source.IsEnabled)
+        var disabled = Skill.Source.IsNamespaced && !Skill.Source.IsEnabled ? "plugin disabled" : null;
+        var loaded = LoadedHere is { } here ? $"loaded here from {sourceName(here.Source)}" : null;
+        return (disabled, loaded) switch
         {
-            return "plugin disabled";
-        }
-
-        return LoadedHere is { } here ? $"loaded here from {sourceName(here.Source)}" : null;
+            ({ } d, { } l) => $"{d}; {l}",
+            _ => disabled ?? loaded,
+        };
     }
 }

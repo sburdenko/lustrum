@@ -14,7 +14,7 @@ public sealed partial class MainViewModel
     ];
 
     [ObservableProperty]
-    private ProjectViewOption _selectedProjectView = ProjectViewChoices[0];
+    private ProjectViewOption? _selectedProjectView = ProjectViewChoices[0];
 
     public IReadOnlyList<ProjectViewOption> ProjectViews => ProjectViewChoices;
 
@@ -25,9 +25,9 @@ public sealed partial class MainViewModel
             ? _result.Sources.FirstOrDefault(s => s.Id == scope.SourceId && s.Kind == SourceKind.Project)
             : null;
 
-    private ProjectView ActiveView => SelectedProject is null ? ProjectView.Own : SelectedProjectView.View;
+    private ProjectView ActiveView => SelectedProject is null ? ProjectView.Own : SelectedProjectView?.View ?? ProjectView.Own;
 
-    partial void OnSelectedProjectViewChanged(ProjectViewOption value)
+    partial void OnSelectedProjectViewChanged(ProjectViewOption? value)
     {
         Card = null;
         OnPropertyChanged(nameof(ListTitle));

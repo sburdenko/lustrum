@@ -72,6 +72,31 @@ public class MissingSetTests : IDisposable
     }
 
     [Fact]
+    public async Task A_disabled_plugin_skill_also_says_where_the_loaded_copy_comes_from()
+    {
+        var off = _home.InstallPlugin("m1", "kit", "1");
+        _home.File(Path.Combine(off, "skills", "x", "SKILL.md"), Doc("x"));
+        var on = _home.InstallPlugin("m2", "kit", "1");
+        _home.File(Path.Combine(on, "skills", "x", "SKILL.md"), Doc("x"));
+        _home.EnablePlugins(("kit@m1", false));
+
+        var set = await BuildFor(_app);
+
+        set.Entries.Single().Reason(Label).Should().Be("plugin disabled; loaded here from kit");
+    }
+
+    [Fact]
+    public void Built_in_skills_are_always_loaded()
+    {
+        var builtIn = new SkillSource("builtin", SourceKind.BuiltIn, "Built-in", "/none", null, true);
+        var skill = new Skill("builtin#x", "x", "x", "d", SkillKind.Skill, builtIn, "/none/x", null,
+            new Dictionary<string, string>(), [], [], 0, DateTimeOffset.UnixEpoch, Health.Ok, []);
+
+        new Lustrum.Core.Indexing.EffectiveScope("project:/a").Includes(skill).Should().BeTrue();
+        new Lustrum.Core.Indexing.MissingScope("project:/a").Includes(skill).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Find_returns_entries_by_skill_id()
     {
         _home.ProjectSkill(_other, "theirs", Doc("theirs"));

@@ -39,6 +39,9 @@ internal static class SkillTable
     public static string Render(IReadOnlyList<MissingEntry> entries) =>
         Build(entries.Select(e => new Row(e.Skill, null, null, e)).ToList(), [.. Base, WhereMissing]);
 
+    public static string Render(IReadOnlyList<MissingEntry> entries, UsageReport usage) =>
+        Build(entries.Select(e => new Row(e.Skill, null, usage.For(e.Skill.FullName), e)).ToList(), [.. Base, WhereMissing, .. UsageColumns]);
+
     public static string Render(IReadOnlyList<Skill> skills, UsageReport usage) =>
         Build(skills.Select(s => new Row(s, null, usage.For(s.FullName))).ToList(), [.. Base, .. UsageColumns]);
 

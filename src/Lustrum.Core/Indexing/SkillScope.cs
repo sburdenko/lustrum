@@ -42,7 +42,7 @@ public sealed record EffectiveScope(string ProjectSourceId) : SkillScope
 {
     public override bool Includes(Skill skill) => skill.Source.Kind switch
     {
-        SourceKind.Global => true,
+        SourceKind.Global or SourceKind.BuiltIn => true,
         SourceKind.Plugin or SourceKind.Synced => skill.Source.IsEnabled,
         _ => skill.Source.Id == ProjectSourceId,
     };
@@ -50,5 +50,7 @@ public sealed record EffectiveScope(string ProjectSourceId) : SkillScope
 
 public sealed record MissingScope(string ProjectSourceId) : SkillScope
 {
-    public override bool Includes(Skill skill) => !new EffectiveScope(ProjectSourceId).Includes(skill);
+    private readonly EffectiveScope _effective = new(ProjectSourceId);
+
+    public override bool Includes(Skill skill) => !_effective.Includes(skill);
 }
