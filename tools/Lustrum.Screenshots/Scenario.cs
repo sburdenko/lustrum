@@ -22,5 +22,6 @@ internal sealed record Scenario(
         new("problems.png", ThemeVariant.Light, Node: "Problems", Problem: "broken-yaml"),
         new("content.png", ThemeVariant.Dark, Select: "code-review", Tab: 1, HidePaths: false),
         new("settings.png", ThemeVariant.Dark, Chip: "sb-*", OpenSettings: true),
+        new("compare.png", ThemeVariant.Light, Select: "release-notes", SelectSource: "storefront", Tab: 2, HidePaths: false),
     ];
 }

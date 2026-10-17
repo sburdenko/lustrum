@@ -25,7 +25,7 @@ have a few dozen skills:
 
 - What skills do I have, and where does each one live?
 - Which ones does project X actually load?
-- Where do names collide, and which copy wins?
+- Where do names collide, which copy wins, and how do the copies differ?
 - Which ones are broken (no frontmatter, bad YAML, missing description)?
 - Which ones are never used?
 
@@ -57,7 +57,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 202 tests
+dotnet test                                            # 219 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -74,6 +74,7 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 | **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, read from Claude Code transcripts. Sort by last use. |
 | **Problems** | One list of broken skills (with the YAML line and cause), over-long descriptions, projects whose folder is gone and paths that could not be read. |
 | **Skill card** | Description, health, usage, parsed frontmatter, file path, sibling files, name conflicts, rendered `SKILL.md`. |
+| **Compare** | For a name that exists in several places, a line diff between this copy and any other, with unchanged runs folded. |
 | **Actions** | Show in file manager, open in editor, copy path, copy invocation name (`/deploy`, `unity:ui`). |
 | **Live updates** | File system watchers trigger a rescan half a second after skills or plugin settings change. |
 | **Settings** | Own prefixes, extra project roots, search depth, skipped folders, editor command (quote paths with spaces), theme. |
@@ -95,6 +96,14 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 <tr>
 <td align="center"><sub>Rendered <code>SKILL.md</code>, dark theme</sub></td>
 <td align="center"><sub>Settings and filter chips</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/compare.png" alt="Line diff between a project copy and the global copy of a skill"/></td>
+<td width="50%"></td>
+</tr>
+<tr>
+<td align="center"><sub>Compare: project copy against the global one</sub></td>
+<td></td>
 </tr>
 </table>
 
@@ -154,12 +163,13 @@ flowchart TB
         watching["Watching<br/>SkillTreeWatcher"]
         settings["Settings<br/>SettingsStore"]
         usage["Usage<br/>UsageCollector · TranscriptParser"]
+        comparing["Comparing<br/>SkillComparer · DiffFolding"]
     end
 
     disk[("~/.claude<br/>~/.claude.json<br/>&lt;project&gt;/.claude")]
 
-    app --> scanner & index & effective & problems & watching & settings & usage
-    cli --> scanner & settings & usage
+    app --> scanner & index & effective & problems & watching & settings & usage & comparing
+    cli --> scanner & settings & usage & comparing
     scanner --> parser
     scanner --> disk
     watching --> disk
@@ -268,6 +278,13 @@ The window collects usage in the background after the first scan and again on ev
 rescans leave it alone. The cache lives in memory, so each launch starts with a full pass. Until usage is known, the
 `unused` chip is disabled; it stays disabled when no transcripts exist, because then every skill would look unused.
 
+### Compare
+
+`SkillComparer` runs a line diff ([DiffPlex](https://github.com/mmanela/diffplex)) over the whole files, frontmatter
+included, after normalising line endings. `DiffFolding` keeps three lines of context around each change and folds
+longer unchanged runs. The card labels the sides plainly: `−` is only in the copy you selected, `+` only in the
+other one. The CLI prints the same diff in unified format.
+
 ### Live updates
 
 `WatchTargets` picks what to watch. Skill and command folders and the plugin cache are watched recursively.
@@ -317,6 +334,7 @@ data. **Open logs** in the settings panel opens the folder.
 
 ```text
 lustrum list [--json] [--source global|project|plugin] [--broken] [--project <folder>] [--usage] [--unused]
+lustrum diff <name>
 ```
 
 ```text
@@ -357,18 +375,21 @@ a `usage` object.
 Files that could not be read are reported on stderr as `warning: <path>: <reason>`.
 An unknown `--source`, a folder without `.claude` or `--unused` without transcripts exits with code 2.
 
+`lustrum diff <name>` compares the copies of one name: the project copy (if any) is the base, every other copy is
+diffed against it in unified format. An unknown name exits with code 2.
+
 ## Repository layout
 
 ```text
 lustrum/
 ├── src/
-│   ├── Lustrum.Core/      Models/ Parsing/ Scanning/ Indexing/ Effective/ Problems/ Settings/ Watching/ Usage/
+│   ├── Lustrum.Core/      Models/ Parsing/ Scanning/ Indexing/ Effective/ Problems/ Settings/ Watching/ Usage/ Comparing/
 │   ├── Lustrum.App/       Views/ ViewModels/ Services/ Assets/
-│   └── Lustrum.Cli/       list command, table renderer
+│   └── Lustrum.Cli/       list and diff commands, table renderer
 ├── tests/
 │   ├── Lustrum.Core.Tests/   scanner, discovery, parser, decoder, search, effective set, problems, settings, watcher, usage
 │   ├── Lustrum.App.Tests/    view models, source tree, services
-│   └── Lustrum.Cli.Tests/    table output
+│   └── Lustrum.Cli.Tests/    table output, diff report
 ├── docs/                  screenshots, Claude Code on-disk notes
 ├── tools/
 │   └── Lustrum.Screenshots/  renders the README screenshots from a synthetic ~/.claude
@@ -380,14 +401,14 @@ lustrum/
 
 ## Tests
 
-202 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+219 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,
 oversized frontmatter, native and polling file watching. The App tests drive `MainViewModel` with a fake scan
 function, shell, clipboard, settings and theme, including overlapping rescans and the effective set.
 
-Measured with coverlet: 91% of lines in `Lustrum.Core`, 83% in the view models.
+Measured with coverlet: 91% of lines in `Lustrum.Core`, 85% in the view models.
 
 ```bash
 dotnet test
@@ -398,7 +419,7 @@ dotnet test
 [Avalonia 11](https://avaloniaui.net/) · [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) ·
 [YamlDotNet](https://github.com/aaubry/YamlDotNet) · [FluentIcons.Avalonia](https://github.com/davidxuang/FluentIcons) ·
 [Markdown.Avalonia](https://github.com/whistyun/Markdown.Avalonia) · [System.CommandLine](https://github.com/dotnet/command-line-api) ·
-[Serilog](https://serilog.net/) · xUnit
+[Serilog](https://serilog.net/) · [DiffPlex](https://github.com/mmanela/diffplex) · xUnit
 
 ## Limitations
 
