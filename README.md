@@ -6,7 +6,7 @@
 
 **A census of every Claude Code skill on your machine.**
 
-Global skills, per-project skills, plugin skills and slash commands, in one window.<br/>
+Global, project, plugin and claude.ai-synced skills and slash commands, in one window.<br/>
 Read-only towards Claude Code: nothing is written to `~/.claude`.
 
 [![CI](https://github.com/sburdenko/lustrum/actions/workflows/ci.yml/badge.svg)](https://github.com/sburdenko/lustrum/actions/workflows/ci.yml)
@@ -57,7 +57,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 225 tests
+dotnet test                                            # 244 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -66,11 +66,11 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 
 | | |
 |---|---|
-| **Source tree** | All, Global, Projects, Plugins (marketplace, then plugin), Problems. Every node has a count; disabled plugins and empty projects are dimmed. |
+| **Source tree** | All, Global, Projects, Plugins (marketplace, then plugin), claude.ai (skills and plugins synced from your account), Problems. Every node has a count; disabled plugins and empty projects are dimmed. |
 | **Effective set** | Pick a project and tick **Effective set**: the list shows exactly what that project loads, marks skills that are shadowed and says what overrides what. |
 | **Skill list** | Name with plugin prefix, description, source, health marker. Sort by best match, name, source or date. |
 | **Search** | Fuzzy on names, substring on descriptions and tags, ranked by relevance. Optionally searches the text of every `SKILL.md`. |
-| **Filter chips** | One chip per own prefix (`sb-*` by default), plus `plugin`, `command`, `broken`, `duplicate` and `unused`. Chips combine. |
+| **Filter chips** | One chip per own prefix (`sb-*` by default), plus `plugin`, `synced`, `command`, `broken`, `duplicate` and `unused`. Chips combine. |
 | **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, read from Claude Code transcripts. Sort by last use. |
 | **Problems** | One list of broken skills (with the YAML line and cause), over-long descriptions, projects whose folder is gone and paths that could not be read. |
 | **Skill card** | Description, health, usage, parsed frontmatter, file path, sibling files, name conflicts, rendered `SKILL.md`. |
@@ -118,6 +118,8 @@ rebuilds them in `docs/`.
 | Global commands | `~/.claude/commands/**/*.md` (up to 3 levels) | file path without `.md`, folders joined with `:` (`git/squash.md` is `/git:squash`) |
 | Project skills and commands | `<project>/.claude/skills`, `<project>/.claude/commands` | same rules as global |
 | Plugins | the `installPath` of every entry in `~/.claude/plugins/installed_plugins.json` | `<plugin>:<name>` |
+| claude.ai skills | `~/.claude/skills/synced/<account>/<folder>/SKILL.md` | `anthropic-skills:<name>` |
+| claude.ai plugins | `~/.claude/plugins/synced/<account>/<plugin>/` (newest `~gN` generation) | `<plugin>:<name>` |
 
 **Which projects.** Lustrum merges three lists by normalised path:
 
@@ -134,6 +136,12 @@ Problems list shows it.
 `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>` and ignores versions that carry an `.orphaned_at` marker.
 A plugin set to `false` under `enabledPlugins` in `~/.claude/settings.json` is shown as disabled and left out of
 every effective set.
+
+**claude.ai skills and plugins.** The Claude desktop app syncs the skills and plugins of your claude.ai account,
+including Anthropic's own skills such as `xlsx` or `skill-creator`, into `~/.claude/skills/synced` and
+`~/.claude/plugins/synced`. Lustrum lists them as source kind `Synced`, under the same names Claude uses to invoke
+them. Plugin folders can exist in several generations (`design`, `design~g2`); the highest one is read. Folders
+starting with a dot, such as `.staging`, are skipped. Synced skills are part of every effective set.
 
 **Project folder names.** `~/.claude/projects` stores each path with every non-alphanumeric character replaced
 by `-`. That mapping is lossy (`my-app`, `my_app` and `my/app` encode the same), so `ProjectPathDecoder`
@@ -204,12 +212,15 @@ Conflict(Name, Skills)
 ScanResult(Sources, Skills, Conflicts, Issues, ScannedAt, Duration)
 ```
 
-- `SourceKind`: `Global`, `Project`, `Plugin`. `SkillKind`: `Skill`, `Command`.
+- `SourceKind`: `Global`, `Project`, `Plugin`, `Synced`. `SkillKind`: `Skill`, `Command`.
+- `SkillSource.Namespace` is the prefix of plugin and synced skills; `Layout` says whether skills sit in
+  `skills/<name>/` or directly in the source folder.
 - `Skill.Id` is `<source id>#<path relative to the source root>`. It is unique inside a scan and survives
   a frontmatter rename.
-- `FullName` carries the plugin prefix (`unity:ui`). Plugin skills are always prefixed, so they never
-  produce a conflict.
-- `Skill.Tags` are computed: own-prefix tags, `plugin`, `command`, `broken`, `duplicate`.
+- `FullName` carries the prefix (`unity:ui`, `anthropic-skills:xlsx`). Conflicts are keyed by full name for
+  prefixed skills and by short name otherwise, so `unity:ui` and a global `ui` do not collide, while two copies of
+  `design:critique` (say, an installed and a synced plugin) do.
+- `Skill.Tags` are computed: own-prefix tags, `plugin`, `synced`, `command`, `broken`, `duplicate`.
 
 ### Health
 
@@ -232,10 +243,9 @@ top of the file.
 
 ### Effective set
 
-`EffectiveSetBuilder.Build(scan, project)` takes that project's skills, the global skills and the skills of
-enabled plugins. Within one name, a project skill wins over a global one: the winner is `Active` and lists what
-it overrides, the loser is `Shadowed` and points at the winner. Plugin skills are always prefixed, so they are
-never shadowed. Skills from other projects are not part of the set.
+`EffectiveSetBuilder.Build(scan, project)` takes that project's skills, the global skills, the skills of
+enabled plugins and the skills synced from claude.ai. Within one name, a project skill wins over a global one: the winner is `Active` and lists what
+it overrides, the loser is `Shadowed` and points at the winner. Prefixed skills are never shadowed. Skills from other projects are not part of the set.
 
 ### Search and scopes
 
@@ -248,7 +258,7 @@ which skills it includes.
 | `KindScope(kind)` | all skills from global, project or plugin sources |
 | `SourceScope(id)` | one project or one plugin |
 | `MarketplaceScope(name)` | every plugin from one marketplace |
-| `EffectiveScope(projectId)` | that project, global skills and enabled plugins |
+| `EffectiveScope(projectId)` | that project, global skills, enabled plugins and synced skills |
 | `ProblemsScope` | anything with a health problem, including `DescriptionTooLong` |
 
 `SkillIndex.Search(skills, new SkillQuery(scope, text, requiredTags))` applies the scope and the tags, then the
@@ -287,11 +297,13 @@ other one. The CLI prints the same diff in unified format.
 
 ### Live updates
 
-`WatchTargets` picks what to watch. Skill and command folders and the plugin cache are watched recursively.
+`WatchTargets` picks what to watch. Skill and command folders (including those of synced plugins) and the plugin
+cache are watched recursively.
 `~/.claude/plugins`, `~/.claude/projects` and each project's `.claude` are watched without subfolders, and
 `~/.claude` itself only for `settings.json`, `skills` and `commands`, because Claude Code writes transcripts,
 history and worktrees there constantly. `~/.claude.json` is not watched for the same reason; a new project still shows
-up, because Claude Code creates its folder in `~/.claude/projects`.
+up, because Claude Code creates its folder in `~/.claude/projects`. Events inside folders whose name starts with a
+dot (`.staging` during a sync, `.DS_Store`) are ignored.
 
 `SkillTreeWatcher` debounces events by 500 ms. It falls back to polling a fingerprint every 30 s when there are
 more folders than the platform handles comfortably (64 on Linux, where each watcher is an inotify instance, 256
@@ -333,7 +345,7 @@ data. **Open logs** in the settings panel opens the folder.
 ## CLI
 
 ```text
-lustrum list [--json] [--source global|project|plugin] [--broken] [--project <folder>] [--usage] [--unused]
+lustrum list [--json] [--source global|project|plugin|synced] [--broken] [--project <folder>] [--usage] [--unused]
 lustrum diff <name>
 ```
 
@@ -402,7 +414,7 @@ lustrum/
 
 ## Tests
 
-225 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+244 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,
@@ -424,7 +436,8 @@ dotnet test
 
 ## Limitations
 
-- Only files on disk are visible. Skills managed in claude.ai settings and skills bundled with Claude are not listed.
+- Only files on disk are visible. claude.ai skills appear only where the Claude desktop app has synced them, and
+  the synced layout is not documented by Anthropic.
 - The effective set follows two rules: project over global for the same name, and plugins only when enabled in the
   user-level `~/.claude/settings.json`. Project-level settings files are not read.
 - The window has only been run on macOS; on Windows and Linux only the tests run in CI.
