@@ -19,7 +19,7 @@ public sealed partial class MainViewModel
     {
         foreach (var chip in Chips)
         {
-            chip.IsAvailable = !chip.Filter.NeedsUsage || value.CanJudgeUnused;
+            chip.IsAvailable = chip.Filter.IsAvailable(ChipContext);
         }
 
         Card?.ApplyUsage(value);

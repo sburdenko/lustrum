@@ -87,6 +87,50 @@
                   </TextBlock>
                 </StackPanel>
 
+                <StackPanel Spacing="8" IsVisible="{Binding Card.Git.IsVisible}">
+                  <TextBlock Text="GIT" Classes="caption" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fi:SymbolIcon Symbol="Branch" FontSize="16" Foreground="{DynamicResource LxAccentBrush}" />
+                    <TextBlock Text="{Binding Card.Git.Headline}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding Card.Git.LastCommit}" TextWrapping="Wrap" Classes="secondary"
+                             IsVisible="{Binding Card.Git.HasLastCommit}" />
+                  <StackPanel Spacing="4" IsVisible="{Binding Card.Git.HasChanges}">
+                    <TextBlock Text="{Binding Card.Git.ChangesTitle}" Foreground="{DynamicResource LxWarnFgBrush}" />
+                    <ItemsControl ItemsSource="{Binding Card.Git.ChangeRows}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:GitChangeRow">
+                          <Grid ColumnDefinitions="18,*" Margin="0,1">
+                            <TextBlock Text="{Binding Code}" Classes="mono tertiary" />
+                            <TextBlock Grid.Column="1" Text="{Binding Path}" Classes="mono secondary" TextTrimming="CharacterEllipsis" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                  <TextBlock Text="{Binding Card.Git.RepositoryText}" Classes="mono tertiary" TextWrapping="Wrap"
+                             IsVisible="{Binding Card.Git.HasRepositoryText}" />
+                  <WrapPanel IsVisible="{Binding Card.Git.ShowActions}" Margin="0,2,0,0">
+                    <Button Classes="ghost" Command="{Binding CheckCardForUpdatesCommand}" Margin="0,0,8,6"
+                            ToolTip.Tip="Run git fetch for this repository">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <fi:SymbolIcon Symbol="CloudSync" FontSize="16" />
+                        <TextBlock Text="Check for updates" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="primary" Command="{Binding UpdateCardSkillCommand}" Margin="0,0,8,6"
+                            IsVisible="{Binding Card.Git.ShowUpdate}" ToolTip.Tip="Fast-forward the repository to its upstream (git merge --ff-only)">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <fi:SymbolIcon Symbol="CloudArrowDown" FontSize="16" />
+                        <TextBlock Text="Update" />
+                      </StackPanel>
+                    </Button>
+                  </WrapPanel>
+                  <TextBlock Text="{Binding Card.Git.UpdateNote}" TextWrapping="Wrap" IsVisible="{Binding Card.Git.HasUpdateNote}" />
+                  <TextBlock Text="{Binding Card.Git.CheckNote}" Classes="tertiary" FontSize="12" TextWrapping="Wrap"
+                             IsVisible="{Binding Card.Git.HasCheckNote}" />
+                </StackPanel>
+
                 <StackPanel Spacing="8" IsVisible="{Binding Card.HasFrontmatter}">
                           <TextBlock Text="FRONTMATTER" Classes="caption" />
                           <Border Classes="panel" Background="{DynamicResource LxPanelAltBrush}" Padding="12,8">

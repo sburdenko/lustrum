@@ -33,7 +33,7 @@ public class UsageViewModelTests
             _usageCalls++;
             return _usage.Task;
         },
-        new AppServices(_shell, _clipboard, _settings, _theme));
+        new AppServices(_shell, _clipboard, _settings, _theme, new FakeSkillGit()));
 
     private async Task<MainViewModel> WithUsage(UsageReport report)
     {

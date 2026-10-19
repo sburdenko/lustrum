@@ -43,7 +43,7 @@ public sealed partial class MainViewModel
         _ => SelectedNode?.Title ?? "All",
     };
 
-    private bool MatchesChips(Skill skill) => Chips.Where(c => c.IsActive).All(c => c.Filter.Matches(skill, Usage));
+    private bool MatchesChips(Skill skill) => Chips.Where(c => c.IsActive).All(c => c.Filter.Matches(skill, ChipContext));
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private void ClearSearch() => SearchText = string.Empty;
@@ -61,7 +61,7 @@ public sealed partial class MainViewModel
 
     private IReadOnlyList<ChipViewModel> BuildChips(IEnumerable<string> activeLabels)
     {
-        var chips = FilterChips.Build(_settings.OwnPrefixes, activeLabels, UsageState.CanJudgeUnused);
+        var chips = FilterChips.Build(_settings.OwnPrefixes, activeLabels, ChipContext);
         foreach (var chip in chips)
         {
             chip.PropertyChanged += (_, e) =>
@@ -89,7 +89,7 @@ public sealed partial class MainViewModel
         _isRefreshingList = true;
         try
         {
-            VisibleSkills = Sort(withBody).Select(s => new SkillItemViewModel(s, _effective?.Find(s.Id), _missing?.Find(s.Id))).ToList();
+            VisibleSkills = Sort(withBody).Select(s => new SkillItemViewModel(s, _effective?.Find(s.Id), _missing?.Find(s.Id), _updates.Behind(s))).ToList();
             SelectedSkill = VisibleSkills.FirstOrDefault(s => s.Skill.Id == keepId);
         }
         finally

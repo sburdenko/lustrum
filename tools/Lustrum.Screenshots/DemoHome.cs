@@ -66,6 +66,7 @@ internal sealed partial class DemoHome : IDisposable
         Plugins();
         Synced();
         Transcripts();
+        GitRepositories();
     }
 
     private void GlobalSkills()

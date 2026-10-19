@@ -6,6 +6,7 @@ using Avalonia.VisualTree;
 using Lustrum.App.Services;
 using Lustrum.App.ViewModels;
 using Lustrum.App.Views;
+using Lustrum.Core.Git;
 using Lustrum.Core.Models;
 using Lustrum.Core.Scanning;
 using Lustrum.Core.Usage;
@@ -27,13 +28,18 @@ internal sealed class Renderer(DemoHome demo)
         var vm = new MainViewModel(
             async (options, token) => Hide(await SkillScanner.ScanAsync(paths, options, token), scenario.HidePaths),
             token => usage.CollectAsync(paths.ProjectsDir, token),
-            new AppServices(new ShellService(), new AvaloniaClipboardService(window), new SettingsService(Path.Combine(demo.Home, "lustrum-settings.json")), new NoTheme()));
+            new AppServices(new ShellService(), new AvaloniaClipboardService(window), new SettingsService(Path.Combine(demo.Home, "lustrum-settings.json")), new NoTheme(), new DemoGit(new SkillGit(new GitCli()), demo.Home, ShownHome)));
         window.DataContext = vm;
         window.Show();
 
         await vm.RescanCommand.ExecuteAsync(null);
         await WaitFor(() => vm.Usage is not null);
         vm.WatchStatus = await WatchStatusAsync(paths);
+        if (scenario.CheckUpdates)
+        {
+            await vm.CheckAllForUpdatesCommand.ExecuteAsync(null);
+        }
+
         Apply(scenario, vm, window);
 
         await Task.Delay(Settle);

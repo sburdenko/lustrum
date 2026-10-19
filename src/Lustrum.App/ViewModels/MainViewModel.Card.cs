@@ -17,7 +17,11 @@ public sealed partial class MainViewModel
 
     public bool HasCard => Card is not null;
 
-    partial void OnCardChanged(SkillCardViewModel? value) => OnPropertyChanged(nameof(HasCard));
+    partial void OnCardChanged(SkillCardViewModel? value)
+    {
+        OnPropertyChanged(nameof(HasCard));
+        RefreshGitCommands();
+    }
 
     partial void OnSelectedSkillChanged(SkillItemViewModel? value)
     {
@@ -58,6 +62,7 @@ public sealed partial class MainViewModel
         };
         Card = card;
         _ = LoadBodyAsync(card);
+        StartGitLoad(card);
     }
 
     private static async Task LoadBodyAsync(SkillCardViewModel card)

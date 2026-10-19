@@ -135,6 +135,7 @@ public sealed partial class MainViewModel : ObservableObject
         Summary = BuildSummary(result);
         StatusText = BuildStatus(result);
         StartBodySearch();
+        RemapRepositoriesIfChecked(result);
         ScanApplied?.Invoke(result);
     }
 

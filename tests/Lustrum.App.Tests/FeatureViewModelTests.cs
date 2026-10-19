@@ -26,7 +26,7 @@ public class FeatureViewModelTests
                 return Task.FromResult(result);
             },
             _ => Task.FromResult(UsageReport.Empty),
-            new AppServices(_shell, _clipboard, _settings, _theme));
+            new AppServices(_shell, _clipboard, _settings, _theme, new FakeSkillGit()));
     }
 
     private async Task<MainViewModel> Scanned(ScanResult? result = null)
@@ -167,7 +167,7 @@ public class FeatureViewModelTests
     {
         var vm = await Scanned();
 
-        vm.Chips.Select(c => c.Label).Should().Equal("sb-*", "plugin", "synced", "command", "broken", "duplicate", "unused");
+        vm.Chips.Select(c => c.Label).Should().Equal("sb-*", "plugin", "synced", "command", "broken", "duplicate", "unused", "updates");
     }
 
     [Fact]
