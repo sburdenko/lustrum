@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Effective;
 using Lustrum.Core.Indexing;
 using Lustrum.Core.Models;
@@ -89,7 +90,7 @@ public sealed partial class MainViewModel
         _isRefreshingList = true;
         try
         {
-            VisibleSkills = Sort(withBody).Select(s => new SkillItemViewModel(s, _effective?.Find(s.Id), _missing?.Find(s.Id), _updates.Behind(s))).ToList();
+            VisibleSkills = Sort(withBody).Select(s => new SkillItemViewModel(s, _effective?.Find(s.Id), _missing?.Find(s.Id), _updates.Behind(s), HomeVisibility(s))).ToList();
             SelectedSkill = VisibleSkills.FirstOrDefault(s => s.Skill.Id == keepId);
         }
         finally
@@ -100,6 +101,9 @@ public sealed partial class MainViewModel
         RefreshProblems();
         ShowCard(SelectedSkill);
     }
+
+    private SkillVisibility HomeVisibility(Skill skill) =>
+        SkillOverrides.Applies(skill) ? _result.Overrides.ResolveAtHome(skill).Value : SkillVisibility.On;
 
     private IEnumerable<Skill> Sort(IEnumerable<Skill> skills) => SelectedSort.Mode switch
     {

@@ -7,7 +7,7 @@
 **A census of every Claude Code skill on your machine.**
 
 Global, project, plugin and claude.ai-synced skills and slash commands, in one window.<br/>
-Read-only towards Claude Code. The one write is the **Update** button: a fast-forward of a git repository that holds only skills.
+Nothing changes on its own: Lustrum writes only when you use **Copy to**, **Visibility** or **Update**.
 
 [![CI](https://github.com/sburdenko/lustrum/actions/workflows/ci.yml/badge.svg)](https://github.com/sburdenko/lustrum/actions/workflows/ci.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
@@ -58,7 +58,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 312 tests
+dotnet test                                            # 353 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -74,10 +74,12 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 | **Filter chips** | One chip per own prefix (`sb-*` by default), plus `plugin`, `synced`, `command`, `broken`, `duplicate`, `unused` and `updates`. Chips combine. |
 | **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, read from Claude Code transcripts. Sort by last use. |
 | **Problems** | One list of broken skills (with the YAML line and cause), over-long descriptions, projects whose folder is gone and paths that could not be read. |
-| **Skill card** | Description, health, usage, git status, parsed frontmatter, file path, sibling files, name conflicts, rendered `SKILL.md`. |
+| **Skill card** | Description, health, usage, visibility, git status, parsed frontmatter, file path, sibling files, name conflicts, rendered `SKILL.md`. |
 | **Git** | For global and project skills inside a git repository: branch, upstream, commits behind and ahead, uncommitted changes in the skill folder and its last commit. **Check for updates** fetches, for one repository from the card or for all of them from the toolbar; **Update** fast-forwards a repository that holds only skills. |
 | **Compare** | For a name that exists in several places, a line diff between this copy and any other, with unchanged runs folded. |
 | **Actions** | Show in file manager, open in editor, copy path, copy invocation name (`/deploy`, `unity:ui`). |
+| **Copy to** | Copy a skill or command into your personal skills or into a project, for example to share a personal skill with a team or to customise a plugin skill. Nothing is overwritten. |
+| **Visibility** | Set what Claude Code does with a skill (on, name only, you only, off) through its `skillOverrides` setting, the same switch as the `/skills` menu. Lists show turned-off skills dimmed. |
 | **Live updates** | File system watchers trigger a rescan half a second after skills or plugin settings change. |
 | **Settings** | Own prefixes, extra project roots, search depth, skipped folders, editor command (quote paths with spaces), theme. |
 | **Keys** | `Ctrl/Cmd+F` search · `F5` rescan · `Esc` clear search · `Ctrl/Cmd+1/2/3` focus a column · `Ctrl/Cmd+Shift+C` copy path · `Ctrl/Cmd+C` in the list copies the name |
@@ -112,6 +114,12 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 </tr>
 <tr>
 <td colspan="2" align="center"><sub>Git: a cloned skill after Check for updates, two commits behind</sub></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><img src="docs/visibility.png" alt="A personal skill turned off by the project's settings, with the Copy to menu open" width="70%"/></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><sub>Visibility and Copy to: the project's settings turn a personal skill off</sub></td>
 </tr>
 </table>
 
@@ -181,12 +189,14 @@ flowchart TB
         usage["Usage<br/>UsageCollector · TranscriptParser"]
         comparing["Comparing<br/>SkillComparer · DiffFolding"]
         git["Git<br/>SkillGit · GitCli · UpdatePolicy"]
+        claudesettings["ClaudeSettings<br/>SkillOverrides · ClaudeSettingsWriter"]
+        copying["Copying<br/>SkillCopier"]
     end
 
     disk[("~/.claude<br/>~/.claude.json<br/>&lt;project&gt;/.claude")]
     gitcli[["git command line"]]
 
-    app --> scanner & index & effective & problems & watching & settings & usage & comparing & git
+    app --> scanner & index & effective & problems & watching & settings & usage & comparing & git & claudesettings & copying
     cli --> scanner & settings & usage & comparing
     scanner --> parser
     scanner --> disk
@@ -258,6 +268,8 @@ top of the file.
 enabled plugins and the skills synced from claude.ai. Within one name it follows Claude Code's rules: a skill beats
 a command, and a personal (global) copy beats a project copy. The winner is `Active` and lists what it overrides, the
 loser is `Shadowed` and points at the winner. Prefixed skills are never shadowed. Skills from other projects are not part of the set.
+Each active personal or project skill also carries the visibility that applies in that project (see below), so a
+skill turned off there is labelled `off`.
 
 ### Missing
 
@@ -352,6 +364,48 @@ failed check, `LC_ALL=C` keeps messages in English, `GIT_OPTIONAL_LOCKS=0` stops
 and `core.fsmonitor` is switched off so reading a repository never starts a monitor daemon. Local commands time out
 after 30 s, fetches after 90 s.
 
+### Visibility
+
+Claude Code reads a `skillOverrides` map from its settings files: skill name to `on`, `name-only`,
+`user-invocable-only` or `off`. The scan reads it from `~/.claude/settings.json` and from each project's
+`.claude/settings.json` and `.claude/settings.local.json`. In a project, the local file wins over the shared one, which
+wins over user settings, key by key. Plugin skills and commands are not affected, as in Claude Code.
+
+| Value | Claude sees | `/name` in the menu | Label in Lustrum |
+|---|---|---|---|
+| `on` (or no entry) | name and description | yes | none |
+| `name-only` | the name only | yes | `name only` |
+| `user-invocable-only` | nothing | yes | `you only` |
+| `off` | nothing | no | `off`, row dimmed |
+
+The card's **Visibility** control writes one entry. For a personal skill it goes to `~/.claude/settings.json`; for a
+project skill to that project's `.claude/settings.local.json`, the file Claude Code's own `/skills` menu writes.
+Entries are keyed by name, so one entry covers every skill with that name, and the card says so. The control shows
+what applies to the skill at home, and the card names the file when that value comes from somewhere else; in a
+project view it also says when the project's settings take precedence.
+
+Choosing **On** removes the entry, unless a lower file would then hide the skill again; in that case Lustrum writes
+an explicit `on`. `ClaudeSettingsWriter` changes only that entry and keeps every other key and character. It follows a
+linked settings file to the real one, writes a temporary file next to it with the same file mode, flushes it to disk
+and moves it over the original. If the file changed while Lustrum was writing, the change is refused instead of
+overwriting it. A file that is not plain JSON, for example one with comments or trailing commas, is left alone too,
+because rewriting it would lose what makes it different. Writes are serialised, and the control is disabled while one
+is in progress.
+
+### Copy
+
+**Copy to** lists your personal skills and every existing project other than the skill's own source. `SkillCopier`
+plans each target first and greys out the ones it would refuse: the folder or file already exists there, or the
+target already has a skill or command with that name. A skill folder is copied whole, without `.git` and without
+linked files or folders (their content lives outside the skill), into a staging folder next to `skills/`, where neither
+Lustrum nor Claude Code looks for skills, and moved into place at the end, so a failure or a rescan never sees half a
+skill.
+A command keeps its relative path under `commands/`. Plugin and synced skills can be copied out as well, which is the
+way to customise one. Copies over 2,000 files or 50 MB are refused.
+
+Remember the precedence rule: a project copy of a personal skill is shadowed by the personal one in that project.
+Copying into a project is for sharing a skill with the team through the repository.
+
 ### Live updates
 
 `WatchTargets` picks what to watch. Skill and command folders (including those of synced plugins) and the plugin
@@ -389,7 +443,7 @@ not a set of checkboxes. The view is split the same way into `SourcesPane`, `Ski
 | `GitSection`, `RepoState` | what the card's git section shows, and what has been done to each repository this session |
 | `ProblemItemViewModel` | one row in the Problems list |
 | `SettingsEditorViewModel` | the editable copy of the settings |
-| `IShellService`, `IClipboardService`, `ISettingsService`, `IThemeService`, `ISkillGit` | the only places that touch the OS; faked in tests |
+| `IShellService`, `IClipboardService`, `ISettingsService`, `IThemeService`, `ISkillGit`, `ISkillWriter` | the only places that touch the OS; faked in tests |
 
 ## Settings and logs
 
@@ -446,7 +500,7 @@ recorded use. Both work with `--project`. Without any transcripts `--unused` ref
 every skill as unused.
 
 `--json` prints the full `Skill` records, including `frontmatter`, `allowedTools`, `files`, `health` and `tags`.
-With `--project`, each record also carries `availability`, `shadowedBy` and `overrides` (skill ids); with `--usage`,
+With `--project`, each record also carries `availability`, `shadowedBy`, `overrides` (skill ids) and `visibility`; with `--usage`,
 a `usage` object.
 Files that could not be read are reported on stderr as `warning: <path>: <reason>`.
 An unknown `--source`, a folder without `.claude` or `--unused` without transcripts exits with code 2.
@@ -460,11 +514,11 @@ code 1; an unknown name exits with code 2.
 ```text
 lustrum/
 ├── src/
-│   ├── Lustrum.Core/      Models/ Parsing/ Scanning/ Indexing/ Effective/ Problems/ Settings/ Watching/ Usage/ Comparing/ Git/
+│   ├── Lustrum.Core/      Models/ Parsing/ Scanning/ Indexing/ Effective/ Problems/ Settings/ Watching/ Usage/ Comparing/ Git/ ClaudeSettings/ Copying/
 │   ├── Lustrum.App/       Views/ ViewModels/ Services/ Assets/
 │   └── Lustrum.Cli/       list and diff commands, table renderer
 ├── tests/
-│   ├── Lustrum.Core.Tests/   scanner, discovery, parser, decoder, search, effective set, problems, settings, watcher, usage, git
+│   ├── Lustrum.Core.Tests/   scanner, discovery, parser, decoder, search, effective set, problems, settings, watcher, usage, git, visibility, copy
 │   ├── Lustrum.App.Tests/    view models, source tree, services
 │   └── Lustrum.Cli.Tests/    table output, diff report
 ├── docs/                  screenshots, Claude Code on-disk notes
@@ -478,7 +532,7 @@ lustrum/
 
 ## Tests
 
-312 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+353 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,
@@ -504,11 +558,16 @@ dotnet test
 
 - Only files on disk are visible. claude.ai skills appear only where the Claude desktop app has synced them, and
   the synced layout is not documented by Anthropic.
-- The effective set follows two rules: project over global for the same name, and plugins only when enabled in the
-  user-level `~/.claude/settings.json`. Project-level settings files are not read.
+- The effective set follows Claude Code's documented rules for personal, project and plugin skills. Enterprise
+  (managed) skills and settings are not read, and plugins count as enabled or disabled by the user-level
+  `~/.claude/settings.json` only.
 - The window has only been run on macOS; on Windows and Linux only the tests run in CI.
 - The macOS app is not notarized, and there is no Windows installer.
 - Usage is counted by skill name from transcripts whose format Anthropic does not document.
+- Skills in nested `.claude/skills` folders below a project root, or in parent folders up to the repository root,
+  are not discovered; Claude Code loads those too.
+- Claude Code's documentation does not say how `skillOverrides` from several files combine; Lustrum assumes key by key,
+  the higher file winning.
 - Git features need `git` on the `PATH`. A remote that asks for a password fails the check instead of prompting.
 - **Update** only fast-forwards. A diverged or dirty repository, or one that holds more than skills, has to be
   updated with git directly. The merge runs the repository's own hooks and filters, as `git merge` would.

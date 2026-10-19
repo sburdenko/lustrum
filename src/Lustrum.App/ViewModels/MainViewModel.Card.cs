@@ -61,6 +61,7 @@ public sealed partial class MainViewModel
             }
         };
         Card = card;
+        PrepareWrites(card);
         _ = LoadBodyAsync(card);
         StartGitLoad(card);
     }

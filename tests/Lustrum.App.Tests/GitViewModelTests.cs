@@ -41,7 +41,7 @@ public class GitViewModelTests
                 return Task.FromResult(TestData.Default());
             },
             _ => Task.FromResult(UsageReport.Empty),
-            new AppServices(new FakeShell(), new FakeClipboard(), _settings, new FakeTheme(), _git));
+            new AppServices(new FakeShell(), new FakeClipboard(), _settings, new FakeTheme(), _git, new FakeSkillWriter()));
         await vm.RescanCommand.ExecuteAsync(null);
         return vm;
     }

@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Effective;
 using Lustrum.Core.Models;
 using Lustrum.Core.Scanning;
@@ -190,6 +191,7 @@ internal static class ListCommand
         entry.Availability,
         ShadowedBy = entry.ShadowedBy?.Id,
         Overrides = entry.Overrides.Select(o => o.Id).ToList(),
+        Visibility = entry.VisibilityValue.ToSetting(),
     };
 
     private sealed record ListRequest(bool AsJson, string? Source, bool BrokenOnly, string? Project, bool WithUsage, bool UnusedOnly, bool Missing);

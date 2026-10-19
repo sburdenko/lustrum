@@ -144,7 +144,7 @@ public sealed partial class MainViewModel : ObservableObject
         var scope = SelectedNode?.Scope;
         NavRoots = NavTreeBuilder.Build(_result, ShowEmptySources);
         var node = FindNode(NavRoots, scope) ?? NavRoots.FirstOrDefault();
-        if (ReferenceEquals(node, SelectedNode))
+        if (Equals(node, SelectedNode))
         {
             RefreshList();
         }

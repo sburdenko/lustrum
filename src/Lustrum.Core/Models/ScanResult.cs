@@ -1,3 +1,5 @@
+using Lustrum.Core.ClaudeSettings;
+
 namespace Lustrum.Core.Models;
 
 public sealed record ScanResult(
@@ -6,4 +8,7 @@ public sealed record ScanResult(
     IReadOnlyList<Conflict> Conflicts,
     IReadOnlyList<ScanIssue> Issues,
     DateTimeOffset ScannedAt,
-    TimeSpan Duration);
+    TimeSpan Duration)
+{
+    public SkillOverrides Overrides { get; init; } = SkillOverrides.Empty;
+}

@@ -46,7 +46,7 @@ public sealed class ComparisonViewModelTests : IDisposable
         var vm = new MainViewModel(
             (_, _) => Task.FromResult(scan),
             _ => Task.FromResult(UsageReport.Empty),
-            new AppServices(new FakeShell(), new FakeClipboard(), new FakeSettings(LustrumSettings.Default), new FakeTheme(), new FakeSkillGit()));
+            new AppServices(new FakeShell(), new FakeClipboard(), new FakeSettings(LustrumSettings.Default), new FakeTheme(), new FakeSkillGit(), new FakeSkillWriter()));
         await vm.RescanCommand.ExecuteAsync(null);
         vm.SelectedSkill = vm.VisibleSkills.Single(s => s.Skill.Source.Kind == SourceKind.Global);
         return vm;

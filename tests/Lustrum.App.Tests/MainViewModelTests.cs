@@ -17,7 +17,7 @@ public class MainViewModelTests
     private MainViewModel Create(Func<CancellationToken, Task<ScanResult>>? scan = null)
     {
         var run = scan ?? (_ => Task.FromResult(TestData.Default()));
-        return new MainViewModel((_, token) => run(token), _ => Task.FromResult(UsageReport.Empty), new AppServices(_shell, _clipboard, _settings, _theme, new FakeSkillGit()));
+        return new MainViewModel((_, token) => run(token), _ => Task.FromResult(UsageReport.Empty), new AppServices(_shell, _clipboard, _settings, _theme, new FakeSkillGit(), new FakeSkillWriter()));
     }
 
     private async Task<MainViewModel> Scanned()
@@ -37,6 +37,18 @@ public class MainViewModelTests
         vm.Summary.Should().Be("4 skills · 4 sources · 0 conflicts");
         vm.SelectedNode!.Title.Should().Be("All");
         vm.IsScanning.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_watcher_rescan_with_an_unchanged_tree_keeps_the_card()
+    {
+        var vm = await Scanned();
+        vm.SelectedSkill = vm.VisibleSkills.Single(s => s.Name == "deploy");
+
+        await vm.RescanFromWatcherAsync();
+
+        vm.Card!.Skill.Name.Should().Be("deploy");
+        vm.SelectedSkill!.Name.Should().Be("deploy");
     }
 
     [Fact]

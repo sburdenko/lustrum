@@ -1,3 +1,4 @@
+using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Indexing;
 using Lustrum.Core.Models;
 using Lustrum.Core.Scanning;
@@ -25,6 +26,7 @@ public static class EffectiveSetBuilder
 
         var entries = candidates
             .Select(s => resolved.GetValueOrDefault(s.Id) ?? Active(s, []))
+            .Select(e => WithVisibility(e, scan.Overrides, project))
             .ToList();
         return new EffectiveSet(project, entries);
     }
@@ -46,6 +48,11 @@ public static class EffectiveSetBuilder
             .Select(w => Active(w, losers))
             .Concat(losers.Select(l => new EffectiveEntry(l, Availability.Shadowed, winners[0], [])));
     }
+
+    private static EffectiveEntry WithVisibility(EffectiveEntry entry, SkillOverrides overrides, SkillSource project) =>
+        entry.Availability == Availability.Active && SkillOverrides.Applies(entry.Skill)
+            ? entry with { Visibility = overrides.Resolve(entry.Skill.Name, project) }
+            : entry;
 
     private static EffectiveEntry Active(Skill skill, IReadOnlyList<Skill> overrides) =>
         new(skill, Availability.Active, null, overrides);

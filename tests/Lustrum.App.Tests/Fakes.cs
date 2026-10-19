@@ -1,4 +1,6 @@
 using Lustrum.App.Services;
+using Lustrum.Core.ClaudeSettings;
+using Lustrum.Core.Copying;
 using Lustrum.Core.Git;
 using Lustrum.Core.Models;
 using Lustrum.Core.Settings;
@@ -136,5 +138,38 @@ internal sealed class FakeSkillGit : ISkillGit
         return UpdateFailure is { } failure
             ? Task.FromException<GitTracking>(failure)
             : Task.FromResult(new GitTracking("main", "origin/main", 0, 0));
+    }
+}
+
+internal sealed class FakeSkillWriter : ISkillWriter
+{
+    public List<(string Path, string Name, SkillVisibility? Visibility)> Written { get; } = [];
+
+    public List<ReadyCopy> Copied { get; } = [];
+
+    public Exception? Failure { get; set; }
+
+    public TaskCompletionSource? Pending { get; set; }
+
+    public Task SetVisibilityAsync(string settingsPath, string skillName, SkillVisibility? visibility)
+    {
+        if (Failure is { } failure)
+        {
+            return Task.FromException(failure);
+        }
+
+        Written.Add((settingsPath, skillName, visibility));
+        return Pending?.Task ?? Task.CompletedTask;
+    }
+
+    public Task<CopyResult> CopyAsync(ReadyCopy plan)
+    {
+        if (Failure is { } failure)
+        {
+            return Task.FromException<CopyResult>(failure);
+        }
+
+        Copied.Add(plan);
+        return Task.FromResult(new CopyResult(plan.To, 1, []));
     }
 }

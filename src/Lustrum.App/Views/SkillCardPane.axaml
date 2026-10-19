@@ -65,11 +65,28 @@
                         <TextBlock Text="Copy path" />
                       </StackPanel>
                     </Button>
-                    <Button Classes="ghost" Command="{Binding CopyInvocationCommand}" Margin="0,0,0,8">
+                    <Button Classes="ghost" Command="{Binding CopyInvocationCommand}" Margin="0,0,8,8">
                       <StackPanel Orientation="Horizontal" Spacing="8">
                         <fi:SymbolIcon Symbol="SlashForward" FontSize="16" />
                         <TextBlock Text="Copy name" />
                       </StackPanel>
+                    </Button>
+                    <Button x:Name="CopyToButton" Classes="ghost" Margin="0,0,0,8" IsVisible="{Binding Card.HasCopyTargets}"
+                            ToolTip.Tip="Copy this skill into your personal skills or a project; nothing is overwritten">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <fi:SymbolIcon Symbol="DocumentCopy" FontSize="16" />
+                        <TextBlock Text="Copy to…" />
+                      </StackPanel>
+                      <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft" ItemsSource="{Binding Card.CopyTargets}">
+                          <MenuFlyout.ItemContainerTheme>
+                            <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="vm:CopyTarget">
+                              <Setter Property="Header" Value="{Binding Label}" />
+                              <Setter Property="Command" Value="{Binding Copy}" />
+                            </ControlTheme>
+                          </MenuFlyout.ItemContainerTheme>
+                        </MenuFlyout>
+                      </Button.Flyout>
                     </Button>
                   </WrapPanel>
                 </StackPanel>
@@ -85,6 +102,24 @@
                   <TextBlock Classes="tertiary" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Card.HasUsageProjects}">
                     <Run Text="In " /><Run Text="{Binding Card.UsageProjects}" />
                   </TextBlock>
+                </StackPanel>
+
+                <StackPanel Spacing="8" IsVisible="{Binding Card.CanSetVisibility}">
+                  <TextBlock Text="VISIBILITY IN CLAUDE CODE" Classes="caption" />
+                  <ComboBox Classes="quiet" HorizontalAlignment="Stretch" IsEnabled="{Binding Card.CanEditVisibility}"
+                            ItemsSource="{Binding Card.VisibilityOptions}" SelectedItem="{Binding Card.SelectedVisibility}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate DataType="vm:VisibilityOption">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                          <TextBlock Text="{Binding Description}" Classes="tertiary" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBlock Text="{Binding Card.VisibilityNote}" TextWrapping="Wrap" Foreground="{DynamicResource LxWarnFgBrush}"
+                             IsVisible="{Binding Card.HasVisibilityNote}" />
+                  <TextBlock Text="{Binding Card.VisibilityHint}" Classes="tertiary" FontSize="12" TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Spacing="8" IsVisible="{Binding Card.Git.IsVisible}">

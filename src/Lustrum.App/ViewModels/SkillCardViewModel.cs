@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FluentIcons.Common;
+using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Effective;
 using Lustrum.Core.Git;
 using Lustrum.Core.Models;
@@ -30,6 +31,23 @@ public sealed partial class SkillCardViewModel : ObservableObject
 
     [ObservableProperty]
     private GitSection _git = GitSection.Hidden;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanSetVisibility), nameof(VisibilityHint), nameof(VisibilityNote), nameof(HasVisibilityNote))]
+    private VisibilityPanel? _visibility;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEditVisibility))]
+    private bool _isSavingVisibility;
+
+    [ObservableProperty]
+    private VisibilityOption? _selectedVisibility;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCopyTargets))]
+    private IReadOnlyList<CopyTarget> _copyTargets = [];
+
+    private bool _showingVisibility;
 
     public SkillCardViewModel(
         Skill skill,
@@ -105,6 +123,22 @@ public sealed partial class SkillCardViewModel : ObservableObject
 
     public string ModifiedText { get; }
 
+    public event Action<SkillCardViewModel, SkillVisibility>? VisibilityRequested;
+
+    public IReadOnlyList<VisibilityOption> VisibilityOptions => VisibilityOption.All;
+
+    public bool CanSetVisibility => Visibility is not null;
+
+    public bool CanEditVisibility => !IsSavingVisibility;
+
+    public string? VisibilityHint => Visibility?.Hint;
+
+    public string? VisibilityNote => Visibility?.Note;
+
+    public bool HasVisibilityNote => VisibilityNote is not null;
+
+    public bool HasCopyTargets => CopyTargets.Count > 0;
+
     public GitCardState GitState { get; private set; } = GitCardState.Hidden;
 
     public SkillRepository? GitRepository => (GitState as ReadyGit)?.Report.Repository;
@@ -149,6 +183,28 @@ public sealed partial class SkillCardViewModel : ObservableObject
             : string.Join(", ", usage.Projects.Select(p => System.IO.Path.GetFileName(p.TrimEnd('/', '\\'))).Distinct());
     }
 
+    public void ShowVisibility(VisibilityPanel? panel)
+    {
+        _showingVisibility = true;
+        try
+        {
+            Visibility = panel;
+            SelectedVisibility = panel is null ? null : VisibilityOption.For(panel.Current);
+        }
+        finally
+        {
+            _showingVisibility = false;
+        }
+    }
+
+    partial void OnSelectedVisibilityChanged(VisibilityOption? value)
+    {
+        if (!_showingVisibility && !IsSavingVisibility && value is not null && Visibility is { } panel && value.Value != panel.Current)
+        {
+            VisibilityRequested?.Invoke(this, value.Value);
+        }
+    }
+
     public void ApplyGit(GitCardState state, RepoState repo)
     {
         GitState = state;
@@ -167,9 +223,15 @@ public sealed partial class SkillCardViewModel : ObservableObject
             return $"Not loaded in {project}: the copy in {SkillItemViewModel.SourceLabelFor(winner.Source)} takes precedence";
         }
 
+        var loaded = entry.VisibilityValue switch
+        {
+            SkillVisibility.Off => $"Turned off in {project}: hidden from Claude and from the / menu",
+            SkillVisibility.On => $"Loaded in {project}",
+            var other => $"Loaded in {project} as {VisibilityOption.For(other).Label.ToLowerInvariant()}",
+        };
         return entry.Overrides.Count > 0
-            ? $"Loaded in {project} ahead of " + string.Join(", ", entry.Overrides.Select(o => CopyName(o)).Distinct())
-            : $"Loaded in {project}";
+            ? $"{loaded}, ahead of " + string.Join(", ", entry.Overrides.Select(o => CopyName(o)).Distinct())
+            : loaded;
     }
 
     private static string CopyName(Skill skill) => skill switch
