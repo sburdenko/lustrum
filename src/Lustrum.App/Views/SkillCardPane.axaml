@@ -1,288 +1,356 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:fi="using:FluentIcons.Avalonia"
              xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
              xmlns:vm="using:Lustrum.App.ViewModels"
+             xmlns:views="using:Lustrum.App.Views"
              x:Class="Lustrum.App.Views.SkillCardPane"
              x:DataType="vm:MainViewModel">
-  <Border Classes="panel">
-    <Grid>
-              <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" IsVisible="{Binding !HasCard}">
-                <fi:SymbolIcon Symbol="Sparkle" FontSize="38" Foreground="{DynamicResource LxTextTertiaryBrush}" />
-                <TextBlock Text="Select a skill in the list" Classes="secondary" HorizontalAlignment="Center" />
+  <UserControl.Styles>
+    <Style Selector="Border.head">
+      <Setter Property="Background" Value="{DynamicResource LxBgBrush}" />
+    </Style>
+    <Style Selector="Border.head.warn">
+      <Setter Property="Background" Value="{DynamicResource LxWarnBgBrush}" />
+    </Style>
+    <Style Selector="Border.head.err">
+      <Setter Property="Background" Value="{DynamicResource LxErrBgBrush}" />
+    </Style>
+    <Style Selector="Border.health">
+      <Setter Property="BorderBrush" Value="{DynamicResource LxInkBrush}" />
+      <Setter Property="BorderThickness" Value="1.5" />
+      <Setter Property="Padding" Value="8,2" />
+      <Setter Property="Background" Value="{StaticResource LxLimeBrush}" />
+    </Style>
+    <Style Selector="Border.health.warn">
+      <Setter Property="Background" Value="{StaticResource LxWarnBrush}" />
+    </Style>
+    <Style Selector="Border.health.err">
+      <Setter Property="Background" Value="{DynamicResource LxErrBrush}" />
+    </Style>
+    <Style Selector="Border.health > TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource LxOnLimeBrush}" />
+    </Style>
+    <Style Selector="Border.health.err > TextBlock">
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="TextBlock.stat">
+      <Setter Property="Foreground" Value="{DynamicResource LxMute2Brush}" />
+    </Style>
+    <Style Selector="TextBlock.stat.known">
+      <Setter Property="Foreground" Value="{DynamicResource LxInkBrush}" />
+    </Style>
+    <Style Selector="Border.day.used">
+      <Setter Property="Background" Value="{DynamicResource LxInkBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid>
+    <StackPanel Margin="22,40" Spacing="10" IsVisible="{Binding !HasCard}">
+      <TextBlock Text="SELECT A SKILL." Classes="figure" FontFamily="{StaticResource LxCond}" FontSize="34" />
+      <TextBlock Text="Pick a row in the list, or move with j and k." Classes="mono mute" FontSize="11" />
+    </StackPanel>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*" IsVisible="{Binding HasCard}">
+      <Border Classes="head" Classes.warn="{Binding Card.Health.IsWarning}" Classes.err="{Binding Card.Health.IsError}"
+              BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,0,1" Padding="22,18,22,20">
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <TextBlock Text="{Binding Card.HeaderLine}" Classes="mono m" FontSize="11"
+                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <Border Grid.Column="1" Classes="health" Classes.warn="{Binding Card.Health.IsWarning}"
+                    Classes.err="{Binding Card.Health.IsError}" ToolTip.Tip="{Binding Card.Health.Text}">
+              <TextBlock Text="{Binding Card.HealthBadge}" Classes="mono b" FontSize="11" />
+            </Border>
+          </Grid>
+          <TextBlock Text="{Binding Card.Title}" Classes="figure" FontSize="{Binding Card.TitleSize}"
+                     TextWrapping="Wrap" LetterSpacing="-0.5" />
+          <ScrollViewer MaxHeight="92" VerticalScrollBarVisibility="Auto">
+            <TextBlock Text="{Binding Card.Description}" FontFamily="{StaticResource LxSemiMedium}"
+                       FontSize="17" LineHeight="23" TextWrapping="Wrap" Margin="0,0,8,0" />
+          </ScrollViewer>
+          <Border Background="{DynamicResource LxLimeSoftBrush}" Padding="10,7" IsVisible="{Binding Card.HasAvailabilityNote}">
+            <TextBlock Text="{Binding Card.AvailabilityNote}" Classes="mono" FontSize="11.5" TextWrapping="Wrap" />
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,0,1">
+        <ItemsControl ItemsSource="{Binding Card.UsageStats}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="4" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="vm:UsageStat">
+              <Border BorderBrush="{DynamicResource LxRuleBrush}"
+                      BorderThickness="{Binding IsLast, Converter={x:Static views:Converters.RightRule}}" Padding="14,12">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="{Binding Label}" Classes="mono mute m" FontSize="9.5" LetterSpacing="0.6" />
+                  <TextBlock Text="{Binding Value}" Classes="figure stat" Classes.known="{Binding IsKnown}" FontSize="30" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+
+      <Border Grid.Row="2" BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,0,1">
+        <StackPanel Grid.IsSharedSizeScope="True">
+          <Button Classes="cell" Command="{Binding OpenInEditorCommand}" Padding="22,8"
+                  BorderBrush="{DynamicResource LxRule2Brush}" BorderThickness="0,0,0,1">
+            <Grid ColumnSpacing="12">
+              <Grid.ColumnDefinitions><ColumnDefinition SharedSizeGroup="key" MinWidth="64" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <TextBlock Text="⏎" Classes="mono b" FontSize="11" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="Open in editor" FontFamily="{StaticResource LxSemiSemiBold}" FontSize="14" />
+              <TextBlock Grid.Column="2" Text="{Binding EditorHint}" Classes="mono mute" FontSize="11" VerticalAlignment="Center" />
+            </Grid>
+          </Button>
+          <Button Classes="cell" Command="{Binding OpenFolderCommand}" Padding="22,8"
+                  BorderBrush="{DynamicResource LxRule2Brush}" BorderThickness="0,0,0,1">
+            <Grid ColumnSpacing="12">
+              <Grid.ColumnDefinitions><ColumnDefinition SharedSizeGroup="key" MinWidth="64" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <TextBlock Text="O" Classes="mono b" FontSize="11" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="Show in folder" FontFamily="{StaticResource LxSemiSemiBold}" FontSize="14" />
+            </Grid>
+          </Button>
+          <Button Classes="cell" Command="{Binding CopyPathCommand}" Padding="22,8"
+                  BorderBrush="{DynamicResource LxRule2Brush}" BorderThickness="0,0,0,1">
+            <Grid ColumnSpacing="12">
+              <Grid.ColumnDefinitions><ColumnDefinition SharedSizeGroup="key" MinWidth="64" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <TextBlock Text="{x:Static views:KeyGlyphs.CopyPath}" Classes="mono b" FontSize="11" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="Copy path" FontFamily="{StaticResource LxSemiSemiBold}" FontSize="14" />
+            </Grid>
+          </Button>
+          <Button Classes="cell" Command="{Binding CopyInvocationCommand}" Padding="22,8"
+                  BorderBrush="{DynamicResource LxRule2Brush}" BorderThickness="0,0,0,1">
+            <Grid ColumnSpacing="12">
+              <Grid.ColumnDefinitions><ColumnDefinition SharedSizeGroup="key" MinWidth="64" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <TextBlock Text="{x:Static views:KeyGlyphs.CopyName}" Classes="mono b" FontSize="11" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="Copy name" FontFamily="{StaticResource LxSemiSemiBold}" FontSize="14" />
+              <TextBlock Grid.Column="2" Text="{Binding Card.Skill.InvocationName}" Classes="mono mute" FontSize="11"
+                         VerticalAlignment="Center" />
+            </Grid>
+          </Button>
+          <Button x:Name="CopyToButton" Classes="cell" Padding="22,8" IsVisible="{Binding Card.HasCopyTargets}"
+                  ToolTip.Tip="Copy this skill into your personal skills or a project; nothing is overwritten">
+            <Grid ColumnSpacing="12">
+              <Grid.ColumnDefinitions><ColumnDefinition SharedSizeGroup="key" MinWidth="64" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <TextBlock Text="C" Classes="mono b" FontSize="11" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="Copy to…" FontFamily="{StaticResource LxSemiSemiBold}" FontSize="14" />
+              <TextBlock Grid.Column="2" Text="personal skills or a project" Classes="mono mute" FontSize="11" VerticalAlignment="Center" />
+            </Grid>
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedLeft" ItemsSource="{Binding Card.CopyTargets}">
+                <MenuFlyout.ItemContainerTheme>
+                  <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="vm:CopyTarget">
+                    <Setter Property="Header" Value="{Binding Label}" />
+                    <Setter Property="Command" Value="{Binding Copy}" />
+                    <Setter Property="FontFamily" Value="{StaticResource LxMono}" />
+                    <Setter Property="FontSize" Value="12" />
+                  </ControlTheme>
+                </MenuFlyout.ItemContainerTheme>
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+        </StackPanel>
+      </Border>
+
+      <TabControl x:Name="Tabs" Grid.Row="3" Classes="lx" SelectedIndex="{Binding Card.SelectedTab}">
+        <TabItem Header="OVERVIEW">
+          <ScrollViewer>
+            <StackPanel Margin="22,14,22,24" Spacing="18">
+
+              <Border Background="{DynamicResource LxErrBrush}" Padding="12,10" IsVisible="{Binding Card.HasIssue}">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="PROBLEM" Classes="caption" Foreground="White" />
+                  <TextBlock Text="{Binding Card.Issue}" Classes="mono m" Foreground="White" TextWrapping="Wrap" LineHeight="18" />
+                </StackPanel>
+              </Border>
+
+              <StackPanel Spacing="6">
+                <TextBlock Text="USE / 30 DAYS" Classes="caption" />
+                <Border BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="1" Height="24">
+                  <ItemsControl ItemsSource="{Binding Card.UsageDays}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <UniformGrid Columns="30" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:UsageDay">
+                        <Border Classes="day" Classes.used="{Binding IsUsed}" BorderBrush="{DynamicResource LxRule2Brush}"
+                                BorderThickness="{Binding IsLast, Converter={x:Static views:Converters.RightRule}}" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Border>
+                <TextBlock Text="{Binding Card.UsageText}" Classes="mono mute" FontSize="11" TextWrapping="Wrap" />
+                <TextBlock Classes="mono mute" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding Card.HasUsageProjects}">
+                  <Run Text="in " /><Run Text="{Binding Card.UsageProjects}" />
+                </TextBlock>
               </StackPanel>
 
-              <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasCard}">
-                <StackPanel Margin="20,18,20,12" Spacing="12">
-                  <TextBlock Text="{Binding Card.Title}" FontSize="21" FontWeight="SemiBold" TextWrapping="Wrap" />
-                  <WrapPanel>
-                    <Border Classes="pill skill" Classes.command="{Binding Card.IsCommand}" Margin="0,0,6,6">
-                      <StackPanel Orientation="Horizontal" Spacing="5">
-                        <fi:SymbolIcon Symbol="{Binding Card.KindIcon}" />
-                        <TextBlock Text="{Binding Card.KindLabel}" />
-                      </StackPanel>
-                    </Border>
-                    <Border Classes="pill" Margin="0,0,6,6">
-                      <StackPanel Orientation="Horizontal" Spacing="5">
-                        <fi:SymbolIcon Symbol="{Binding Card.SourceIcon}" />
-                        <TextBlock Text="{Binding Card.SourceLabel}" />
-                      </StackPanel>
-                    </Border>
-                    <Border Classes="pill" Margin="0,0,6,6" Classes.ok="{Binding Card.Health.IsOk}"
-                            Classes.warning="{Binding Card.Health.IsWarning}" Classes.error="{Binding Card.Health.IsError}">
-                      <StackPanel Orientation="Horizontal" Spacing="5">
-                        <fi:SymbolIcon Symbol="{Binding Card.Health.Icon}" />
-                        <TextBlock Text="{Binding Card.Health.Text}" />
-                      </StackPanel>
-                    </Border>
-                  </WrapPanel>
-                  <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
-                    <TextBlock Text="{Binding Card.Description}" TextWrapping="Wrap" LineHeight="20" Classes="secondary" Margin="0,0,10,0" />
-                  </ScrollViewer>
-                  <Border Background="{DynamicResource LxAccentSoftBrush}" CornerRadius="8" Padding="12,9"
-                          IsVisible="{Binding Card.HasAvailabilityNote}">
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                      <fi:SymbolIcon Symbol="Info" FontSize="16" Foreground="{DynamicResource LxAccentBrush}" VerticalAlignment="Top" />
-                      <TextBlock Grid.Column="1" Text="{Binding Card.AvailabilityNote}" TextWrapping="Wrap" />
-                    </Grid>
-                  </Border>
-                  <WrapPanel>
-                    <Button Classes="primary" Command="{Binding OpenFolderCommand}" Margin="0,0,8,8">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <fi:SymbolIcon Symbol="FolderOpen" FontSize="16" />
-                        <TextBlock Text="Show in folder" />
-                      </StackPanel>
-                    </Button>
-                    <Button Classes="ghost" Command="{Binding OpenInEditorCommand}" Margin="0,0,8,8">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <fi:SymbolIcon Symbol="Edit" FontSize="16" />
-                        <TextBlock Text="Open in editor" />
-                      </StackPanel>
-                    </Button>
-                    <Button Classes="ghost" Command="{Binding CopyPathCommand}" Margin="0,0,8,8">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <fi:SymbolIcon Symbol="Copy" FontSize="16" />
-                        <TextBlock Text="Copy path" />
-                      </StackPanel>
-                    </Button>
-                    <Button Classes="ghost" Command="{Binding CopyInvocationCommand}" Margin="0,0,8,8">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <fi:SymbolIcon Symbol="SlashForward" FontSize="16" />
-                        <TextBlock Text="Copy name" />
-                      </StackPanel>
-                    </Button>
-                    <Button x:Name="CopyToButton" Classes="ghost" Margin="0,0,0,8" IsVisible="{Binding Card.HasCopyTargets}"
-                            ToolTip.Tip="Copy this skill into your personal skills or a project; nothing is overwritten">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <fi:SymbolIcon Symbol="DocumentCopy" FontSize="16" />
-                        <TextBlock Text="Copy to…" />
-                      </StackPanel>
-                      <Button.Flyout>
-                        <MenuFlyout Placement="BottomEdgeAlignedLeft" ItemsSource="{Binding Card.CopyTargets}">
-                          <MenuFlyout.ItemContainerTheme>
-                            <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="vm:CopyTarget">
-                              <Setter Property="Header" Value="{Binding Label}" />
-                              <Setter Property="Command" Value="{Binding Copy}" />
-                            </ControlTheme>
-                          </MenuFlyout.ItemContainerTheme>
-                        </MenuFlyout>
-                      </Button.Flyout>
-                    </Button>
-                  </WrapPanel>
-                </StackPanel>
-
-                <TabControl x:Name="Tabs" Grid.Row="1" Classes="card" Padding="0" SelectedIndex="{Binding Card.SelectedTab}">
-                  <TabItem Header="Overview">
-                    <ScrollViewer>
-                      <StackPanel Margin="20,14,20,20" Spacing="20">
-
-                        <StackPanel Spacing="6">
-                  <TextBlock Text="USAGE" Classes="caption" />
-                  <TextBlock Text="{Binding Card.UsageText}" TextWrapping="Wrap" />
-                  <TextBlock Classes="tertiary" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Card.HasUsageProjects}">
-                    <Run Text="In " /><Run Text="{Binding Card.UsageProjects}" />
-                  </TextBlock>
-                </StackPanel>
-
-                <StackPanel Spacing="8" IsVisible="{Binding Card.CanSetVisibility}">
-                  <TextBlock Text="VISIBILITY IN CLAUDE CODE" Classes="caption" />
-                  <ComboBox Classes="quiet" HorizontalAlignment="Stretch" IsEnabled="{Binding Card.CanEditVisibility}"
-                            ItemsSource="{Binding Card.VisibilityOptions}" SelectedItem="{Binding Card.SelectedVisibility}">
-                    <ComboBox.ItemTemplate>
-                      <DataTemplate DataType="vm:VisibilityOption">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                          <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                          <TextBlock Text="{Binding Description}" Classes="tertiary" />
-                        </StackPanel>
-                      </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                  </ComboBox>
-                  <TextBlock Text="{Binding Card.VisibilityNote}" TextWrapping="Wrap" Foreground="{DynamicResource LxWarnFgBrush}"
-                             IsVisible="{Binding Card.HasVisibilityNote}" />
-                  <TextBlock Text="{Binding Card.VisibilityHint}" Classes="tertiary" FontSize="12" TextWrapping="Wrap" />
-                </StackPanel>
-
-                <StackPanel Spacing="8" IsVisible="{Binding Card.Git.IsVisible}">
-                  <TextBlock Text="GIT" Classes="caption" />
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fi:SymbolIcon Symbol="Branch" FontSize="16" Foreground="{DynamicResource LxAccentBrush}" />
-                    <TextBlock Text="{Binding Card.Git.Headline}" TextWrapping="Wrap" FontWeight="SemiBold" />
-                  </StackPanel>
-                  <TextBlock Text="{Binding Card.Git.LastCommit}" TextWrapping="Wrap" Classes="secondary"
-                             IsVisible="{Binding Card.Git.HasLastCommit}" />
-                  <StackPanel Spacing="4" IsVisible="{Binding Card.Git.HasChanges}">
-                    <TextBlock Text="{Binding Card.Git.ChangesTitle}" Foreground="{DynamicResource LxWarnFgBrush}" />
-                    <ItemsControl ItemsSource="{Binding Card.Git.ChangeRows}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="vm:GitChangeRow">
-                          <Grid ColumnDefinitions="18,*" Margin="0,1">
-                            <TextBlock Text="{Binding Code}" Classes="mono tertiary" />
-                            <TextBlock Grid.Column="1" Text="{Binding Path}" Classes="mono secondary" TextTrimming="CharacterEllipsis" />
-                          </Grid>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-                  <TextBlock Text="{Binding Card.Git.RepositoryText}" Classes="mono tertiary" TextWrapping="Wrap"
-                             IsVisible="{Binding Card.Git.HasRepositoryText}" />
-                  <WrapPanel IsVisible="{Binding Card.Git.ShowActions}" Margin="0,2,0,0">
-                    <Button Classes="ghost" Command="{Binding CheckCardForUpdatesCommand}" Margin="0,0,8,6"
-                            ToolTip.Tip="Run git fetch for this repository">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <fi:SymbolIcon Symbol="CloudSync" FontSize="16" />
-                        <TextBlock Text="Check for updates" />
-                      </StackPanel>
-                    </Button>
-                    <Button Classes="primary" Command="{Binding UpdateCardSkillCommand}" Margin="0,0,8,6"
-                            IsVisible="{Binding Card.Git.ShowUpdate}" ToolTip.Tip="Fast-forward the repository to its upstream (git merge --ff-only)">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <fi:SymbolIcon Symbol="CloudArrowDown" FontSize="16" />
-                        <TextBlock Text="Update" />
-                      </StackPanel>
-                    </Button>
-                  </WrapPanel>
-                  <TextBlock Text="{Binding Card.Git.UpdateNote}" TextWrapping="Wrap" IsVisible="{Binding Card.Git.HasUpdateNote}" />
-                  <TextBlock Text="{Binding Card.Git.CheckNote}" Classes="tertiary" FontSize="12" TextWrapping="Wrap"
-                             IsVisible="{Binding Card.Git.HasCheckNote}" />
-                </StackPanel>
-
-                <StackPanel Spacing="8" IsVisible="{Binding Card.HasFrontmatter}">
-                          <TextBlock Text="FRONTMATTER" Classes="caption" />
-                          <Border Classes="panel" Background="{DynamicResource LxPanelAltBrush}" Padding="12,8">
-                            <ItemsControl ItemsSource="{Binding Card.Frontmatter}">
-                              <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="vm:FrontmatterEntry">
-                                  <Grid ColumnDefinitions="118,*" Margin="0,4">
-                                    <TextBlock Text="{Binding Key}" Classes="mono tertiary" VerticalAlignment="Top" />
-                                    <SelectableTextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap"
-                                                         FontFamily="{StaticResource LxMono}" FontSize="12" />
-                                  </Grid>
-                                </DataTemplate>
-                              </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                          </Border>
-                        </StackPanel>
-
-                        <StackPanel Spacing="8">
-                          <TextBlock Text="FILE" Classes="caption" />
-                          <SelectableTextBlock Text="{Binding Card.FilePath}" TextWrapping="Wrap"
-                                               FontFamily="{StaticResource LxMono}" FontSize="12" />
-                          <TextBlock Classes="tertiary" FontSize="12">
-                            <Run Text="{Binding Card.SizeText}" /><Run Text="  ·  modified " /><Run Text="{Binding Card.ModifiedText}" />
-                          </TextBlock>
-                        </StackPanel>
-
-                        <StackPanel Spacing="8" IsVisible="{Binding Card.HasFiles}">
-                          <TextBlock Text="SIBLING FILES" Classes="caption" />
-                          <ItemsControl ItemsSource="{Binding Card.Files}">
-                            <ItemsControl.ItemTemplate>
-                              <DataTemplate x:DataType="x:String">
-                                <TextBlock Text="{Binding}" Classes="mono secondary" Margin="0,2" TextTrimming="CharacterEllipsis" />
-                              </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                          </ItemsControl>
-                        </StackPanel>
-
-                        <StackPanel Spacing="8" IsVisible="{Binding Card.HasConflicts}">
-                          <TextBlock Text="NAME CONFLICTS" Classes="caption" />
-                          <TextBlock Text="The same name also exists in:" Classes="secondary" />
-                          <ItemsControl ItemsSource="{Binding Card.Conflicts}">
-                            <ItemsControl.ItemTemplate>
-                              <DataTemplate DataType="vm:ConflictEntry">
-                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
-                                  <StackPanel Spacing="2">
-                                    <TextBlock Text="{Binding Source}" FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding Path}" Classes="mono tertiary" TextTrimming="CharacterEllipsis" />
-                                  </StackPanel>
-                                  <Button Grid.Column="1" Classes="ghost" Padding="8,3" VerticalAlignment="Center" Margin="8,0,0,0"
-                                          Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).Card.CompareWithCommand}"
-                                          CommandParameter="{Binding}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                      <fi:SymbolIcon Symbol="BranchCompare" FontSize="14" />
-                                      <TextBlock Text="Compare" />
-                                    </StackPanel>
-                                  </Button>
-                                </Grid>
-                              </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                          </ItemsControl>
-                        </StackPanel>
-
-                      </StackPanel>
-                    </ScrollViewer>
-                  </TabItem>
-
-                  <TabItem Header="Content">
-                    <Grid>
-                      <md:MarkdownScrollViewer Markdown="{Binding Card.Body}" MarkdownStyleName="FluentTheme" Margin="12,6" />
-                      <TextBlock Text="Loading…" Classes="tertiary" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                 IsVisible="{Binding Card.IsBodyLoading}" />
-                    </Grid>
-                  </TabItem>
-                  <TabItem Header="Compare" IsVisible="{Binding Card.HasConflicts}">
-                    <Grid RowDefinitions="Auto,*" Margin="16,12,16,12">
-                      <StackPanel Spacing="8">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                          <TextBlock Text="With" Classes="secondary" VerticalAlignment="Center" />
-                          <ComboBox Grid.Column="1" Classes="quiet" HorizontalAlignment="Stretch"
-                                    ItemsSource="{Binding Card.Comparison.Targets}" SelectedItem="{Binding Card.Comparison.Target}">
-                            <ComboBox.ItemTemplate>
-                              <DataTemplate DataType="vm:CompareTarget">
-                                <TextBlock Text="{Binding Label}" />
-                              </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                          </ComboBox>
+              <StackPanel Spacing="6" IsVisible="{Binding Card.Git.IsVisible}">
+                <TextBlock Text="GIT" Classes="caption" />
+                <TextBlock Text="{Binding Card.Git.Headline}" FontFamily="{StaticResource LxSemiSemiBold}"
+                           FontSize="14" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Card.Git.LastCommit}" FontSize="13" TextWrapping="Wrap" IsVisible="{Binding Card.Git.HasLastCommit}" />
+                <StackPanel Spacing="2" IsVisible="{Binding Card.Git.HasChanges}">
+                  <TextBlock Text="{Binding Card.Git.ChangesTitle}" Classes="mono b" FontSize="11" />
+                  <ItemsControl ItemsSource="{Binding Card.Git.ChangeRows}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:GitChangeRow">
+                        <Grid ColumnDefinitions="18,*" Margin="0,1">
+                          <TextBlock Text="{Binding Code}" Classes="mono mute" FontSize="11" />
+                          <TextBlock Grid.Column="1" Text="{Binding Path}" Classes="mono" FontSize="11" TextTrimming="CharacterEllipsis" />
                         </Grid>
-                        <TextBlock Text="{Binding Card.Comparison.Summary}" TextWrapping="Wrap" />
-                        <TextBlock Text="Comparing…" Classes="tertiary" IsVisible="{Binding Card.Comparison.IsLoading}" />
-                        <TextBlock Text="{Binding Card.Comparison.Legend}" Classes="mono tertiary" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+                <TextBlock Text="{Binding Card.Git.RepositoryText}" Classes="mono mute" FontSize="11" TextWrapping="Wrap"
+                           IsVisible="{Binding Card.Git.HasRepositoryText}" />
+                <WrapPanel IsVisible="{Binding Card.Git.ShowActions}" ItemSpacing="8" Margin="0,4,0,0">
+                  <Button Classes="frame" Command="{Binding CheckCardForUpdatesCommand}" Content="CHECK FOR UPDATES"
+                          ToolTip.Tip="Run git fetch for this repository" />
+                  <Button Classes="frame solid" Command="{Binding UpdateCardSkillCommand}" Content="UPDATE"
+                          IsVisible="{Binding Card.Git.ShowUpdate}"
+                          ToolTip.Tip="Fast-forward the repository to its upstream (git merge --ff-only)" />
+                </WrapPanel>
+                <TextBlock Text="{Binding Card.Git.UpdateNote}" Classes="mono b" FontSize="11.5" TextWrapping="Wrap"
+                           IsVisible="{Binding Card.Git.HasUpdateNote}" />
+                <TextBlock Text="{Binding Card.Git.CheckNote}" Classes="mono mute" FontSize="11" TextWrapping="Wrap"
+                           IsVisible="{Binding Card.Git.HasCheckNote}" />
+              </StackPanel>
+
+              <StackPanel Spacing="8" IsVisible="{Binding Card.CanSetVisibility}">
+                <TextBlock Text="VISIBILITY IN CLAUDE CODE" Classes="caption" />
+                <ComboBox Classes="flat" HorizontalAlignment="Stretch" IsEnabled="{Binding Card.CanEditVisibility}"
+                          ItemsSource="{Binding Card.VisibilityOptions}" SelectedItem="{Binding Card.SelectedVisibility}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate DataType="vm:VisibilityOption">
+                      <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="{Binding Label}" Classes="mono b" FontSize="12" />
+                        <TextBlock Text="{Binding Description}" Classes="mono mute" FontSize="11" />
                       </StackPanel>
-                      <Border Grid.Row="1" Classes="panel" Background="{DynamicResource LxPanelAltBrush}" Margin="0,10,0,0" Padding="0,6">
-                        <ScrollViewer HorizontalScrollBarVisibility="Auto">
-                          <ItemsControl ItemsSource="{Binding Card.Comparison.Rows}">
-                            <ItemsControl.ItemsPanel>
-                              <ItemsPanelTemplate>
-                                <VirtualizingStackPanel />
-                              </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                              <DataTemplate DataType="vm:DiffRowViewModel">
-                                <Border Classes="diff" Classes.here="{Binding IsOnlyHere}" Classes.there="{Binding IsOnlyThere}" Classes.gap="{Binding IsFolded}">
-                                  <Grid ColumnDefinitions="40,16,*">
-                                    <TextBlock Text="{Binding Number}" Classes="mono tertiary" TextAlignment="Right" Margin="0,0,8,0" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Prefix}" Classes="mono" />
-                                    <TextBlock Grid.Column="2" Text="{Binding Text}" Classes="mono" />
-                                  </Grid>
-                                </Border>
-                              </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                          </ItemsControl>
-                        </ScrollViewer>
-                      </Border>
-                    </Grid>
-                  </TabItem>
-                </TabControl>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="{Binding Card.VisibilityNote}" Classes="mono b" FontSize="11.5" TextWrapping="Wrap"
+                           IsVisible="{Binding Card.HasVisibilityNote}" />
+                <TextBlock Text="{Binding Card.VisibilityHint}" Classes="mono mute" FontSize="11" TextWrapping="Wrap" />
+              </StackPanel>
+
+              <StackPanel Spacing="6" IsVisible="{Binding Card.HasFrontmatter}">
+                <TextBlock Text="FRONTMATTER" Classes="caption" />
+                <Border Background="{DynamicResource LxCodeBrush}" Padding="12,10">
+                  <ItemsControl ItemsSource="{Binding Card.Frontmatter}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:FrontmatterEntry">
+                        <Grid ColumnDefinitions="110,*" Margin="0,2">
+                          <TextBlock Text="{Binding Key, StringFormat='{}{0}:'}" Classes="mono mute" TextWrapping="Wrap" />
+                          <SelectableTextBlock Grid.Column="1" Text="{Binding Value}" Classes="mono" TextWrapping="Wrap" LineHeight="17" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Border>
+              </StackPanel>
+
+              <StackPanel Spacing="4">
+                <TextBlock Text="FILE" Classes="caption" />
+                <SelectableTextBlock Text="{Binding Card.FilePath}" Classes="mono" TextWrapping="Wrap" />
+                <TextBlock Classes="mono mute" FontSize="11">
+                  <Run Text="{Binding Card.SizeText}" /><Run Text=" · modified " /><Run Text="{Binding Card.ModifiedText}" />
+                </TextBlock>
+                <ItemsControl ItemsSource="{Binding Card.Files}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <TextBlock Text="{Binding StringFormat='+ {0}'}" Classes="mono mute" TextTrimming="CharacterEllipsis" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <StackPanel IsVisible="{Binding Card.HasConflicts}">
+                <Border BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,6">
+                  <TextBlock Text="{Binding Card.ConflictsTitle}" Classes="caption" />
+                </Border>
+                <ItemsControl ItemsSource="{Binding Card.Conflicts}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:ConflictEntry">
+                      <Button Classes="cell soft" Padding="0,8" BorderBrush="{DynamicResource LxRule2Brush}" BorderThickness="0,0,0,1"
+                              Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).Card.CompareWithCommand}"
+                              CommandParameter="{Binding}">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="2">
+                          <TextBlock Text="{Binding Source}" FontFamily="{StaticResource LxSemiExtraBold}" FontSize="15" />
+                          <TextBlock Grid.Column="1" Text="D · DIFF" Classes="mono b" FontSize="11" VerticalAlignment="Center" />
+                          <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Path}" Classes="mono mute" FontSize="11"
+                                     TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="CONTENT">
+          <Grid>
+            <md:MarkdownScrollViewer Markdown="{Binding Card.Body}" MarkdownStyleName="FluentTheme" Margin="14,6" />
+            <TextBlock Text="LOADING…" Classes="caption mute" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       IsVisible="{Binding Card.IsBodyLoading}" />
+          </Grid>
+        </TabItem>
+
+        <TabItem Header="COMPARE" IsVisible="{Binding Card.HasConflicts}">
+          <Grid RowDefinitions="Auto,*" Margin="22,12,22,14">
+            <StackPanel Spacing="8">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <TextBlock Text="WITH" Classes="caption" VerticalAlignment="Center" />
+                <ComboBox Grid.Column="1" Classes="flat" HorizontalAlignment="Stretch"
+                          ItemsSource="{Binding Card.Comparison.Targets}" SelectedItem="{Binding Card.Comparison.Target}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate DataType="vm:CompareTarget">
+                      <TextBlock Text="{Binding Label}" Classes="mono" FontSize="11" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
               </Grid>
-            </Grid>
-  </Border>
+              <TextBlock Text="{Binding Card.Comparison.Summary}" FontFamily="{StaticResource LxSemiSemiBold}"
+                         FontSize="14" TextWrapping="Wrap" />
+              <TextBlock Text="COMPARING…" Classes="caption mute" IsVisible="{Binding Card.Comparison.IsLoading}" />
+              <TextBlock Text="{Binding Card.Comparison.Legend}" Classes="mono mute" FontSize="11" />
+            </StackPanel>
+            <Border Grid.Row="1" Background="{DynamicResource LxCodeBrush}" Margin="0,10,0,0" Padding="0,6">
+              <ScrollViewer HorizontalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Card.Comparison.Rows}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <VirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:DiffRowViewModel">
+                      <Border Classes="diff" Classes.here="{Binding IsOnlyHere}" Classes.there="{Binding IsOnlyThere}" Classes.gap="{Binding IsFolded}">
+                        <Grid ColumnDefinitions="40,16,*">
+                          <TextBlock Text="{Binding Number}" Classes="mono mute" TextAlignment="Right" Margin="0,0,8,0" />
+                          <TextBlock Grid.Column="1" Text="{Binding Prefix}" Classes="mono" />
+                          <TextBlock Grid.Column="2" Text="{Binding Text}" Classes="mono" />
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Border>
+          </Grid>
+        </TabItem>
+      </TabControl>
+    </Grid>
+  </Grid>
 </UserControl>

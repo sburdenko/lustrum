@@ -12,7 +12,16 @@
   </Application.Resources>
 
   <Application.Styles>
-    <FluentTheme />
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Light" Accent="#0E0E0C" RegionColor="#F2F1EA" AltHigh="#F2F1EA" BaseHigh="#0E0E0C"
+                               ChromeMediumLow="#F2F1EA" ChromeLow="#E6E5DC" ChromeMedium="#E6E5DC" ChromeHigh="#0E0E0C"
+                               ListLow="#E5F8BC" ListMedium="#C9F14C" />
+        <ColorPaletteResources x:Key="Dark" Accent="#C9F14C" RegionColor="#121210" AltHigh="#121210" BaseHigh="#EDEDE6"
+                               ChromeMediumLow="#121210" ChromeLow="#1D1D1A" ChromeMedium="#1D1D1A" ChromeHigh="#55554E"
+                               ListLow="#222B04" ListMedium="#3A4A00" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
     <StyleInclude Source="avares://Lustrum/Assets/Styles.axaml" />
   </Application.Styles>
 

@@ -1,29 +1,70 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:fi="using:FluentIcons.Avalonia"
              xmlns:vm="using:Lustrum.App.ViewModels"
+             xmlns:views="using:Lustrum.App.Views"
              x:Class="Lustrum.App.Views.SourcesPane"
              x:DataType="vm:MainViewModel">
-  <Border Classes="panel">
-    <Grid RowDefinitions="Auto,*">
-      <Grid ColumnDefinitions="*,Auto" Margin="16,12,10,4">
-        <TextBlock Text="SOURCES" Classes="caption" VerticalAlignment="Center" />
-        <CheckBox Grid.Column="1" IsChecked="{Binding ShowEmptySources}" MinWidth="0" Padding="6,0,0,0" FontSize="12"
-                  Content="empty" ToolTip.Tip="Show projects without skills and missing projects" />
-      </Grid>
-      <TreeView x:Name="Tree" Grid.Row="1" Classes="nav" ItemsSource="{Binding NavRoots}" SelectedItem="{Binding SelectedNode}">
-        <TreeView.ItemTemplate>
-          <TreeDataTemplate DataType="vm:NavNode" ItemsSource="{Binding Children}">
-            <Grid ColumnDefinitions="Auto,*,Auto" Margin="2,0,6,0" ToolTip.Tip="{Binding Hint}">
-              <fi:SymbolIcon Symbol="{Binding Icon}" FontSize="16" Margin="0,0,10,0" Opacity="{Binding TitleOpacity}" />
-              <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center"
-                         TextTrimming="CharacterEllipsis" Opacity="{Binding TitleOpacity}" />
-              <TextBlock Grid.Column="2" Text="{Binding Count}" Classes="tertiary" FontSize="12"
-                         VerticalAlignment="Center" IsVisible="{Binding HasCount}" />
-            </Grid>
-          </TreeDataTemplate>
-        </TreeView.ItemTemplate>
-      </TreeView>
+  <Border BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,1,0">
+    <Grid RowDefinitions="*,Auto">
+      <ScrollViewer x:Name="Scroller" Focusable="True">
+        <ItemsControl ItemsSource="{Binding NavSections}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="vm:NavSection">
+              <Border BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,0,1">
+                <StackPanel>
+                  <Button Classes="cell soft" Classes.on="{Binding IsSelected}" Height="64" ToolTip.Tip="{Binding Node.Hint}"
+                          AutomationProperties.Name="{Binding Title}"
+                          Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).SelectNodeCommand}"
+                          CommandParameter="{Binding Node}">
+                    <Grid ColumnDefinitions="*,Auto" Margin="20,0,18,0">
+                      <StackPanel VerticalAlignment="Center" Spacing="3">
+                        <TextBlock Text="{Binding Key}" Classes="key" Opacity="0.7" />
+                        <TextBlock Text="{Binding Title}" Classes="label" FontSize="15" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="1" Text="{Binding Node.Count}" Classes="figure" FontSize="46"
+                                 VerticalAlignment="Center" Classes.err="{Binding IsAlert}" />
+                    </Grid>
+                  </Button>
+                  <ItemsControl ItemsSource="{Binding Children}" IsVisible="{Binding IsOpen}" Margin="0,4,0,10">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:NavChild">
+                        <Button Classes="cell soft" Classes.on="{Binding IsSelected}" ToolTip.Tip="{Binding Node.Hint}"
+                                AutomationProperties.Name="{Binding Node.Title}"
+                                Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).SelectNodeCommand}"
+                                CommandParameter="{Binding Node}" Opacity="{Binding Node.TitleOpacity}">
+                          <Grid ColumnDefinitions="*,Auto" Margin="{Binding Indent, Converter={x:Static views:Converters.LeftMargin}}">
+                            <TextBlock Text="{Binding Node.Title}" Classes="mono" Classes.b="{Binding IsSelected}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="1" Text="{Binding Node.Count}" Classes="mono" Classes.b="{Binding IsSelected}"
+                                       Margin="10,0,0,0" />
+                          </Grid>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <StackPanel Grid.Row="1" Margin="20,14" Spacing="10">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+          <TextBlock Text="j k" Classes="mono b" FontSize="11" />
+          <TextBlock Grid.Column="1" Text="move through the list" Classes="mono mute" FontSize="11" />
+          <TextBlock Grid.Row="1" Text="/" Classes="mono b" FontSize="11" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Text="search" Classes="mono mute" FontSize="11" />
+          <TextBlock Grid.Row="2" Text="⏎" Classes="mono b" FontSize="11" />
+          <TextBlock Grid.Row="2" Grid.Column="1" Text="open in editor" Classes="mono mute" FontSize="11" />
+          <TextBlock Grid.Row="3" Text="A G P L S !" Classes="mono b" FontSize="11" />
+          <TextBlock Grid.Row="3" Grid.Column="1" Text="jump to a source" Classes="mono mute" FontSize="11" />
+          <TextBlock Grid.Row="4" Text="esc" Classes="mono b" FontSize="11" />
+          <TextBlock Grid.Row="4" Grid.Column="1" Text="clear search" Classes="mono mute" FontSize="11" />
+        </Grid>
+        <CheckBox IsChecked="{Binding ShowEmptySources}" FontFamily="{StaticResource LxMono}" FontSize="11"
+                  Content="show empty and missing projects" MinHeight="0" />
+      </StackPanel>
     </Grid>
   </Border>
 </UserControl>

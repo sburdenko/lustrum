@@ -26,6 +26,9 @@ public sealed partial class MainViewModel : ObservableObject
     private IReadOnlyList<NavNode> _navRoots = [];
 
     [ObservableProperty]
+    private IReadOnlyList<NavSection> _navSections = [];
+
+    [ObservableProperty]
     private bool _showEmptySources;
 
     [ObservableProperty]
@@ -114,8 +117,12 @@ public sealed partial class MainViewModel : ObservableObject
     private bool IsCurrent(CancellationTokenSource cancellation) =>
         ReferenceEquals(_scanCancellation, cancellation);
 
+    [RelayCommand]
+    private void SelectNode(NavNode node) => SelectedNode = node;
+
     partial void OnSelectedNodeChanged(NavNode? value)
     {
+        NavSection.Select(NavSections, value);
         Card = null;
         OnPropertyChanged(nameof(ListTitle));
         OnPropertyChanged(nameof(CanChooseProjectView));
@@ -130,9 +137,11 @@ public sealed partial class MainViewModel : ObservableObject
     private void Apply(ScanResult result)
     {
         _result = result;
+        IndexResult(result);
         Card = null;
         RebuildTree();
         Summary = BuildSummary(result);
+        OnPropertyChanged(nameof(SearchWatermark));
         StatusText = BuildStatus(result);
         StartBodySearch();
         RemapRepositoriesIfChecked(result);
@@ -143,6 +152,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var scope = SelectedNode?.Scope;
         NavRoots = NavTreeBuilder.Build(_result, ShowEmptySources);
+        NavSections = NavSection.Build(NavRoots, SelectedNode);
         var node = FindNode(NavRoots, scope) ?? NavRoots.FirstOrDefault();
         if (Equals(node, SelectedNode))
         {

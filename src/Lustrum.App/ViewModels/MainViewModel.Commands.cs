@@ -51,5 +51,7 @@ public sealed partial class MainViewModel
         }
     }
 
+    public string EditorHint => string.IsNullOrEmpty(_settings.EditorCommand) ? "default app" : _settings.EditorCommand;
+
     private bool HasSelectedSkill() => SelectedSkill is not null;
 }

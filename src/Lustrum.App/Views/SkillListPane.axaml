@@ -1,132 +1,125 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:fi="using:FluentIcons.Avalonia"
              xmlns:vm="using:Lustrum.App.ViewModels"
              x:Class="Lustrum.App.Views.SkillListPane"
              x:DataType="vm:MainViewModel">
-  <Border Classes="panel">
-    <Grid RowDefinitions="Auto,Auto,*">
-      <Grid ColumnDefinitions="*,Auto,Auto" Margin="18,14,14,6">
-        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <TextBlock Text="{Binding ListTitle}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-          <TextBlock Text="{Binding VisibleSkills.Count}" Classes="tertiary" VerticalAlignment="Center" IsVisible="{Binding !IsProblemsView}" />
-          <TextBlock Text="{Binding VisibleProblems.Count}" Classes="tertiary" VerticalAlignment="Center" IsVisible="{Binding IsProblemsView}" />
-        </StackPanel>
-        <ListBox Grid.Column="1" Classes="segments" Margin="0,0,12,0" VerticalAlignment="Center" SelectionMode="AlwaysSelected"
-                 ItemsSource="{Binding ProjectViews}" SelectedItem="{Binding SelectedProjectView}"
-                 IsVisible="{Binding CanChooseProjectView}">
-          <ListBox.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-          </ListBox.ItemsPanel>
-          <ListBox.ItemTemplate>
-            <DataTemplate DataType="vm:ProjectViewOption">
-              <TextBlock Text="{Binding Title}" ToolTip.Tip="{Binding Hint}" FontSize="12" />
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-        <ComboBox Grid.Column="2" Classes="quiet" ItemsSource="{Binding Sorts}" SelectedItem="{Binding SelectedSort}"
-                  MinWidth="140" FontSize="12" IsVisible="{Binding !IsProblemsView}">
-          <ComboBox.ItemTemplate>
-            <DataTemplate DataType="vm:SortOption">
-              <TextBlock Text="{Binding Title}" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-      </Grid>
+  <Border BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,1,0">
+    <Grid RowDefinitions="Auto,*">
+      <Border BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,0,1" Padding="16,10">
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8">
+          <ItemsControl ItemsSource="{Binding Chips}" IsVisible="{Binding !IsProblemsView}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel ItemSpacing="6" LineSpacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="vm:ChipViewModel">
+                <ToggleButton Classes="chip" Content="{Binding Label}" IsChecked="{Binding IsOn}"
+                              IsEnabled="{Binding IsAvailable}" ToolTip.Tip="{Binding Hint}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="{Binding ProblemsTitle}" Classes="label" FontSize="13" VerticalAlignment="Center"
+                     IsVisible="{Binding IsProblemsView}" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top" Margin="12,0,0,0"
+                      IsVisible="{Binding !IsProblemsView}">
+            <TextBlock Text="SORT" Classes="mono mute m" FontSize="11" VerticalAlignment="Center" />
+            <ComboBox Classes="flat" ItemsSource="{Binding Sorts}" SelectedItem="{Binding SelectedSort}" MinWidth="118">
+              <ComboBox.ItemTemplate>
+                <DataTemplate DataType="vm:SortOption">
+                  <TextBlock Text="{Binding Title}" Classes="mono" FontSize="11" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <ListBox Grid.Row="1" Grid.ColumnSpan="2" Classes="segments" SelectionMode="AlwaysSelected"
+                   ItemsSource="{Binding ProjectViews}" SelectedItem="{Binding SelectedProjectView}"
+                   IsVisible="{Binding CanChooseProjectView}" HorizontalAlignment="Left">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate DataType="vm:ProjectViewOption">
+                <TextBlock Text="{Binding Title}" ToolTip.Tip="{Binding Hint}" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
 
-      <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="16,0,14,6" IsVisible="{Binding !IsProblemsView}">
-        <ItemsControl ItemsSource="{Binding Chips}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <WrapPanel />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate DataType="vm:ChipViewModel">
-              <ToggleButton Classes="chip" Content="{Binding Label}" IsChecked="{Binding IsOn}" Margin="0,0,6,4"
-                            IsEnabled="{Binding IsAvailable}" ToolTip.Tip="{Binding Hint}" />
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-        <CheckBox Grid.Column="1" IsChecked="{Binding SearchInContent}" Content="Search SKILL.md text" FontSize="12"
-                  VerticalAlignment="Top" ToolTip.Tip="Also match the text of each SKILL.md, not only names and descriptions" />
-      </Grid>
-
-      <ListBox x:Name="SkillList" Grid.Row="2" Classes="skills" ItemsSource="{Binding VisibleSkills}"
+      <ListBox x:Name="SkillList" Grid.Row="1" Classes="rows" ItemsSource="{Binding ListRows}"
                SelectedItem="{Binding SelectedSkill}" IsVisible="{Binding !IsProblemsView}">
-        <ListBox.ItemTemplate>
-          <DataTemplate DataType="vm:SkillItemViewModel">
-            <Grid ColumnDefinitions="Auto,232,*,Auto,Auto,Auto,Auto" ColumnSpacing="10" Height="34" Opacity="{Binding RowOpacity}">
-              <fi:SymbolIcon Symbol="{Binding KindIcon}" FontSize="16" Foreground="{DynamicResource LxAccentBrush}" />
-              <TextBlock Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
-                <Run Text="{Binding Prefix}" Foreground="{DynamicResource LxTextTertiaryBrush}" /><Run Text="{Binding Name}" FontWeight="SemiBold" />
-              </TextBlock>
-              <TextBlock Grid.Column="2" Text="{Binding Description}" Classes="secondary"
-                         VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              <Border Grid.Column="3" Classes="pill warning" IsVisible="{Binding HasAvailabilityLabel}" MaxWidth="170">
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock Text="{Binding AvailabilityLabel}" TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-              </Border>
-              <Border Grid.Column="4" Classes="pill ok" IsVisible="{Binding HasUpdate}" ToolTip.Tip="{Binding UpdateHint}">
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                  <fi:SymbolIcon Symbol="CloudArrowDown" />
-                  <TextBlock Text="{Binding Behind}" />
-                </StackPanel>
-              </Border>
-              <Border Grid.Column="5" Classes="pill" MaxWidth="160">
-                <StackPanel Orientation="Horizontal" Spacing="5">
-                  <fi:SymbolIcon Symbol="{Binding SourceIcon}" />
-                  <TextBlock Text="{Binding SourceLabel}" TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-              </Border>
-              <Border Grid.Column="6" Classes="pill" Width="26" Padding="0,3" IsVisible="{Binding ShowHealth}"
-                      Classes.error="{Binding Health.IsError}" Classes.warning="{Binding Health.IsWarning}"
-                      ToolTip.Tip="{Binding Health.Text}">
-                <StackPanel HorizontalAlignment="Center">
-                  <fi:SymbolIcon Symbol="{Binding Health.Icon}" />
-                </StackPanel>
-              </Border>
-            </Grid>
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem" x:DataType="vm:IListRow">
+            <Setter Property="IsEnabled" Value="{Binding IsSelectable}" />
+          </Style>
+        </ListBox.Styles>
+        <ListBox.DataTemplates>
+          <DataTemplate DataType="vm:ListHeader">
+            <Border BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,0,1" Padding="16,16,16,6">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{Binding Title}" FontFamily="{StaticResource LxSemiExtraBold}" FontSize="12"
+                           LetterSpacing="1" Foreground="{DynamicResource LxInkBrush}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="1" Text="{Binding Count}" Classes="mono mute m" FontSize="11" />
+              </Grid>
+            </Border>
           </DataTemplate>
-        </ListBox.ItemTemplate>
+          <DataTemplate DataType="vm:SkillItemViewModel">
+            <Border BorderBrush="{DynamicResource LxRule2Brush}" BorderThickness="0,0,0,1" Padding="16,0" Height="30">
+              <Grid ColumnDefinitions="34,220,*,Auto,104,44" ColumnSpacing="12" Opacity="{Binding RowOpacity}">
+                <TextBlock Classes="mono mute2 no m" Text="{Binding NumberText}" FontSize="11"
+                           VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Classes="mono b" FontSize="12.5" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis">
+                  <Run Text="{Binding Prefix}" FontFamily="{StaticResource LxMono}" Foreground="{DynamicResource LxMute2Brush}" /><Run Text="{Binding Name}" />
+                </TextBlock>
+                <TextBlock Grid.Column="2" Text="{Binding Description}" FontSize="13" Opacity="0.78"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="3" Text="{Binding Status}" Classes="mono mute m" FontSize="10.5"
+                           VerticalAlignment="Center" MaxWidth="170" TextTrimming="CharacterEllipsis"
+                           IsVisible="{Binding HasStatus}" ToolTip.Tip="{Binding UpdateHint}" />
+                <TextBlock Grid.Column="4" Text="{Binding SourceLabel}" Classes="mono" FontSize="11" Opacity="0.65"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <Border Grid.Column="5" Classes="badge" IsVisible="{Binding HasMark}" MinWidth="40"
+                        Classes.err="{Binding IsMarkError}" Classes.warn="{Binding IsMarkWarning}" Classes.quiet="{Binding IsMarkQuiet}"
+                        ToolTip.Tip="{Binding Health.Text}">
+                  <TextBlock Text="{Binding Mark}" HorizontalAlignment="Center" />
+                </Border>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ListBox.DataTemplates>
       </ListBox>
 
-      <ListBox Grid.Row="2" Classes="skills" ItemsSource="{Binding VisibleProblems}"
+      <ListBox x:Name="ProblemList" Grid.Row="1" Classes="rows" ItemsSource="{Binding VisibleProblems}"
                SelectedItem="{Binding SelectedProblem}" IsVisible="{Binding IsProblemsView}">
         <ListBox.ItemTemplate>
           <DataTemplate DataType="vm:ProblemItemViewModel">
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="0,7">
-              <Border Classes="pill" Width="28" Height="28" Padding="0" VerticalAlignment="Top"
-                      Classes.error="{Binding IsError}" Classes.warning="{Binding IsWarning}">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                  <fi:SymbolIcon Symbol="{Binding Icon}" />
+            <Border BorderBrush="{DynamicResource LxRule2Brush}" BorderThickness="0,0,0,1" Padding="16,9">
+              <Grid ColumnDefinitions="48,*" ColumnSpacing="12">
+                <Border Classes="badge" Classes.err="{Binding IsError}" Classes.warn="{Binding IsWarning}"
+                        VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,2,0,0">
+                  <TextBlock Text="{Binding Badge}" HorizontalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="3">
+                  <TextBlock TextWrapping="Wrap">
+                    <Run Text="{Binding Subject}" FontFamily="{StaticResource LxMonoBold}" FontSize="12.5" /><Run Text="   " /><Run Text="{Binding Message}" />
+                  </TextBlock>
+                  <TextBlock Text="{Binding Path}" Classes="mono mute" FontSize="11" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
-              </Border>
-              <StackPanel Grid.Column="1" Spacing="2">
-                <TextBlock>
-                  <Run Text="{Binding Subject}" FontWeight="SemiBold" /><Run Text="  " /><Run Text="{Binding Message}" Foreground="{DynamicResource LxTextSecondaryBrush}" />
-                </TextBlock>
-                <TextBlock Text="{Binding Path}" Classes="mono tertiary" TextTrimming="CharacterEllipsis" />
-              </StackPanel>
-            </Grid>
+              </Grid>
+            </Border>
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
 
-      <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8"
-                  IsVisible="{Binding IsEmptyResult}">
-        <fi:SymbolIcon Symbol="SearchInfo" FontSize="34" Foreground="{DynamicResource LxTextTertiaryBrush}" />
-        <TextBlock Text="Nothing found" Classes="secondary" HorizontalAlignment="Center" />
-      </StackPanel>
-
-      <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8"
-                  IsVisible="{Binding HasNoProblems}">
-        <fi:SymbolIcon Symbol="CheckmarkCircle" FontSize="34" Foreground="{DynamicResource LxTextTertiaryBrush}" />
-        <TextBlock Text="No problems found" Classes="secondary" HorizontalAlignment="Center" />
-      </StackPanel>
+      <TextBlock Grid.Row="1" Text="NO MATCH." Classes="figure" FontFamily="{StaticResource LxCond}" FontSize="34"
+                 Margin="16,40" IsVisible="{Binding IsEmptyResult}" />
+      <TextBlock Grid.Row="1" Text="NO PROBLEMS." Classes="figure" FontFamily="{StaticResource LxCond}" FontSize="34"
+                 Margin="16,40" IsVisible="{Binding HasNoProblems}" />
     </Grid>
   </Border>
 </UserControl>

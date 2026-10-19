@@ -20,6 +20,7 @@ public sealed partial class MainViewModel
         }
 
         _settings = settings;
+        OnPropertyChanged(nameof(EditorHint));
         _persistentNotice = null;
         SettingsEditor.Load(settings);
         _services.Theme.Apply(settings.Theme);

@@ -198,7 +198,8 @@ public sealed class UsageCollector
                     g.Max(i => i.At),
                     g.Select(i => i.ProjectPath).OfType<string>().Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList(),
                     g.Count(i => i.Kind == InvocationKind.Model),
-                    g.Count(i => i.Kind == InvocationKind.User)),
+                    g.Count(i => i.Kind == InvocationKind.User),
+                    g.Select(i => i.At).Order().ToList()),
                 StringComparer.Ordinal);
 
     private sealed record FileState(

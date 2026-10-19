@@ -9,5 +9,5 @@ public partial class SourcesPane : UserControl
         InitializeComponent();
     }
 
-    public void FocusTree() => Tree.Focus();
+    public void FocusTree() => Scroller.Focus();
 }
