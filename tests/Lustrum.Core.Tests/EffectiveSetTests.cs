@@ -48,7 +48,7 @@ public class EffectiveSetTests : IDisposable
     }
 
     [Fact]
-    public async Task Project_skill_shadows_global_skill_with_the_same_name()
+    public async Task Personal_skill_shadows_project_skill_with_the_same_name()
     {
         _home.GlobalSkill("review", Doc("review", "global"));
         _home.ProjectSkill(_app, "review", Doc("review", "project"));
@@ -57,10 +57,22 @@ public class EffectiveSetTests : IDisposable
 
         var winner = set.Entries.Single(e => e.Availability == Availability.Active);
         var loser = set.Entries.Single(e => e.Availability == Availability.Shadowed);
-        winner.Skill.Source.Kind.Should().Be(SourceKind.Project);
+        winner.Skill.Source.Kind.Should().Be(SourceKind.Global);
         winner.Overrides.Should().ContainSingle().Which.Should().Be(loser.Skill);
-        loser.Skill.Source.Kind.Should().Be(SourceKind.Global);
+        loser.Skill.Source.Kind.Should().Be(SourceKind.Project);
         loser.ShadowedBy.Should().Be(winner.Skill);
+    }
+
+    [Fact]
+    public async Task A_skill_beats_a_command_with_the_same_name_wherever_it_lives()
+    {
+        _home.GlobalCommand("review", "---\ndescription: command\n---\nbody\n");
+        _home.ProjectSkill(_app, "review", Doc("review", "project"));
+
+        var set = await BuildFor(_app);
+
+        set.Entries.Single(e => e.Availability == Availability.Active).Skill.Kind.Should().Be(SkillKind.Skill);
+        set.Entries.Single(e => e.Availability == Availability.Shadowed).Skill.Kind.Should().Be(SkillKind.Command);
     }
 
     [Fact]
@@ -120,8 +132,8 @@ public class EffectiveSetTests : IDisposable
         var set = await BuildFor(_app);
 
         string Label(SkillSource s) => s.Kind == SourceKind.Global ? "Global" : s.DisplayName;
-        set.Entries.Single(e => e.Availability == Availability.Shadowed).Label(Label).Should().Be("shadowed by app");
-        set.Entries.Single(e => e.Overrides.Count > 0).Label(Label).Should().Be("overrides Global");
+        set.Entries.Single(e => e.Availability == Availability.Shadowed).Label(Label).Should().Be("shadowed by Global");
+        set.Entries.Single(e => e.Overrides.Count > 0).Label(Label).Should().Be("overrides app");
         set.Entries.Single(e => e.Skill.Name == "solo").Label(Label).Should().BeNull();
     }
 

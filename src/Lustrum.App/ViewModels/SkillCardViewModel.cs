@@ -168,10 +168,16 @@ public sealed partial class SkillCardViewModel : ObservableObject
         }
 
         return entry.Overrides.Count > 0
-            ? $"Loaded in {project} instead of the copy in "
-                + string.Join(", ", entry.Overrides.Select(o => SkillItemViewModel.SourceLabelFor(o.Source)).Distinct())
+            ? $"Loaded in {project} ahead of " + string.Join(", ", entry.Overrides.Select(o => CopyName(o)).Distinct())
             : $"Loaded in {project}";
     }
+
+    private static string CopyName(Skill skill) => skill switch
+    {
+        { Source.Kind: SourceKind.Project } => "the project's own copy",
+        { Kind: SkillKind.Command } => $"the command in {SkillItemViewModel.SourceLabelFor(skill.Source)}",
+        _ => $"the copy in {SkillItemViewModel.SourceLabelFor(skill.Source)}",
+    };
 
     private static string FormatSize(long bytes) => bytes switch
     {

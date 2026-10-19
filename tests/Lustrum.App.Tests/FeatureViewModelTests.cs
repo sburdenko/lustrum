@@ -68,9 +68,9 @@ public class FeatureViewModelTests
         vm.ListTitle.Should().Be("app · effective set");
         vm.VisibleSkills.Select(s => s.Skill.FullName).Should().BeEquivalentTo("design", "design", "notes", "unity:ui");
         var shadowed = vm.VisibleSkills.Single(s => s.IsShadowed);
-        shadowed.Skill.Source.Kind.Should().Be(SourceKind.Global);
-        shadowed.AvailabilityLabel.Should().Be("shadowed by app");
-        vm.VisibleSkills.Single(s => s.Skill.Source.Kind == SourceKind.Project).AvailabilityLabel.Should().Be("overrides Global");
+        shadowed.Skill.Source.Kind.Should().Be(SourceKind.Project);
+        shadowed.AvailabilityLabel.Should().Be("shadowed by Global");
+        vm.VisibleSkills.Single(s => s.Skill.FullName == "design" && s.Skill.Source.Kind == SourceKind.Global).AvailabilityLabel.Should().Be("overrides app");
     }
 
     [Fact]
@@ -82,7 +82,19 @@ public class FeatureViewModelTests
 
         vm.SelectedSkill = vm.VisibleSkills.Single(s => s.IsShadowed);
 
-        vm.Card!.AvailabilityNote.Should().Contain("Not loaded in app").And.Contain("app");
+        vm.Card!.AvailabilityNote.Should().Be("Not loaded in app: the copy in Global takes precedence");
+    }
+
+    [Fact]
+    public async Task Effective_set_card_names_what_the_winner_beats()
+    {
+        var vm = await Scanned();
+        vm.SelectedNode = Node(vm, "app");
+        vm.SelectedProjectView = View(vm, ProjectView.Effective);
+
+        vm.SelectedSkill = vm.VisibleSkills.Single(s => s.Skill.FullName == "design" && !s.IsShadowed);
+
+        vm.Card!.AvailabilityNote.Should().Be("Loaded in app ahead of the project's own copy");
     }
 
     [Fact]
