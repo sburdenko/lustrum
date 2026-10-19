@@ -7,9 +7,10 @@ namespace Lustrum.App.ViewModels;
 
 public sealed class SkillItemViewModel
 {
-    public SkillItemViewModel(Skill skill, EffectiveEntry? entry = null, MissingEntry? missing = null)
+    public SkillItemViewModel(Skill skill, EffectiveEntry? entry = null, MissingEntry? missing = null, int behind = 0)
     {
         Skill = skill;
+        Behind = behind;
         Entry = entry;
         IsShadowed = entry?.Availability == Availability.Shadowed;
         IsDisabled = skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled;
@@ -34,6 +35,12 @@ public sealed class SkillItemViewModel
     public string? AvailabilityLabel { get; }
 
     public bool HasAvailabilityLabel => AvailabilityLabel is not null;
+
+    public int Behind { get; }
+
+    public bool HasUpdate => Behind > 0;
+
+    public string UpdateHint => Behind == 1 ? "1 new commit upstream" : $"{Behind} new commits upstream";
 
     public double RowOpacity => IsShadowed || IsDisabled ? 0.5 : 1.0;
 

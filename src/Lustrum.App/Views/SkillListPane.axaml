@@ -58,7 +58,7 @@
                SelectedItem="{Binding SelectedSkill}" IsVisible="{Binding !IsProblemsView}">
         <ListBox.ItemTemplate>
           <DataTemplate DataType="vm:SkillItemViewModel">
-            <Grid ColumnDefinitions="Auto,232,*,Auto,Auto,Auto" ColumnSpacing="10" Height="34" Opacity="{Binding RowOpacity}">
+            <Grid ColumnDefinitions="Auto,232,*,Auto,Auto,Auto,Auto" ColumnSpacing="10" Height="34" Opacity="{Binding RowOpacity}">
               <fi:SymbolIcon Symbol="{Binding KindIcon}" FontSize="16" Foreground="{DynamicResource LxAccentBrush}" />
               <TextBlock Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                 <Run Text="{Binding Prefix}" Foreground="{DynamicResource LxTextTertiaryBrush}" /><Run Text="{Binding Name}" FontWeight="SemiBold" />
@@ -70,13 +70,19 @@
                   <TextBlock Text="{Binding AvailabilityLabel}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
               </Border>
-              <Border Grid.Column="4" Classes="pill" MaxWidth="160">
+              <Border Grid.Column="4" Classes="pill ok" IsVisible="{Binding HasUpdate}" ToolTip.Tip="{Binding UpdateHint}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <fi:SymbolIcon Symbol="CloudArrowDown" />
+                  <TextBlock Text="{Binding Behind}" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="5" Classes="pill" MaxWidth="160">
                 <StackPanel Orientation="Horizontal" Spacing="5">
                   <fi:SymbolIcon Symbol="{Binding SourceIcon}" />
                   <TextBlock Text="{Binding SourceLabel}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
               </Border>
-              <Border Grid.Column="5" Classes="pill" Width="26" Padding="0,3" IsVisible="{Binding ShowHealth}"
+              <Border Grid.Column="6" Classes="pill" Width="26" Padding="0,3" IsVisible="{Binding ShowHealth}"
                       Classes.error="{Binding Health.IsError}" Classes.warning="{Binding Health.IsWarning}"
                       ToolTip.Tip="{Binding Health.Text}">
                 <StackPanel HorizontalAlignment="Center">

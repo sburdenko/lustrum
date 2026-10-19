@@ -111,7 +111,7 @@ public sealed class FakeClaudeHome : IDisposable
     /// Windows runners report the temp folder with 8.3 short names (RUNNER~1). The project path decoder
     /// walks real directory names, so the fixture root must use the long names.
     /// </summary>
-    private static string LongTempPath()
+    internal static string LongTempPath()
     {
         var temp = Path.GetFullPath(Path.GetTempPath());
         if (!OperatingSystem.IsWindows())

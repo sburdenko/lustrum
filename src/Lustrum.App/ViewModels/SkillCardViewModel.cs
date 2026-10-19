@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FluentIcons.Common;
 using Lustrum.Core.Effective;
+using Lustrum.Core.Git;
 using Lustrum.Core.Models;
 using CoreHealth = Lustrum.Core.Models.Health;
 
@@ -26,6 +27,9 @@ public sealed partial class SkillCardViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasUsageProjects))]
     private string _usageProjects = string.Empty;
+
+    [ObservableProperty]
+    private GitSection _git = GitSection.Hidden;
 
     public SkillCardViewModel(
         Skill skill,
@@ -101,6 +105,10 @@ public sealed partial class SkillCardViewModel : ObservableObject
 
     public string ModifiedText { get; }
 
+    public GitCardState GitState { get; private set; } = GitCardState.Hidden;
+
+    public SkillRepository? GitRepository => (GitState as ReadyGit)?.Report.Repository;
+
     public string SizeText { get; }
 
     [RelayCommand]
@@ -139,6 +147,12 @@ public sealed partial class SkillCardViewModel : ObservableObject
         UsageProjects = usage is null
             ? string.Empty
             : string.Join(", ", usage.Projects.Select(p => System.IO.Path.GetFileName(p.TrimEnd('/', '\\'))).Distinct());
+    }
+
+    public void ApplyGit(GitCardState state, RepoState repo)
+    {
+        GitState = state;
+        Git = GitSection.From(state, repo);
     }
 
     private static string? NoteFor(EffectiveEntry? entry, string? project)

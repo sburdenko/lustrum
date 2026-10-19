@@ -72,6 +72,7 @@
   <SolidColorBrush x:Key="LxSelectedBrush" Color="{DynamicResource LxSelected}" />
   <SolidColorBrush x:Key="LxCodeBrush" Color="{DynamicResource LxCode}" />
   <SolidColorBrush x:Key="LxErrFgBrush" Color="{DynamicResource LxErrFg}" />
+  <SolidColorBrush x:Key="LxWarnFgBrush" Color="{DynamicResource LxWarnFg}" />
 
   <FontFamily x:Key="LxMono">Menlo,SF Mono,Cascadia Mono,Consolas,DejaVu Sans Mono,monospace</FontFamily>
 

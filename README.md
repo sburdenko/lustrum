@@ -7,7 +7,7 @@
 **A census of every Claude Code skill on your machine.**
 
 Global, project, plugin and claude.ai-synced skills and slash commands, in one window.<br/>
-Read-only towards Claude Code: nothing is written to `~/.claude`.
+Read-only towards Claude Code. The one write is the **Update** button: a fast-forward of a git repository that holds only skills.
 
 [![CI](https://github.com/sburdenko/lustrum/actions/workflows/ci.yml/badge.svg)](https://github.com/sburdenko/lustrum/actions/workflows/ci.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
@@ -28,6 +28,7 @@ have a few dozen skills:
 - Where do names collide, which copy wins, and how do the copies differ?
 - Which ones are broken (no frontmatter, bad YAML, missing description)?
 - Which ones are never used?
+- Which ones came from git, and has the upstream moved on since?
 
 Lustrum scans the disk, builds an immutable snapshot and shows it in a desktop window or prints it from a CLI.
 The window keeps itself up to date while you edit skills.
@@ -57,7 +58,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 259 tests
+dotnet test                                            # 310 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -70,10 +71,11 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 | **Project views** | Pick a project and switch between **Own** (its skills), **Effective** (exactly what Claude Code loads there, with shadowed skills marked) and **Missing** (skills on this machine it does not load). |
 | **Skill list** | Name with plugin prefix, description, source, health marker. Sort by best match, name, source or date. |
 | **Search** | Fuzzy on names, substring on descriptions and tags, ranked by relevance. Optionally searches the text of every `SKILL.md`. |
-| **Filter chips** | One chip per own prefix (`sb-*` by default), plus `plugin`, `synced`, `command`, `broken`, `duplicate` and `unused`. Chips combine. |
+| **Filter chips** | One chip per own prefix (`sb-*` by default), plus `plugin`, `synced`, `command`, `broken`, `duplicate`, `unused` and `updates`. Chips combine. |
 | **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, read from Claude Code transcripts. Sort by last use. |
 | **Problems** | One list of broken skills (with the YAML line and cause), over-long descriptions, projects whose folder is gone and paths that could not be read. |
-| **Skill card** | Description, health, usage, parsed frontmatter, file path, sibling files, name conflicts, rendered `SKILL.md`. |
+| **Skill card** | Description, health, usage, git status, parsed frontmatter, file path, sibling files, name conflicts, rendered `SKILL.md`. |
+| **Git** | For global and project skills inside a git repository: branch, upstream, commits behind and ahead, uncommitted changes in the skill folder and its last commit. **Check for updates** fetches, for one repository from the card or for all of them from the toolbar; **Update** fast-forwards a repository that holds only skills. |
 | **Compare** | For a name that exists in several places, a line diff between this copy and any other, with unchanged runs folded. |
 | **Actions** | Show in file manager, open in editor, copy path, copy invocation name (`/deploy`, `unity:ui`). |
 | **Live updates** | File system watchers trigger a rescan half a second after skills or plugin settings change. |
@@ -104,6 +106,12 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 <tr>
 <td align="center"><sub>Compare: project copy against the global one</sub></td>
 <td align="center"><sub>Missing: what other projects have and this one does not load</sub></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><img src="docs/git.png" alt="A cloned skill two commits behind its upstream, with the Update button enabled and the updates chip on" width="70%"/></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><sub>Git: a cloned skill after Check for updates, two commits behind</sub></td>
 </tr>
 </table>
 
@@ -172,16 +180,19 @@ flowchart TB
         settings["Settings<br/>SettingsStore"]
         usage["Usage<br/>UsageCollector · TranscriptParser"]
         comparing["Comparing<br/>SkillComparer · DiffFolding"]
+        git["Git<br/>SkillGit · GitCli · UpdatePolicy"]
     end
 
     disk[("~/.claude<br/>~/.claude.json<br/>&lt;project&gt;/.claude")]
+    gitcli[["git command line"]]
 
-    app --> scanner & index & effective & problems & watching & settings & usage & comparing
+    app --> scanner & index & effective & problems & watching & settings & usage & comparing & git
     cli --> scanner & settings & usage & comparing
     scanner --> parser
     scanner --> disk
     watching --> disk
     usage --> disk
+    git --> gitcli
 ```
 
 ### Scan pipeline
@@ -302,6 +313,44 @@ included. Line endings, a byte order mark and trailing blank lines are ignored. 
 context around each change and folds longer unchanged runs; the card shows at most 2,000 rows. The card labels the sides plainly: `−` is only in the copy you selected, `+` only in the
 other one. The CLI prints the same diff in unified format.
 
+### Git
+
+Only global and project skills are considered. Plugin and synced folders are managed by Claude Code and the Claude
+desktop app, so Lustrum leaves them alone.
+
+`GitRepositoryLocator` finds a skill's repository by walking up from its folder to the nearest `.git` entry (a
+folder, or a file for worktrees and submodules), without starting git. Symbolic links are resolved first, so a
+`skills` folder linked into a dotfiles checkout is matched against that checkout. The repository gets one of two
+roles:
+
+| Role | When | What Lustrum does |
+|---|---|---|
+| `SkillsOnly` | the repository root is the skill folder itself, or lies inside a `skills` or `commands` folder | status, checks and updates |
+| `Containing` | anything larger: a project, `~/.claude`, a dotfiles repository | status and checks only |
+
+The card reads local state with the git command line: `symbolic-ref` and `rev-list --left-right --count HEAD...@{u}`
+for branch, upstream, behind and ahead; `status --porcelain=v1 -z` for uncommitted changes (only under the skill
+folder in a `Containing` repository); `log -1` for the last commit that touched the skill. Behind and ahead are
+relative to the upstream as of the last fetch, and the card says so until you check.
+
+Nothing goes over the network until you press **Check for updates**, which runs `git fetch` for a repository with
+an upstream. The toolbar button checks every repository that holds skills, project repositories included, four at a
+time. The `updates` chip then keeps the skills of skills repositories that are behind; a project repository's count
+stays on the card, because commits elsewhere in the project say nothing about the skill. A repository that is being
+checked or updated is not checked again. Results last for the session and survive rescans.
+
+`UpdatePolicy` decides whether **Update** is enabled. The repository must be `SkillsOnly`, on a branch with an
+upstream, behind it, with no uncommitted changes and no local commits. `SkillGit.UpdateAsync` fetches, checks the
+policy again on fresh state, refuses when the upstream starts tracking a file that exists locally as an ignored file
+(git would replace it silently), and only then runs `git merge --ff-only @{u}`, which cannot create a merge commit
+or touch local work. Because of that fetch, an update can bring in commits newer than the last check. A rescan
+follows.
+
+git runs without a terminal: `GIT_TERMINAL_PROMPT=0` and `SSH_ASKPASS_REQUIRE=never` turn a password prompt into a
+failed check, `LC_ALL=C` keeps messages in English, `GIT_OPTIONAL_LOCKS=0` stops `status` from rewriting the index,
+and `core.fsmonitor` is switched off so reading a repository never starts a monitor daemon. Local commands time out
+after 30 s, fetches after 90 s.
+
 ### Live updates
 
 `WatchTargets` picks what to watch. Skill and command folders (including those of synced plugins) and the plugin
@@ -321,12 +370,13 @@ mode is active.
 
 - The scan runs on the thread pool; `MainViewModel` applies the result on the UI thread.
 - Starting a new rescan cancels the previous one, and a result from a superseded scan is dropped.
-- Failures from the scan, the content search, the editor or the file manager are reported in the status bar.
+- git runs as a child process with asynchronous I/O; the window never waits on it.
+- Failures from the scan, the content search, git, the editor or the file manager are reported in the status bar.
 
 ### The window
 
 `MainViewModel` is split into partial files by concern: list and sorting, content search, project views, usage,
-problems, card, commands, settings. The project view is one `ProjectView` value (`Own`, `Effective`, `Missing`),
+git, problems, card, commands, settings. The project view is one `ProjectView` value (`Own`, `Effective`, `Missing`),
 not a set of checkboxes. The view is split the same way into `SourcesPane`, `SkillListPane`,
 `SkillCardPane` and `SettingsPanel`.
 
@@ -334,10 +384,11 @@ not a set of checkboxes. The view is split the same way into `SourcesPane`, `Ski
 |---|---|
 | `NavTreeBuilder` | `ScanResult` to the source tree, with counts |
 | `SkillItemViewModel` | one list row, including its effective-set label |
-| `SkillCardViewModel` | the card; loads the `SKILL.md` body in the background |
+| `SkillCardViewModel` | the card; loads the `SKILL.md` body and the git state in the background |
+| `GitSection`, `RepoState` | what the card's git section shows, and what has been done to each repository this session |
 | `ProblemItemViewModel` | one row in the Problems list |
 | `SettingsEditorViewModel` | the editable copy of the settings |
-| `IShellService`, `IClipboardService`, `ISettingsService`, `IThemeService` | the only places that touch the OS; faked in tests |
+| `IShellService`, `IClipboardService`, `ISettingsService`, `IThemeService`, `ISkillGit` | the only places that touch the OS; faked in tests |
 
 ## Settings and logs
 
@@ -408,11 +459,11 @@ code 1; an unknown name exits with code 2.
 ```text
 lustrum/
 ├── src/
-│   ├── Lustrum.Core/      Models/ Parsing/ Scanning/ Indexing/ Effective/ Problems/ Settings/ Watching/ Usage/ Comparing/
+│   ├── Lustrum.Core/      Models/ Parsing/ Scanning/ Indexing/ Effective/ Problems/ Settings/ Watching/ Usage/ Comparing/ Git/
 │   ├── Lustrum.App/       Views/ ViewModels/ Services/ Assets/
 │   └── Lustrum.Cli/       list and diff commands, table renderer
 ├── tests/
-│   ├── Lustrum.Core.Tests/   scanner, discovery, parser, decoder, search, effective set, problems, settings, watcher, usage
+│   ├── Lustrum.Core.Tests/   scanner, discovery, parser, decoder, search, effective set, problems, settings, watcher, usage, git
 │   ├── Lustrum.App.Tests/    view models, source tree, services
 │   └── Lustrum.Cli.Tests/    table output, diff report
 ├── docs/                  screenshots, Claude Code on-disk notes
@@ -426,14 +477,16 @@ lustrum/
 
 ## Tests
 
-259 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+310 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,
-oversized frontmatter, native and polling file watching. The App tests drive `MainViewModel` with a fake scan
-function, shell, clipboard, settings and theme, including overlapping rescans and the effective set.
+oversized frontmatter, native and polling file watching. Git tests run the real git command line against
+`GitSandbox`: throw-away repositories with a bare remote, so behind, ahead, dirty trees, detached heads and refused
+updates are real git states. The App tests drive `MainViewModel` with a fake scan
+function, shell, clipboard, settings, theme and git, including overlapping rescans and the effective set.
 
-Measured with coverlet: 91% of lines in `Lustrum.Core`, 85% in the view models.
+Measured with coverlet: 91% of lines in `Lustrum.Core`, 87% in the view models.
 
 ```bash
 dotnet test
@@ -455,6 +508,9 @@ dotnet test
 - The window has only been run on macOS; on Windows and Linux only the tests run in CI.
 - The macOS app is not notarized, and there is no Windows installer.
 - Usage is counted by skill name from transcripts whose format Anthropic does not document.
+- Git features need `git` on the `PATH`. A remote that asks for a password fails the check instead of prompting.
+- **Update** only fast-forwards. A diverged or dirty repository, or one that holds more than skills, has to be
+  updated with git directly. The merge runs the repository's own hooks and filters, as `git merge` would.
 
 ## Name
 

@@ -14,7 +14,8 @@ internal sealed record Scenario(
     int Tab = 0,
     bool OpenSettings = false,
     string? Problem = null,
-    bool HidePaths = true)
+    bool HidePaths = true,
+    bool CheckUpdates = false)
 {
     public static IReadOnlyList<Scenario> Readme { get; } =
     [
@@ -25,5 +26,6 @@ internal sealed record Scenario(
         new("settings.png", ThemeVariant.Dark, Chip: "sb-*", OpenSettings: true),
         new("compare.png", ThemeVariant.Light, Select: "release-notes", SelectSource: "storefront", Tab: 2, HidePaths: false),
         new("missing.png", ThemeVariant.Light, Node: "storefront", View: ProjectView.Missing, Select: "crash-triage"),
+        new("git.png", ThemeVariant.Light, Select: "pdf-forms", Chip: "updates", CheckUpdates: true),
     ];
 }

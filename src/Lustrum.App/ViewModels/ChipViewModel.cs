@@ -10,7 +10,7 @@ public sealed partial class ChipViewModel(string label, ChipFilter filter, strin
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsActive))]
-    private bool _isAvailable = !filter.NeedsUsage;
+    private bool _isAvailable = true;
 
     public string Label { get; } = label;
 
