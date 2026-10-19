@@ -21,6 +21,11 @@ public static class TreeFingerprint
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
     }
 
+    // Folder timestamps are left out: Windows updates them lazily, which made an idle tree look changed. Names catch
+    // added and removed folders; file sizes and timestamps catch edits.
+    private static string Entry(FileSystemInfo info) =>
+        info is FileInfo file ? $"{file.FullName}|{file.Length}|{file.LastWriteTimeUtc.Ticks}" : $"{info.FullName}|dir";
+
     private static IEnumerable<string> Entries(WatchTarget target)
     {
         var options = new EnumerationOptions
@@ -34,7 +39,7 @@ public static class TreeFingerprint
         {
             return new DirectoryInfo(target.Path)
                 .EnumerateFileSystemInfos(target.Filter, options)
-                .Select(i => $"{i.FullName}|{(i as FileInfo)?.Length ?? -1}|{i.LastWriteTimeUtc.Ticks}")
+                .Select(Entry)
                 .OrderBy(e => e, StringComparer.Ordinal)
                 .ToList();
         }
