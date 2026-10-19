@@ -26,7 +26,7 @@ public class FeatureViewModelTests
                 return Task.FromResult(result);
             },
             _ => Task.FromResult(UsageReport.Empty),
-            new AppServices(_shell, _clipboard, _settings, _theme, new FakeSkillGit()));
+            new AppServices(_shell, _clipboard, _settings, _theme, new FakeSkillGit(), new FakeSkillWriter()));
     }
 
     private async Task<MainViewModel> Scanned(ScanResult? result = null)
@@ -94,7 +94,7 @@ public class FeatureViewModelTests
 
         vm.SelectedSkill = vm.VisibleSkills.Single(s => s.Skill.FullName == "design" && !s.IsShadowed);
 
-        vm.Card!.AvailabilityNote.Should().Be("Loaded in app ahead of the project's own copy");
+        vm.Card!.AvailabilityNote.Should().Be("Loaded in app, ahead of the project's own copy");
     }
 
     [Fact]

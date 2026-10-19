@@ -30,7 +30,7 @@ public sealed class App : Application
             var viewModel = new MainViewModel(
                 (options, token) => Task.Run(() => SkillScanner.ScanAsync(paths, options, token), token),
                 token => Task.Run(() => usage.CollectAsync(paths.ProjectsDir, token), token),
-                new AppServices(new ShellService(), new AvaloniaClipboardService(window), settings, new ThemeService(), new SkillGit(new GitCli())));
+                new AppServices(new ShellService(), new AvaloniaClipboardService(window), settings, new ThemeService(), new SkillGit(new GitCli()), new SkillWriter()));
             var live = new LiveRescan(viewModel, paths);
             viewModel.ScanApplied += log.Record;
             if (settings.Warning is { } warning)

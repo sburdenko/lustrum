@@ -1,4 +1,5 @@
 using FluentIcons.Common;
+using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Effective;
 using Lustrum.Core.Models;
 using CoreHealth = Lustrum.Core.Models.Health;
@@ -7,14 +8,22 @@ namespace Lustrum.App.ViewModels;
 
 public sealed class SkillItemViewModel
 {
-    public SkillItemViewModel(Skill skill, EffectiveEntry? entry = null, MissingEntry? missing = null, int behind = 0)
+    public SkillItemViewModel(
+        Skill skill,
+        EffectiveEntry? entry = null,
+        MissingEntry? missing = null,
+        int behind = 0,
+        SkillVisibility visibility = SkillVisibility.On)
     {
         Skill = skill;
         Behind = behind;
         Entry = entry;
         IsShadowed = entry?.Availability == Availability.Shadowed;
-        IsDisabled = skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled;
-        AvailabilityLabel = missing is not null ? missing.Reason(SourceLabelFor) : LabelFor(skill, entry);
+        IsDisabled = (skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled)
+            || (entry is null ? visibility == SkillVisibility.Off : entry.IsTurnedOff);
+        AvailabilityLabel = missing is not null
+            ? missing.Reason(SourceLabelFor)
+            : LabelFor(skill, entry) ?? (entry is null ? visibility.Label() : null);
         Health = HealthPresentation.For(skill.Health);
         Prefix = skill.Kind == SkillKind.Command ? "/" : PluginPrefix(skill);
         Description = string.IsNullOrWhiteSpace(skill.Description) ? "no description" : skill.Description.ReplaceLineEndings(" ");

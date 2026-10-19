@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Models;
 
 namespace Lustrum.Core.Scanning;
@@ -29,6 +30,7 @@ public static class SkillScanner
             return ValueTask.CompletedTask;
         });
 
+        var overrides = SkillOverridesReader.Read(paths, discovered.Sources, issues.Add);
         var tagged = SkillTagger.Apply(skills.ToList(), settings);
         var ordered = tagged
             .OrderBy(s => s.FullName, StringComparer.OrdinalIgnoreCase)
@@ -42,7 +44,10 @@ public static class SkillScanner
             ConflictDetector.Detect(ordered),
             issues.OrderBy(i => i.Path, StringComparer.Ordinal).ToList(),
             DateTimeOffset.UtcNow,
-            stopwatch.Elapsed);
+            stopwatch.Elapsed)
+        {
+            Overrides = overrides,
+        };
     }
 
     private static void ScanSource(SkillSource source, ConcurrentBag<Skill> skills, ConcurrentBag<ScanIssue> issues)

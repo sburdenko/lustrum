@@ -107,6 +107,8 @@ internal sealed partial class DemoHome : IDisposable
         }
 
         Write(Path.Combine(Home, ".claude.json"), JsonSerializer.Serialize(new { projects = known.ToDictionary(p => p, _ => new { }) }));
+        Write(Path.Combine(Claude, "settings.json"), """{ "skillOverrides": { "legacy-import": "off", "brand-voice": "name-only" } }""");
+        Write(Path.Combine(Work("storefront"), ".claude", "settings.json"), """{ "skillOverrides": { "sql-helper": "off" } }""");
     }
 
     private void Plugins()

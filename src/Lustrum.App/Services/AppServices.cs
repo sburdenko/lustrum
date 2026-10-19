@@ -7,4 +7,5 @@ public sealed record AppServices(
     IClipboardService Clipboard,
     ISettingsService Settings,
     IThemeService Theme,
-    ISkillGit Git);
+    ISkillGit Git,
+    ISkillWriter Writer);
