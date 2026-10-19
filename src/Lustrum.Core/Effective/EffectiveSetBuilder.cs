@@ -6,8 +6,8 @@ namespace Lustrum.Core.Effective;
 
 /// <summary>
 /// Resolves what Claude Code loads in one project: that project's skills, global skills, enabled plugins and
-/// skills synced from the claude.ai account. A project skill wins over a global skill with the same name;
-/// plugin and synced skills are always prefixed.
+/// skills synced from the claude.ai account. Within one name a skill beats a command, and a personal (global)
+/// copy beats a project copy, as Claude Code resolves them; plugin and synced skills are always prefixed.
 /// </summary>
 public static class EffectiveSetBuilder
 {
@@ -50,5 +50,6 @@ public static class EffectiveSetBuilder
     private static EffectiveEntry Active(Skill skill, IReadOnlyList<Skill> overrides) =>
         new(skill, Availability.Active, null, overrides);
 
-    private static int Rank(Skill skill) => skill.Source.Kind == SourceKind.Project ? 0 : 1;
+    private static int Rank(Skill skill) =>
+        (skill.Kind == SkillKind.Command ? 2 : 0) + (skill.Source.Kind == SourceKind.Project ? 1 : 0);
 }

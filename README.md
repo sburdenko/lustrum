@@ -58,7 +58,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 310 tests
+dotnet test                                            # 312 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -88,7 +88,7 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 <td width="50%"><img src="docs/problems.png" alt="Problems list: broken YAML, missing frontmatter, long description, missing project"/></td>
 </tr>
 <tr>
-<td align="center"><sub>Effective set: the project copy overrides the global one</sub></td>
+<td align="center"><sub>Effective set: the personal copy wins over the project one</sub></td>
 <td align="center"><sub>Problems</sub></td>
 </tr>
 <tr>
@@ -255,8 +255,9 @@ top of the file.
 ### Effective set
 
 `EffectiveSetBuilder.Build(scan, project)` takes that project's skills, the global skills, the skills of
-enabled plugins and the skills synced from claude.ai. Within one name, a project skill wins over a global one: the winner is `Active` and lists what
-it overrides, the loser is `Shadowed` and points at the winner. Prefixed skills are never shadowed. Skills from other projects are not part of the set.
+enabled plugins and the skills synced from claude.ai. Within one name it follows Claude Code's rules: a skill beats
+a command, and a personal (global) copy beats a project copy. The winner is `Active` and lists what it overrides, the
+loser is `Shadowed` and points at the winner. Prefixed skills are never shadowed. Skills from other projects are not part of the set.
 
 ### Missing
 
@@ -430,10 +431,10 @@ needs a `.claude` directory; Claude Code does not have to know about it yet.
 
 ```text
 $ lustrum list --project ~/work/storefront --source project
-NAME           SOURCE      HEALTH              IN PROJECT        DESCRIPTION
-checkout-flow  storefront  ok                  loaded            Trace the checkout flow and find where an order can get stuck.
-release-notes  storefront  ok                  overrides Global  Release notes for the storefront: customer-facing wording, no ticket id…
-ui-kit         storefront  ok                  loaded            Use the shared component library correctly: tokens, spacing, accessibil…
+NAME           SOURCE      HEALTH              IN PROJECT          DESCRIPTION
+checkout-flow  storefront  ok                  loaded              Trace the checkout flow and find where an order can get stuck.
+release-notes  storefront  ok                  shadowed by Global  Release notes for the storefront: customer-facing wording, no ticket id…
+ui-kit         storefront  ok                  loaded              Use the shared component library correctly: tokens, spacing, accessibil…
 ```
 
 `--project <folder> --missing` lists the skills that project does not load, with a `NOTE` column for disabled
@@ -477,7 +478,7 @@ lustrum/
 
 ## Tests
 
-310 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+312 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,
