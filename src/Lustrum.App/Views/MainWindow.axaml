@@ -1,87 +1,97 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:fi="using:FluentIcons.Avalonia"
         xmlns:vm="using:Lustrum.App.ViewModels"
         xmlns:views="using:Lustrum.App.Views"
+        xmlns:lx="using:Lustrum.App.Controls"
         x:Class="Lustrum.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="Lustrum"
         Icon="/Assets/lustrum.png"
-        Width="1380" Height="860" MinWidth="1000" MinHeight="620"
+        Width="1380" Height="860" MinWidth="1240" MinHeight="620"
         WindowStartupLocation="CenterScreen">
 
-  <Grid RowDefinitions="Auto,2,*,Auto">
+  <Grid RowDefinitions="60,*,42">
 
-    <Grid Grid.Row="0" ColumnDefinitions="272,*,Auto" Margin="20,14,20,12">
-      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-        <Border Width="30" Height="30" CornerRadius="9" Background="{DynamicResource LxAccentBrush}">
-          <fi:SymbolIcon Symbol="Library" IconVariant="Filled" FontSize="17" Foreground="White" />
+    <Border BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="280,*,470">
+        <Border BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,1,0" Padding="20,0">
+          <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12">
+            <lx:LustrumMark Width="28" Height="28" Tone="Ink" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="LUSTRUM" FontFamily="{StaticResource LxCond}" FontSize="24"
+                       LetterSpacing="0.5" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="v. census" Classes="mono mute m" FontSize="10"
+                       HorizontalAlignment="Right" VerticalAlignment="Center" />
+          </Grid>
         </Border>
-        <StackPanel VerticalAlignment="Center" Spacing="0">
-          <TextBlock Text="Lustrum" FontSize="16" FontWeight="SemiBold" />
-          <TextBlock Text="Claude Code skill inventory" FontSize="11" Classes="tertiary" />
-        </StackPanel>
-      </StackPanel>
 
-      <TextBox x:Name="SearchBox" Grid.Column="1" Classes="search" MaxWidth="680" HorizontalAlignment="Stretch"
-               Text="{Binding SearchText}"
-               Watermark="Search name, description or tags">
-        <TextBox.InnerLeftContent>
-          <fi:SymbolIcon Symbol="Search" FontSize="16" Margin="12,0,4,0" Foreground="{DynamicResource LxTextTertiaryBrush}" />
-        </TextBox.InnerLeftContent>
-        <TextBox.InnerRightContent>
-          <Button Command="{Binding ClearSearchCommand}" Background="Transparent" BorderThickness="0" Padding="8,4" Margin="0,0,6,0"
-                  IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-            <fi:SymbolIcon Symbol="Dismiss" FontSize="14" />
+        <Border Grid.Column="1" BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,1,0" Padding="20,0">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+            <Border BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="1.5" Padding="7,1" VerticalAlignment="Center">
+              <TextBlock Text="/" Classes="mono b" />
+            </Border>
+            <TextBox x:Name="SearchBox" Grid.Column="1" Classes="search" Text="{Binding SearchText}"
+                     Watermark="{Binding SearchWatermark}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="fuzzy · names, descriptions, tags" Classes="mono mute" FontSize="11"
+                       VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+
+        <Grid Grid.Column="2" ColumnDefinitions="*,*,*">
+          <Button x:Name="SettingsButton" Classes="cell" BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,1,0"
+                  ToolTip.Tip="Settings">
+            <StackPanel VerticalAlignment="Center" Margin="14,0" Spacing="2">
+              <TextBlock Text="{x:Static views:KeyGlyphs.Settings}" Classes="key" />
+              <TextBlock Text="SETTINGS" Classes="label" />
+            </StackPanel>
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <views:SettingsPanel />
+              </Flyout>
+            </Button.Flyout>
           </Button>
-        </TextBox.InnerRightContent>
-      </TextBox>
+          <Button Grid.Column="1" Classes="cell" Command="{Binding CheckAllForUpdatesCommand}"
+                  BorderBrush="{DynamicResource LxRuleBrush}" BorderThickness="0,0,1,0"
+                  ToolTip.Tip="Fetch every git repository that holds skills and show which skills have updates">
+            <StackPanel VerticalAlignment="Center" Margin="14,0" Spacing="2">
+              <TextBlock Text="U" Classes="key" />
+              <TextBlock Text="CHECK UPDATES" Classes="label" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="2" Classes="cell inverse" Command="{Binding RescanCommand}" ToolTip.Tip="Rescan (F5)">
+            <StackPanel VerticalAlignment="Center" Margin="14,0" Spacing="2">
+              <TextBlock Text="F5" Classes="key" />
+              <TextBlock Text="RESCAN" Classes="label" />
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Grid>
+    </Border>
 
-      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Margin="16,0,0,0">
-        <TextBlock Text="{Binding Summary}" Classes="secondary" VerticalAlignment="Center" Margin="0,0,4,0" />
-        <Button x:Name="SettingsButton" Classes="ghost" ToolTip.Tip="Settings">
-          <fi:SymbolIcon Symbol="Settings" FontSize="16" />
-          <Button.Flyout>
-            <Flyout Placement="BottomEdgeAlignedRight">
-              <views:SettingsPanel />
-            </Flyout>
-          </Button.Flyout>
-        </Button>
-        <Button Classes="ghost" Command="{Binding CheckAllForUpdatesCommand}"
-                ToolTip.Tip="Fetch every git repository that holds skills and show which skills have updates">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <fi:SymbolIcon Symbol="CloudSync" FontSize="16" />
-            <TextBlock Text="Check for updates" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
-        <Button Classes="ghost" Command="{Binding RescanCommand}" ToolTip.Tip="Rescan (F5)">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <fi:SymbolIcon Symbol="ArrowSync" FontSize="16" />
-            <TextBlock Text="Rescan" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
-      </StackPanel>
+    <Grid Grid.Row="1" ColumnDefinitions="280,*,470">
+      <views:SourcesPane x:Name="Sources" />
+      <views:SkillListPane x:Name="List" Grid.Column="1" />
+      <views:SkillCardPane x:Name="CardPane" Grid.Column="2" />
+      <ProgressBar Grid.ColumnSpan="3" VerticalAlignment="Top" Height="2" MinHeight="2" IsIndeterminate="True"
+                   IsVisible="{Binding IsScanning}" Background="Transparent" Foreground="{StaticResource LxLimeBrush}" />
     </Grid>
 
-    <ProgressBar Grid.Row="1" Height="2" IsIndeterminate="True" IsVisible="{Binding IsScanning}" Background="Transparent" />
-
-    <Grid Grid.Row="2" ColumnDefinitions="272,8,*,8,460" Margin="14,4,14,10">
-      <views:SourcesPane x:Name="Sources" Grid.Column="0" />
-      <GridSplitter Grid.Column="1" Background="Transparent" ResizeDirection="Columns" />
-      <views:SkillListPane x:Name="List" Grid.Column="2" />
-      <GridSplitter Grid.Column="3" Background="Transparent" ResizeDirection="Columns" />
-      <views:SkillCardPane x:Name="CardPane" Grid.Column="4" />
-    </Grid>
-
-    <Border Grid.Row="3" Padding="20,6,20,10">
-      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto">
-        <TextBlock Text="{Binding StatusText}" Classes="tertiary" FontSize="12" />
-        <TextBlock Grid.Column="1" Text="{Binding WatchStatus}" Classes="tertiary" FontSize="12" Margin="16,0,0,0" />
-        <TextBlock Grid.Column="2" Text="{Binding UsageStatus}" Classes="tertiary" FontSize="12" Margin="16,0,0,0" />
-        <TextBlock Grid.Column="3" Text="{Binding UpdateStatus}" Classes="tertiary" FontSize="12" Margin="16,0,0,0" />
-        <TextBlock Grid.Column="4" Text="{Binding ActionNotice}" FontSize="12" Margin="16,0,0,0" TextTrimming="CharacterEllipsis" />
-        <TextBlock Grid.Column="5" Text="{Binding ErrorMessage}" FontSize="12"
-                   Foreground="{DynamicResource LxErrFgBrush}" TextTrimming="CharacterEllipsis" MaxWidth="640" />
+    <Border Grid.Row="2" Background="{StaticResource LxTerminalBrush}" BorderBrush="{DynamicResource LxRuleBrush}"
+            BorderThickness="0,1,0,0" Padding="20,0">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="10">
+        <TextBlock Text="lustrum ›" Classes="mono b" FontSize="13" Foreground="{StaticResource LxLimeBrush}"
+                   VerticalAlignment="Center" />
+        <SelectableTextBlock Grid.Column="1" Text="{Binding CliCommand}" Classes="mono m" FontSize="13"
+                             Foreground="{StaticResource LxTerminalTextBrush}" VerticalAlignment="Center"
+                             ToolTip.Tip="The lustrum CLI command for this view" />
+        <Border Grid.Column="2" Classes="blink" Width="8" Height="16" Background="{StaticResource LxLimeBrush}"
+                VerticalAlignment="Center" Margin="-6,0,0,0" />
+        <TextBlock Grid.Column="4" Classes="mono" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   MaxWidth="520" Text="{Binding ErrorMessage}" Foreground="#FF6B5E" IsVisible="{Binding HasErrorMessage}" />
+        <TextBlock Grid.Column="4" Classes="mono" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   MaxWidth="520" Text="{Binding ActionNotice}" Foreground="{StaticResource LxLimeBrush}"
+                   IsVisible="{Binding HasActionNotice}" />
+        <TextBlock Grid.Column="5" Classes="mono" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   MaxWidth="640" Text="{Binding FooterStatus}" Foreground="{StaticResource LxTerminalMuteBrush}" />
       </Grid>
     </Border>
 

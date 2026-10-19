@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\*.png" />
+    <AvaloniaResource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
 
   <ItemGroup>

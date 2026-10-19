@@ -33,6 +33,19 @@ public sealed partial class SkillCardViewModel : ObservableObject
     private GitSection _git = GitSection.Hidden;
 
     [ObservableProperty]
+    private IReadOnlyList<UsageStat> _usageStats = EmptyStats;
+
+    [ObservableProperty]
+    private IReadOnlyList<UsageDay> _usageDays = EmptyDays;
+
+    public const int UsageWindowDays = 30;
+
+    private static readonly IReadOnlyList<UsageStat> EmptyStats = Stats(null);
+
+    private static readonly IReadOnlyList<UsageDay> EmptyDays =
+        Enumerable.Range(0, UsageWindowDays).Select(i => new UsageDay(false, i == UsageWindowDays - 1)).ToList();
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanSetVisibility), nameof(VisibilityHint), nameof(VisibilityNote), nameof(HasVisibilityNote))]
     private VisibilityPanel? _visibility;
 
@@ -79,6 +92,49 @@ public sealed partial class SkillCardViewModel : ObservableObject
 
     public Skill Skill { get; }
 
+    public int Number { get; init; }
+
+    public string? Issue { get; init; }
+
+    public bool HasIssue => Issue is not null;
+
+    public string HeaderLine
+    {
+        get
+        {
+            var kind = Skill.Kind == SkillKind.Command ? "COMMAND" : "SKILL";
+            var source = Skill.Source.Kind switch
+            {
+                SourceKind.Global => "GLOBAL",
+                SourceKind.Synced => $"CLAUDE.AI · {SourceLabel.ToUpperInvariant()}",
+                _ => SourceLabel.ToUpperInvariant(),
+            };
+            var prefix = Skill.FullName.Length > Skill.Name.Length && Skill.Kind == SkillKind.Skill
+                ? $" / {Skill.FullName[..^Skill.Name.Length]}"
+                : string.Empty;
+            return $"{Number:000} / {kind} / {source}{prefix}";
+        }
+    }
+
+    public string HealthBadge => Skill.Health switch
+    {
+        CoreHealth.Ok => "OK",
+        CoreHealth.DescriptionTooLong => "TOO LONG",
+        CoreHealth.ParseError => "PARSE ERROR",
+        CoreHealth.NoFrontmatter => "NO FRONTMATTER",
+        CoreHealth.MissingName => "NO NAME",
+        CoreHealth.MissingDescription => "NO DESCRIPTION",
+        CoreHealth.Orphaned => "SOURCE GONE",
+        _ => Skill.Health.ToString().ToUpperInvariant(),
+    };
+
+    public double TitleSize => Title.Length switch
+    {
+        > 15 => 46,
+        > 11 => 58,
+        _ => 72,
+    };
+
     public HealthPresentation Health { get; }
 
     public string Title { get; }
@@ -110,6 +166,8 @@ public sealed partial class SkillCardViewModel : ObservableObject
     public IReadOnlyList<ConflictEntry> Conflicts { get; }
 
     public bool HasConflicts => Conflicts.Count > 0;
+
+    public string ConflictsTitle => Conflicts.Count == 1 ? "SAME NAME · 1 OTHER COPY" : $"SAME NAME · {Conflicts.Count} OTHER COPIES";
 
     public ComparisonViewModel? Comparison { get; }
 
@@ -174,10 +232,16 @@ public sealed partial class SkillCardViewModel : ObservableObject
         }
     }
 
-    public void ApplyUsage(UsageState state)
+    public void ApplyUsage(UsageState state) => ApplyUsage(state, DateOnly.FromDateTime(DateTime.Now), TimeZoneInfo.Local);
+
+    public void ApplyUsage(UsageState state, DateOnly today, TimeZoneInfo zone)
     {
         UsageText = state.Describe(Skill);
         var usage = state.Report?.For(Skill.FullName);
+        UsageStats = Stats(usage);
+        UsageDays = usage is null
+            ? EmptyDays
+            : usage.PerDay(today, UsageWindowDays, zone).Select((n, i) => new UsageDay(n > 0, i == UsageWindowDays - 1)).ToList();
         UsageProjects = usage is null
             ? string.Empty
             : string.Join(", ", usage.Projects.Select(p => System.IO.Path.GetFileName(p.TrimEnd('/', '\\'))).Distinct());
@@ -240,6 +304,17 @@ public sealed partial class SkillCardViewModel : ObservableObject
         { Kind: SkillKind.Command } => $"the command in {SkillItemViewModel.SourceLabelFor(skill.Source)}",
         _ => $"the copy in {SkillItemViewModel.SourceLabelFor(skill.Source)}",
     };
+
+    private static IReadOnlyList<UsageStat> Stats(Lustrum.Core.Usage.SkillUsage? usage) =>
+    [
+        new("USES", usage?.Count.ToString() ?? "0", usage is not null, false),
+        new("BY CLAUDE", usage?.ByModel.ToString() ?? "0", usage is not null, false),
+        new("BY YOU", usage?.ByUser.ToString() ?? "0", usage is not null, false),
+        new("LAST", usage is null ? "—" : LastText(usage.LastUsed.ToLocalTime()), usage is not null, true),
+    ];
+
+    private static string LastText(DateTimeOffset last) =>
+        last.Year == DateTimeOffset.Now.Year ? last.ToString("dd.MM") : last.ToString("MM.yy");
 
     private static string FormatSize(long bytes) => bytes switch
     {

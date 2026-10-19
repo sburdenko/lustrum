@@ -4,76 +4,94 @@
   <ResourceDictionary.ThemeDictionaries>
 
     <ResourceDictionary x:Key="Light">
-      <Color x:Key="LxSurface">#F4F4F7</Color>
-      <Color x:Key="LxPanel">#FFFFFF</Color>
-      <Color x:Key="LxPanelAlt">#FAFAFC</Color>
-      <Color x:Key="LxBorder">#E3E3EA</Color>
-      <Color x:Key="LxText">#17171C</Color>
-      <Color x:Key="LxTextSecondary">#5A5A68</Color>
-      <Color x:Key="LxTextTertiary">#8E8E9C</Color>
-      <Color x:Key="LxAccent">#4F46E5</Color>
-      <Color x:Key="LxAccentSoft">#ECEEFF</Color>
-      <Color x:Key="LxHover">#F0F0F5</Color>
-      <Color x:Key="LxSelected">#E6E8FF</Color>
-      <Color x:Key="LxCode">#F1F1F6</Color>
-      <Color x:Key="LxOkFg">#13724A</Color>
-      <Color x:Key="LxOkBg">#DDF5E8</Color>
-      <Color x:Key="LxWarnFg">#8A5700</Color>
-      <Color x:Key="LxWarnBg">#FFF0CC</Color>
-      <Color x:Key="LxErrFg">#B3261E</Color>
-      <Color x:Key="LxErrBg">#FDE3E1</Color>
-      <Color x:Key="LxSkillFg">#4338CA</Color>
-      <Color x:Key="LxSkillBg">#E9EAFE</Color>
-      <Color x:Key="LxCommandFg">#0B7285</Color>
-      <Color x:Key="LxCommandBg">#DDF4F8</Color>
-      <Color x:Key="LxNeutralFg">#4B4B58</Color>
-      <Color x:Key="LxNeutralBg">#ECECF1</Color>
+      <Color x:Key="LxBg">#F2F1EA</Color>
+      <Color x:Key="LxInk">#0E0E0C</Color>
+      <Color x:Key="LxRule">#0E0E0C</Color>
+      <Color x:Key="LxMute">#5E5E57</Color>
+      <Color x:Key="LxMute2">#6F6F68</Color>
+      <Color x:Key="LxRule2">#D6D5CC</Color>
+      <Color x:Key="LxCode">#E6E5DC</Color>
+      <Color x:Key="LxDis">#A6A69E</Color>
+      <Color x:Key="LxDisBd">#C9C8BF</Color>
+      <Color x:Key="LxHl">#C9F14C</Color>
+      <Color x:Key="LxLimeSoft">#E5F8BC</Color>
+      <Color x:Key="LxErr">#D7352D</Color>
+      <Color x:Key="LxWarnBg">#FFE4B3</Color>
+      <Color x:Key="LxErrBg">#FFD9D2</Color>
+      <Color x:Key="LxSelBg">#0E0E0C</Color>
+      <Color x:Key="LxSelFg">#F2F1EA</Color>
+      <Color x:Key="LxSelNo">#C9F14C</Color>
+      <Color x:Key="LxSelHover">#2A2A26</Color>
     </ResourceDictionary>
 
     <ResourceDictionary x:Key="Dark">
-      <Color x:Key="LxSurface">#111114</Color>
-      <Color x:Key="LxPanel">#1A1A1F</Color>
-      <Color x:Key="LxPanelAlt">#16161A</Color>
-      <Color x:Key="LxBorder">#2A2A33</Color>
-      <Color x:Key="LxText">#F1F1F5</Color>
-      <Color x:Key="LxTextSecondary">#A7A7B5</Color>
-      <Color x:Key="LxTextTertiary">#767684</Color>
-      <Color x:Key="LxAccent">#8D95FF</Color>
-      <Color x:Key="LxAccentSoft">#23264A</Color>
-      <Color x:Key="LxHover">#24242B</Color>
-      <Color x:Key="LxSelected">#2B3063</Color>
-      <Color x:Key="LxCode">#222228</Color>
-      <Color x:Key="LxOkFg">#7BE0A6</Color>
-      <Color x:Key="LxOkBg">#173A2A</Color>
-      <Color x:Key="LxWarnFg">#FFD479</Color>
-      <Color x:Key="LxWarnBg">#43330F</Color>
-      <Color x:Key="LxErrFg">#FFA7A0</Color>
-      <Color x:Key="LxErrBg">#4A1D1A</Color>
-      <Color x:Key="LxSkillFg">#B4BAFF</Color>
-      <Color x:Key="LxSkillBg">#272B57</Color>
-      <Color x:Key="LxCommandFg">#7FDCEB</Color>
-      <Color x:Key="LxCommandBg">#12353C</Color>
-      <Color x:Key="LxNeutralFg">#BEBECB</Color>
-      <Color x:Key="LxNeutralBg">#2C2C35</Color>
+      <Color x:Key="LxBg">#121210</Color>
+      <Color x:Key="LxInk">#EDEDE6</Color>
+      <Color x:Key="LxRule">#55554E</Color>
+      <Color x:Key="LxMute">#9C9C93</Color>
+      <Color x:Key="LxMute2">#8A8A82</Color>
+      <Color x:Key="LxRule2">#2A2A26</Color>
+      <Color x:Key="LxCode">#1D1D1A</Color>
+      <Color x:Key="LxDis">#55554F</Color>
+      <Color x:Key="LxDisBd">#33332F</Color>
+      <Color x:Key="LxHl">#3A4A00</Color>
+      <Color x:Key="LxLimeSoft">#222B04</Color>
+      <Color x:Key="LxErr">#ED4B40</Color>
+      <Color x:Key="LxWarnBg">#3F2903</Color>
+      <Color x:Key="LxErrBg">#451914</Color>
+      <Color x:Key="LxSelBg">#EDEDE6</Color>
+      <Color x:Key="LxSelFg">#121210</Color>
+      <Color x:Key="LxSelNo">#506900</Color>
+      <Color x:Key="LxSelHover">#D2D2CA</Color>
     </ResourceDictionary>
 
   </ResourceDictionary.ThemeDictionaries>
 
-  <SolidColorBrush x:Key="LxSurfaceBrush" Color="{DynamicResource LxSurface}" />
-  <SolidColorBrush x:Key="LxPanelBrush" Color="{DynamicResource LxPanel}" />
-  <SolidColorBrush x:Key="LxPanelAltBrush" Color="{DynamicResource LxPanelAlt}" />
-  <SolidColorBrush x:Key="LxBorderBrush" Color="{DynamicResource LxBorder}" />
-  <SolidColorBrush x:Key="LxTextBrush" Color="{DynamicResource LxText}" />
-  <SolidColorBrush x:Key="LxTextSecondaryBrush" Color="{DynamicResource LxTextSecondary}" />
-  <SolidColorBrush x:Key="LxTextTertiaryBrush" Color="{DynamicResource LxTextTertiary}" />
-  <SolidColorBrush x:Key="LxAccentBrush" Color="{DynamicResource LxAccent}" />
-  <SolidColorBrush x:Key="LxAccentSoftBrush" Color="{DynamicResource LxAccentSoft}" />
-  <SolidColorBrush x:Key="LxHoverBrush" Color="{DynamicResource LxHover}" />
-  <SolidColorBrush x:Key="LxSelectedBrush" Color="{DynamicResource LxSelected}" />
-  <SolidColorBrush x:Key="LxCodeBrush" Color="{DynamicResource LxCode}" />
-  <SolidColorBrush x:Key="LxErrFgBrush" Color="{DynamicResource LxErrFg}" />
-  <SolidColorBrush x:Key="LxWarnFgBrush" Color="{DynamicResource LxWarnFg}" />
+  <Color x:Key="LxLime">#C9F14C</Color>
+  <Color x:Key="LxOnLime">#0E0E0C</Color>
+  <Color x:Key="LxWarn">#EFA831</Color>
+  <Color x:Key="LxTerminal">#0A0A09</Color>
+  <Color x:Key="LxTerminalText">#F2F1EA</Color>
+  <Color x:Key="LxTerminalMute">#8A8A82</Color>
 
-  <FontFamily x:Key="LxMono">Menlo,SF Mono,Cascadia Mono,Consolas,DejaVu Sans Mono,monospace</FontFamily>
+  <SolidColorBrush x:Key="LxBgBrush" Color="{DynamicResource LxBg}" />
+  <SolidColorBrush x:Key="LxInkBrush" Color="{DynamicResource LxInk}" />
+  <SolidColorBrush x:Key="LxRuleBrush" Color="{DynamicResource LxRule}" />
+  <SolidColorBrush x:Key="LxMuteBrush" Color="{DynamicResource LxMute}" />
+  <SolidColorBrush x:Key="LxMute2Brush" Color="{DynamicResource LxMute2}" />
+  <SolidColorBrush x:Key="LxRule2Brush" Color="{DynamicResource LxRule2}" />
+  <SolidColorBrush x:Key="LxCodeBrush" Color="{DynamicResource LxCode}" />
+  <SolidColorBrush x:Key="LxDisBrush" Color="{DynamicResource LxDis}" />
+  <SolidColorBrush x:Key="LxDisBdBrush" Color="{DynamicResource LxDisBd}" />
+  <SolidColorBrush x:Key="LxHlBrush" Color="{DynamicResource LxHl}" />
+  <SolidColorBrush x:Key="LxLimeSoftBrush" Color="{DynamicResource LxLimeSoft}" />
+  <SolidColorBrush x:Key="LxErrBrush" Color="{DynamicResource LxErr}" />
+  <SolidColorBrush x:Key="LxWarnBgBrush" Color="{DynamicResource LxWarnBg}" />
+  <SolidColorBrush x:Key="LxErrBgBrush" Color="{DynamicResource LxErrBg}" />
+  <SolidColorBrush x:Key="LxSelBgBrush" Color="{DynamicResource LxSelBg}" />
+  <SolidColorBrush x:Key="LxSelFgBrush" Color="{DynamicResource LxSelFg}" />
+  <SolidColorBrush x:Key="LxSelNoBrush" Color="{DynamicResource LxSelNo}" />
+  <SolidColorBrush x:Key="LxSelHoverBrush" Color="{DynamicResource LxSelHover}" />
+  <SolidColorBrush x:Key="LxLimeBrush" Color="{StaticResource LxLime}" />
+  <SolidColorBrush x:Key="LxOnLimeBrush" Color="{StaticResource LxOnLime}" />
+  <SolidColorBrush x:Key="LxWarnBrush" Color="{StaticResource LxWarn}" />
+  <SolidColorBrush x:Key="LxTerminalBrush" Color="{StaticResource LxTerminal}" />
+  <SolidColorBrush x:Key="LxTerminalTextBrush" Color="{StaticResource LxTerminalText}" />
+  <SolidColorBrush x:Key="LxTerminalMuteBrush" Color="{StaticResource LxTerminalMute}" />
+
+  <FontFamily x:Key="LxSans">avares://Lustrum/Assets/Fonts/Archivo-Regular.ttf#Archivo</FontFamily>
+  <FontFamily x:Key="LxSansBold">avares://Lustrum/Assets/Fonts/Archivo-Bold.ttf#Archivo</FontFamily>
+  <FontFamily x:Key="LxSemiMedium">avares://Lustrum/Assets/Fonts/ArchivoSemiCondensed-Medium.ttf#Archivo SemiCondensed</FontFamily>
+  <FontFamily x:Key="LxSemiSemiBold">avares://Lustrum/Assets/Fonts/ArchivoSemiCondensed-SemiBold.ttf#Archivo SemiCondensed</FontFamily>
+  <FontFamily x:Key="LxSemiBold">avares://Lustrum/Assets/Fonts/ArchivoSemiCondensed-Bold.ttf#Archivo SemiCondensed</FontFamily>
+  <FontFamily x:Key="LxSemiExtraBold">avares://Lustrum/Assets/Fonts/ArchivoSemiCondensed-ExtraBold.ttf#Archivo SemiCondensed</FontFamily>
+  <FontFamily x:Key="LxCond">avares://Lustrum/Assets/Fonts/ArchivoCondensed-Black.ttf#Archivo Condensed</FontFamily>
+  <FontFamily x:Key="LxXCond">avares://Lustrum/Assets/Fonts/ArchivoExtraCondensed-Black.ttf#Archivo ExtraCondensed</FontFamily>
+  <FontFamily x:Key="LxMono">avares://Lustrum/Assets/Fonts/JetBrainsMono-Regular.ttf#JetBrains Mono</FontFamily>
+  <FontFamily x:Key="LxMonoMedium">avares://Lustrum/Assets/Fonts/JetBrainsMono-Medium.ttf#JetBrains Mono</FontFamily>
+  <FontFamily x:Key="LxMonoBold">avares://Lustrum/Assets/Fonts/JetBrainsMono-Bold.ttf#JetBrains Mono</FontFamily>
+
+  <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
+  <CornerRadius x:Key="OverlayCornerRadius">0</CornerRadius>
 
 </ResourceDictionary>

@@ -14,10 +14,15 @@ public sealed partial class MainViewModel
 
     public bool IsProblemsView => SelectedNode?.Scope is ProblemsScope;
 
+    public string ProblemsTitle => VisibleProblems.Count == 1 ? "1 PROBLEM" : $"{VisibleProblems.Count} PROBLEMS";
+
     public bool HasNoProblems => IsProblemsView && VisibleProblems.Count == 0;
 
-    partial void OnVisibleProblemsChanged(IReadOnlyList<ProblemItemViewModel> value) =>
+    partial void OnVisibleProblemsChanged(IReadOnlyList<ProblemItemViewModel> value)
+    {
         OnPropertyChanged(nameof(HasNoProblems));
+        OnPropertyChanged(nameof(ProblemsTitle));
+    }
 
     partial void OnSelectedProblemChanged(ProblemItemViewModel? value)
     {

@@ -6,7 +6,7 @@ using CoreHealth = Lustrum.Core.Models.Health;
 
 namespace Lustrum.App.ViewModels;
 
-public sealed class SkillItemViewModel
+public sealed class SkillItemViewModel : IListRow
 {
     public SkillItemViewModel(
         Skill skill,
@@ -34,6 +34,36 @@ public sealed class SkillItemViewModel
     }
 
     public Skill Skill { get; }
+
+    public bool IsSelectable => true;
+
+    /// <summary>The skill's place in the whole scan, so a number keeps meaning the same skill across views.</summary>
+    public int Number { get; init; }
+
+    /// <summary>How many skills on the machine share this skill's name, itself included.</summary>
+    public int Copies { get; init; } = 1;
+
+    public string NumberText => Number.ToString("000");
+
+    public string Mark => Skill.Health switch
+    {
+        CoreHealth.Ok => Copies > 1 ? $"×{Copies}" : string.Empty,
+        CoreHealth.DescriptionTooLong => "LONG",
+        CoreHealth.Orphaned => "GONE",
+        _ => "ERR",
+    };
+
+    public bool HasMark => Mark.Length > 0;
+
+    public bool IsMarkError => Health.IsError;
+
+    public bool IsMarkWarning => Health.IsWarning;
+
+    public bool IsMarkQuiet => Health.IsOk;
+
+    public string Status => string.Join(" · ", new[] { AvailabilityLabel, HasUpdate ? $"↓{Behind}" : null }.OfType<string>());
+
+    public bool HasStatus => Status.Length > 0;
 
     public EffectiveEntry? Entry { get; }
 

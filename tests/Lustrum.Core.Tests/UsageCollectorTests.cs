@@ -38,8 +38,28 @@ public class UsageCollectorTests : IDisposable
         review.Projects.Should().BeEquivalentTo("/work/app", "/work/site");
         review.ByModel.Should().Be(2);
         review.ByUser.Should().Be(1);
+        review.Times.Should().Equal(
+            DateTimeOffset.Parse("2026-09-01T10:00:00Z"),
+            DateTimeOffset.Parse("2026-09-02T10:00:00Z"),
+            DateTimeOffset.Parse("2026-09-03T10:00:00Z"));
+        review.PerDay(new DateOnly(2026, 9, 3), 5, TimeZoneInfo.Utc).Should().Equal(0, 0, 1, 1, 1);
         report.ByName["deploy"].Count.Should().Be(1);
         report.TranscriptCount.Should().Be(3);
+    }
+
+    [Fact]
+    public void Per_day_counts_use_the_local_day_and_ignore_uses_outside_the_window()
+    {
+        var zone = TimeZoneInfo.CreateCustomTimeZone("plus3", TimeSpan.FromHours(3), "plus3", "plus3");
+        var usage = new Usage.SkillUsage("x", 3, DateTimeOffset.Parse("2026-09-03T22:30:00Z"), [], 3, 0,
+        [
+            DateTimeOffset.Parse("2026-08-01T10:00:00Z"),
+            DateTimeOffset.Parse("2026-09-02T20:59:00Z"),
+            DateTimeOffset.Parse("2026-09-03T22:30:00Z"),
+        ]);
+
+        usage.PerDay(new DateOnly(2026, 9, 4), 3, zone).Should().Equal(1, 0, 1);
+        new Usage.SkillUsage("y", 0, DateTimeOffset.MinValue, [], 0, 0).PerDay(new DateOnly(2026, 9, 4), 3, zone).Should().Equal(0, 0, 0);
     }
 
     [Fact]

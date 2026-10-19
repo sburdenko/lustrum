@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Lustrum.Core.Models;
 using Lustrum.Core.Scanning;
 
 namespace Lustrum.App.ViewModels;
@@ -50,7 +51,11 @@ public sealed partial class MainViewModel
             .ToList() ?? [];
 
         var project = _effective?.Project ?? _missing?.Project;
-        var card = new SkillCardViewModel(item.Skill, others, _effective?.Find(item.Skill.Id), project?.DisplayName, _missing?.Find(item.Skill.Id));
+        var card = new SkillCardViewModel(item.Skill, others, _effective?.Find(item.Skill.Id), project?.DisplayName, _missing?.Find(item.Skill.Id))
+        {
+            Number = _numbers.GetValueOrDefault(item.Skill.Id),
+            Issue = IssueFor(item.Skill),
+        };
         card.ApplyUsage(UsageState);
         card.SelectedTab = _cardTab == SkillCardViewModel.CompareTab && !card.HasConflicts ? 0 : _cardTab;
         card.PropertyChanged += (_, e) =>
@@ -58,12 +63,30 @@ public sealed partial class MainViewModel
             if (ReferenceEquals(Card, card) && e.PropertyName == nameof(SkillCardViewModel.SelectedTab) && card.SelectedTab >= 0)
             {
                 _cardTab = card.SelectedTab;
+                OnPropertyChanged(nameof(CliCommand));
             }
         };
         Card = card;
         PrepareWrites(card);
         _ = LoadBodyAsync(card);
         StartGitLoad(card);
+    }
+
+    private string? IssueFor(Skill skill)
+    {
+        if (skill.Health == Health.DescriptionTooLong)
+        {
+            return $"Description is {skill.Description?.Length ?? 0:N0} characters; the limit is 1,024.";
+        }
+
+        if (!skill.IsBroken)
+        {
+            return null;
+        }
+
+        var detail = _result.Issues.FirstOrDefault(i => i.Path == skill.Path)?.Message;
+        var label = HealthPresentation.For(skill.Health).Text;
+        return detail is null ? label : $"{label}: {detail}";
     }
 
     private static async Task LoadBodyAsync(SkillCardViewModel card)

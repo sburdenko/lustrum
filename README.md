@@ -58,7 +58,7 @@ cd lustrum
 
 dotnet run --project src/Lustrum.App                   # the window
 dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 353 tests
+dotnet test                                            # 396 tests
 ```
 
 The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
@@ -67,12 +67,12 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 
 | | |
 |---|---|
-| **Source tree** | All, Global, Projects, Plugins (marketplace, then plugin), claude.ai (skills and plugins synced from your account), Problems. Every node has a count; disabled plugins and empty projects are dimmed. |
+| **Source column** | All, Global, Projects, Plugins (marketplace, then plugin), claude.ai (skills and plugins synced from your account), Problems, each with a large count and a key to jump to it. The selected source opens its projects or plugins below it; disabled plugins and empty projects are dimmed. |
 | **Project views** | Pick a project and switch between **Own** (its skills), **Effective** (exactly what Claude Code loads there, with shadowed skills marked) and **Missing** (skills on this machine it does not load). |
-| **Skill list** | Name with plugin prefix, description, source, health marker. Sort by best match, name, source or date. |
+| **Skill list** | A register: a number that stays with the skill across views, name with plugin prefix, description, state (shadowed, off, behind), source and a mark for errors, long descriptions and duplicate names. The full list is grouped by kind. Sort by best match, name, source, date or last use. |
 | **Search** | Fuzzy on names, substring on descriptions and tags, ranked by relevance. Optionally searches the text of every `SKILL.md`. |
 | **Filter chips** | One chip per own prefix (`sb-*` by default), plus `plugin`, `synced`, `command`, `broken`, `duplicate`, `unused` and `updates`. Chips combine. |
-| **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, read from Claude Code transcripts. Sort by last use. |
+| **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, with a strip of the last 30 days, read from Claude Code transcripts. Sort by last use. |
 | **Problems** | One list of broken skills (with the YAML line and cause), over-long descriptions, projects whose folder is gone and paths that could not be read. |
 | **Skill card** | Description, health, usage, visibility, git status, parsed frontmatter, file path, sibling files, name conflicts, rendered `SKILL.md`. |
 | **Git** | For global and project skills inside a git repository: branch, upstream, commits behind and ahead, uncommitted changes in the skill folder and its last commit. **Check for updates** fetches, for one repository from the card or for all of them from the toolbar; **Update** fast-forwards a repository that holds only skills. |
@@ -82,7 +82,8 @@ The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windo
 | **Visibility** | Set what Claude Code does with a skill (on, name only, you only, off) through its `skillOverrides` setting, the same switch as the `/skills` menu. Lists show turned-off skills dimmed. |
 | **Live updates** | File system watchers trigger a rescan half a second after skills or plugin settings change. |
 | **Settings** | Own prefixes, extra project roots, search depth, skipped folders, editor command (quote paths with spaces), theme. |
-| **Keys** | `Ctrl/Cmd+F` search · `F5` rescan · `Esc` clear search · `Ctrl/Cmd+1/2/3` focus a column · `Ctrl/Cmd+Shift+C` copy path · `Ctrl/Cmd+C` in the list copies the name |
+| **Keys** | `j` `k` move through the list · `/` search · `⏎` open in editor · `O` show in folder · `C` copy to · `D` compare · `U` check for updates · `A` `G` `P` `L` `S` `!` jump to a source · `Esc` clear search · `F5` rescan · `Cmd/Ctrl+,` settings · `Cmd/Ctrl+C` copy name · `Cmd/Ctrl+Shift+C` copy path · `Cmd/Ctrl+1/2/3` focus a column |
+| **CLI line** | The bar at the bottom shows the `lustrum` command that prints the current view in a terminal, for example `list --project ~/work/storefront --missing` or `diff release-notes`, next to scan, watch and usage status. |
 
 <table>
 <tr>
@@ -430,15 +431,22 @@ mode is active.
 
 ### The window
 
+The layout is a Swiss grid in three columns under a header and above a terminal-style CLI line, set in Archivo
+(regular, semi-condensed, condensed and extra-condensed cuts) and JetBrains Mono, bundled with the app. Each cut is
+loaded from its own file, because Avalonia does not tell the width variants of one family apart. Light and dark
+themes share one set of semantic colours; the accent is a single lime. The mark, a 5×5 census grid whose found
+cells form an L, is drawn by the `LustrumMark` control, and the app icons are rendered from the same geometry.
+
 `MainViewModel` is split into partial files by concern: list and sorting, content search, project views, usage,
-git, problems, card, commands, settings. The project view is one `ProjectView` value (`Own`, `Effective`, `Missing`),
+git, writes, footer, problems, card, commands, settings. The project view is one `ProjectView` value (`Own`, `Effective`, `Missing`),
 not a set of checkboxes. The view is split the same way into `SourcesPane`, `SkillListPane`,
 `SkillCardPane` and `SettingsPanel`.
 
 | Piece | Role |
 |---|---|
 | `NavTreeBuilder` | `ScanResult` to the source tree, with counts |
-| `SkillItemViewModel` | one list row, including its effective-set label |
+| `NavSection` | a top-level row of the source column with its key, and its children when open |
+| `SkillItemViewModel`, `ListHeader` | one list row with its number, state and mark; a group heading |
 | `SkillCardViewModel` | the card; loads the `SKILL.md` body and the git state in the background |
 | `GitSection`, `RepoState` | what the card's git section shows, and what has been done to each repository this session |
 | `ProblemItemViewModel` | one row in the Problems list |
@@ -515,7 +523,7 @@ code 1; an unknown name exits with code 2.
 lustrum/
 ├── src/
 │   ├── Lustrum.Core/      Models/ Parsing/ Scanning/ Indexing/ Effective/ Problems/ Settings/ Watching/ Usage/ Comparing/ Git/ ClaudeSettings/ Copying/
-│   ├── Lustrum.App/       Views/ ViewModels/ Services/ Assets/
+│   ├── Lustrum.App/       Views/ ViewModels/ Services/ Controls/ Assets/ (fonts, icons)
 │   └── Lustrum.Cli/       list and diff commands, table renderer
 ├── tests/
 │   ├── Lustrum.Core.Tests/   scanner, discovery, parser, decoder, search, effective set, problems, settings, watcher, usage, git, visibility, copy
@@ -532,7 +540,7 @@ lustrum/
 
 ## Tests
 
-353 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
+396 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
 throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
 and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
 registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,
@@ -553,6 +561,9 @@ dotnet test
 [YamlDotNet](https://github.com/aaubry/YamlDotNet) · [FluentIcons.Avalonia](https://github.com/davidxuang/FluentIcons) ·
 [Markdown.Avalonia](https://github.com/whistyun/Markdown.Avalonia) · [System.CommandLine](https://github.com/dotnet/command-line-api) ·
 [Serilog](https://serilog.net/) · [DiffPlex](https://github.com/mmanela/diffplex) · xUnit
+
+Fonts: [Archivo](https://github.com/Omnibus-Type/Archivo) and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono),
+both under the SIL Open Font License; the licence texts are next to the font files in `src/Lustrum.App/Assets/Fonts`.
 
 ## Limitations
 

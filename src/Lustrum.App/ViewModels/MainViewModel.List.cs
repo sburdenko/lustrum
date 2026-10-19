@@ -33,6 +33,12 @@ public sealed partial class MainViewModel
     [ObservableProperty]
     private IReadOnlyList<ChipViewModel> _chips = [];
 
+    [ObservableProperty]
+    private IReadOnlyList<IListRow> _listRows = [];
+
+    private Dictionary<string, int> _numbers = new(StringComparer.Ordinal);
+    private Dictionary<string, int> _copies = new(StringComparer.Ordinal);
+
     public IReadOnlyList<SortOption> Sorts => SortChoices;
 
     public bool IsEmptyResult => !IsScanning && !IsProblemsView && VisibleSkills.Count == 0;
@@ -90,7 +96,10 @@ public sealed partial class MainViewModel
         _isRefreshingList = true;
         try
         {
-            VisibleSkills = Sort(withBody).Select(s => new SkillItemViewModel(s, _effective?.Find(s.Id), _missing?.Find(s.Id), _updates.Behind(s), HomeVisibility(s))).ToList();
+            var grouped = IsGrouped(scope);
+            var ordered = grouped ? Sort(withBody).OrderBy(s => s.Source.Kind).ToList() : Sort(withBody).ToList();
+            VisibleSkills = ordered.Select(Row).ToList();
+            ListRows = BuildRows(VisibleSkills, grouped);
             SelectedSkill = VisibleSkills.FirstOrDefault(s => s.Skill.Id == keepId);
         }
         finally
@@ -100,6 +109,94 @@ public sealed partial class MainViewModel
 
         RefreshProblems();
         ShowCard(SelectedSkill);
+    }
+
+    public void MoveSelection(int delta)
+    {
+        if (IsProblemsView)
+        {
+            SelectedProblem = Step(VisibleProblems, SelectedProblem is null ? -1 : IndexOf(VisibleProblems, p => ReferenceEquals(p, SelectedProblem)), delta);
+            return;
+        }
+
+        var current = SelectedSkill?.Skill.Id;
+        SelectedSkill = Step(VisibleSkills, current is null ? -1 : IndexOf(VisibleSkills, s => s.Skill.Id == current), delta);
+    }
+
+    private static T? Step<T>(IReadOnlyList<T> items, int index, int delta)
+        where T : class
+    {
+        if (items.Count == 0)
+        {
+            return null;
+        }
+
+        var next = index < 0 ? (delta > 0 ? 0 : items.Count - 1) : Math.Clamp(index + delta, 0, items.Count - 1);
+        return items[next];
+    }
+
+    private static int IndexOf<T>(IReadOnlyList<T> items, Func<T, bool> match)
+    {
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (match(items[i]))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public bool SelectSection(string key)
+    {
+        if (NavSections.FirstOrDefault(s => s.Key == key) is not { } section)
+        {
+            return false;
+        }
+
+        SelectedNode = section.Node;
+        return true;
+    }
+
+    private SkillItemViewModel Row(Skill skill) =>
+        new(skill, _effective?.Find(skill.Id), _missing?.Find(skill.Id), _updates.Behind(skill), HomeVisibility(skill))
+        {
+            Number = _numbers.GetValueOrDefault(skill.Id),
+            Copies = _copies.GetValueOrDefault(skill.ConflictKey, 1),
+        };
+
+    private bool IsGrouped(SkillScope scope) =>
+        SearchText.Trim().Length == 0
+        && SelectedSort.Mode is SortMode.Relevance or SortMode.Source
+        && scope is AllScope or EffectiveScope or MissingScope;
+
+    private IReadOnlyList<IListRow> BuildRows(IReadOnlyList<SkillItemViewModel> items, bool grouped)
+    {
+        if (!grouped)
+        {
+            return items.Count == 0 ? [] : [new ListHeader(ListTitle.ToUpperInvariant(), items.Count), .. items];
+        }
+
+        return items
+            .GroupBy(i => i.Skill.Source.Kind)
+            .SelectMany(g => new IListRow[] { new ListHeader(GroupTitle(g.Key), g.Count()) }.Concat(g))
+            .ToList();
+    }
+
+    private static string GroupTitle(SourceKind kind) => kind switch
+    {
+        SourceKind.Global => "GLOBAL",
+        SourceKind.Project => "PROJECTS",
+        SourceKind.Plugin => "PLUGINS",
+        SourceKind.Synced => "CLAUDE.AI",
+        _ => kind.ToString().ToUpperInvariant(),
+    };
+
+    private void IndexResult(ScanResult result)
+    {
+        _numbers = result.Skills.Select((s, i) => (s.Id, i)).ToDictionary(p => p.Id, p => p.i + 1, StringComparer.Ordinal);
+        _copies = result.Conflicts.ToDictionary(c => c.Name, c => c.Skills.Count, StringComparer.Ordinal);
     }
 
     private SkillVisibility HomeVisibility(Skill skill) =>

@@ -23,6 +23,14 @@ public sealed class ProblemItemViewModel(Problem problem)
 
     public bool IsWarning => !IsError;
 
+    public string Badge => Problem.Kind switch
+    {
+        ProblemKind.MissingProject => "GONE",
+        ProblemKind.LongDescription => "LONG",
+        ProblemKind.ReadIssue => "READ",
+        _ => "ERR",
+    };
+
     public Symbol Icon => Problem.Kind switch
     {
         ProblemKind.MissingProject => Symbol.FolderProhibited,
