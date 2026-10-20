@@ -138,24 +138,9 @@ flowchart TB
 
     subgraph core["Lustrum.Core · no UI dependency"]
         direction TB
-        subgraph read["Read"]
-            direction LR
-            scanning["Scanning · Parsing"]
-            usage["Usage"]
-            watching["Watching"]
-        end
-        subgraph derive["Derive"]
-            direction LR
-            indexing["Indexing"]
-            effective["Effective"]
-            problems["Problems · Comparing"]
-        end
-        subgraph act["Act on request"]
-            direction LR
-            git["Git"]
-            claude["ClaudeSettings"]
-            copying["Copying"]
-        end
+        read["<b>Read</b><br/>Scanning · Parsing · Usage · Watching"]
+        derive["<b>Derive</b><br/>Indexing · Effective · Problems · Comparing"]
+        act["<b>Act on request</b><br/>Git · ClaudeSettings · Copying"]
         read --> derive --> act
     end
 
@@ -163,8 +148,9 @@ flowchart TB
     gitcli[["git"]]
 
     front --> core
-    core --> disk
-    core --> gitcli
+    read --> disk
+    act --> disk
+    act --> gitcli
 ```
 
 **Principles**
