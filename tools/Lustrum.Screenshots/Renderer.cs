@@ -24,7 +24,7 @@ internal sealed class Renderer(DemoHome demo)
     public async Task RenderAsync(Scenario scenario, string outputPath)
     {
         Application.Current!.RequestedThemeVariant = scenario.Theme;
-        var paths = new ClaudePaths(demo.Home);
+        var paths = new ClaudePaths(demo.Home, demo.ManagedDir);
         var window = new MainWindow { Width = 1380, Height = 860 };
         var usage = new UsageCollector();
         var vm = new MainViewModel(
@@ -112,7 +112,7 @@ internal sealed class Renderer(DemoHome demo)
         var byId = skills.ToDictionary(s => s.Id);
         return scan with
         {
-            Overrides = Hide(scan.Overrides, P),
+            Settings = Hide(scan.Settings, P),
             Sources = sources.Values.ToList(),
             Skills = skills,
             Conflicts = scan.Conflicts.Select(c => c with { Skills = c.Skills.Select(s => byId[P(s.Id)]).ToList() }).ToList(),
@@ -120,7 +120,7 @@ internal sealed class Renderer(DemoHome demo)
         };
     }
 
-    private static SkillOverrides Hide(SkillOverrides overrides, Func<string, string> p) => overrides with
+    private static SettingsLayers Hide(SettingsLayers overrides, Func<string, string> p) => overrides with
     {
         User = overrides.User with { Path = p(overrides.User.Path) },
         Projects = overrides.Projects.ToImmutableDictionary(

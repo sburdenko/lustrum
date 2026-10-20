@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Lustrum.Core.Git;
 using Lustrum.Core.Models;
 
 namespace Lustrum.Core.Scanning;
@@ -7,7 +8,7 @@ internal static class ProjectDiscovery
 {
     private const string ClaudeFolder = ".claude";
 
-    public static IEnumerable<SkillSource> Discover(ClaudePaths paths, ScanOptions options, Action<ScanIssue> report)
+    public static IReadOnlyList<SkillSource> Discover(ClaudePaths paths, ScanOptions options, Action<ScanIssue> report)
     {
         var known = KnownProjectPaths(paths, report);
         var byEncoded = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -35,6 +36,83 @@ internal static class ProjectDiscovery
             .Select(p => Source(p.Value.Path, p.Value.LastSeen))
             .ToList();
     }
+
+    /// <summary>
+    /// Folders Claude Code also loads skills from for a known project: every parent up to the repository root, and
+    /// every folder below it (to the search depth) that has skills of its own and loads them on demand.
+    /// </summary>
+    public static IReadOnlyList<SkillSource> Related(IEnumerable<SkillSource> projects, ClaudePaths paths, ScanOptions options, Action<ScanIssue> report)
+    {
+        var home = PathKey.Normalize(paths.Home);
+        var excluded = new HashSet<string>(options.ExcludedFolders, StringComparer.OrdinalIgnoreCase);
+        var walked = new HashSet<string>(PathKey.Comparer);
+        var realPaths = new Dictionary<string, string>(PathKey.Comparer);
+        string Real(string path) => realPaths.TryGetValue(path, out var real) ? real : realPaths[path] = RealPath.Resolve(path);
+        var related = new List<SkillSource>();
+        foreach (var project in projects.Where(p => p.Exists))
+        {
+            var folder = ProjectFolder(project);
+            related.AddRange(Ancestors(folder, Real)
+                .Where(a => !PathKey.Comparer.Equals(PathKey.Normalize(a), home) && HasSkills(a))
+                .Select(a => Source(a, null)));
+            var nested = new List<string>();
+            SearchNested(folder, options.SearchDepth, excluded, walked, nested, report);
+            related.AddRange(nested.Select(n => Source(n, null) with { DisplayName = $"{project.DisplayName}/{RelativeName(folder, n)}" }));
+        }
+
+        return related;
+    }
+
+    public static string ProjectFolder(SkillSource project) =>
+        project.Id.StartsWith("project:", StringComparison.Ordinal) ? project.Id["project:".Length..] : project.RootPath;
+
+    private static IEnumerable<string> Ancestors(string folder, Func<string, string> real)
+    {
+        if (GitRepositoryLocator.FindRoot(folder) is not { } repository)
+        {
+            yield break;
+        }
+
+        for (var current = Path.GetDirectoryName(PathKey.Normalize(folder)); current is not null; current = Path.GetDirectoryName(current))
+        {
+            if (!PathKey.IsWithin(real(current), repository))
+            {
+                yield break;
+            }
+
+            yield return current;
+        }
+    }
+
+    // A folder walked for one project is not walked again for a project that contains it.
+    private static void SearchNested(string directory, int remainingDepth, HashSet<string> excluded, HashSet<string> walked, List<string> found, Action<ScanIssue> report)
+    {
+        if (remainingDepth == 0 || !walked.Add(directory))
+        {
+            return;
+        }
+
+        foreach (var child in SafeFileSystem.RealDirectories(directory, report))
+        {
+            var name = Path.GetFileName(child);
+            if (name.StartsWith('.') || excluded.Contains(name))
+            {
+                continue;
+            }
+
+            if (HasSkills(child))
+            {
+                found.Add(child);
+            }
+
+            SearchNested(child, remainingDepth - 1, excluded, walked, found, report);
+        }
+    }
+
+    private static bool HasSkills(string folder) => Directory.Exists(Path.Combine(folder, ClaudeFolder, "skills"));
+
+    private static string RelativeName(string folder, string nested) =>
+        Path.GetRelativePath(folder, nested).Replace(Path.DirectorySeparatorChar, '/');
 
     private static IEnumerable<string> RootProjects(ScanOptions options, Action<ScanIssue> report)
     {

@@ -36,9 +36,12 @@ Core has no UI dependency. Front ends never touch the file system for skills the
 
 | Source | Location | Skill name |
 |---|---|---|
+| Managed skills | `.claude/skills/<folder>/SKILL.md` in the managed settings folder: `/Library/Application Support/ClaudeCode` (macOS), `/etc/claude-code` (Linux), `C:\Program Files\ClaudeCode` (Windows) | as for global skills |
 | Global skills | `~/.claude/skills/<folder>/SKILL.md` | `name` from frontmatter, else the folder name |
 | Global commands | `~/.claude/commands/**/*.md` (up to 3 levels) | file path without `.md`, folders joined with `:` (`git/squash.md` is `/git:squash`) |
 | Project skills and commands | `<project>/.claude/skills`, `<project>/.claude/commands` | same rules as global |
+| Parent folders | every folder above a project, up to its repository root, that has a `.claude/skills` folder | same rules as global |
+| Nested folders | folders below a project, to the search depth, that have a `.claude/skills` folder | same rules as global |
 | Plugins | the `installPath` of every entry in `~/.claude/plugins/installed_plugins.json` | `<plugin>:<name>` |
 | claude.ai skills | `~/.claude/skills/synced/<account>/<folder>/SKILL.md` | `anthropic-skills:<name>` |
 | claude.ai plugins | `~/.claude/plugins/synced/<account>/<plugin>/` (newest `~gN` generation) | `<plugin>:<name>` |
@@ -54,6 +57,18 @@ The home directory is skipped, because its `.claude` is already the global sourc
 exists stays in the data with `Exists = false`; the source column hides it until **show empty and missing projects**
 is ticked, and the Problems list shows it.
 
+**Parent and nested folders.** Claude Code loads project skills from the folder a session starts in and from every
+parent up to the repository root, and skills in folders below it once Claude works on files there. For every known
+project, `ProjectDiscovery.Related` adds the parent folders with skills of their own, stopping at the repository root
+(the nearest `.git` entry; a project outside a repository gets no parents), and the folders below it to the search
+depth, skipping dot folders and the folders excluded in Settings; a folder walked for one project is not walked again
+for another. They become project sources of their own, deduplicated by normalised path, and a nested one is named
+after its project, such as `storefront/apps/admin`. A folder below the project that sits in a different repository,
+such as a worktree under `.claude/worktrees` or a nested clone, is a project of its own and never loads on demand.
+
+**Managed.** A `.claude/skills` folder inside the managed settings folder becomes a source of kind `Managed`, shown
+in its own section. Its skills take precedence over personal and project ones.
+
 **Project folder names.** `~/.claude/projects` stores each path with every non-alphanumeric character replaced by
 `-`. That mapping is lossy (`my-app`, `my_app` and `my/app` encode the same), so `ProjectPathDecoder` resolves a name
 against the real file system: at each level it only follows directories whose own encoded name is a prefix of the
@@ -62,8 +77,10 @@ cannot be resolved are shown as missing, not guessed.
 
 **Plugins.** The registry file is authoritative. Without it, Lustrum falls back to
 `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>` and ignores versions that carry an `.orphaned_at`
-marker. A plugin set to `false` under `enabledPlugins` in `~/.claude/settings.json` is shown as disabled and left out
-of every effective set.
+marker. Whether a plugin is on comes from `enabledPlugins`, keyed by `plugin@marketplace`, in managed, project-local,
+project and user settings, the first file that mentions it winning. Outside a project only managed and user settings
+count, and that state dims a disabled plugin in the lists; inside a project its own files can turn a plugin on or
+off for that project alone.
 
 **claude.ai skills and plugins.** The Claude desktop app syncs the skills and plugins of a claude.ai account,
 including Anthropic's own skills such as `xlsx` or `skill-creator`, into `~/.claude/skills/synced` and
@@ -94,14 +111,15 @@ flowchart LR
 Everything in `Lustrum.Core.Models` is an immutable `record`.
 
 ```csharp
-SkillSource(Id, Kind, DisplayName, RootPath, LastSeen, Exists, IsEnabled, Namespace, Layout)
+SkillSource(Id, Kind, DisplayName, RootPath, LastSeen, Exists, IsEnabled, Namespace, Layout)   // ProjectFolder
 Skill(Id, Name, FullName, Description, Kind, Source, Path, Body, Frontmatter,
       AllowedTools, Files, SizeBytes, Modified, Health, Tags)
 Conflict(Name, Skills)
-ScanResult(Sources, Skills, Conflicts, Issues, ScannedAt, Duration) { Overrides }
+ScanResult(Sources, Skills, Conflicts, Issues, ScannedAt, Duration) { Settings }
 ```
 
-- `SourceKind`: `Global`, `Project`, `Plugin`, `Synced`. `SkillKind`: `Skill`, `Command`.
+- `SourceKind`: `Managed`, `Global`, `Project`, `Plugin`, `Synced`, in Claude Code's order of precedence for plain
+  names. `SkillKind`: `Skill`, `Command`.
 - `SkillSource.Namespace` is the prefix of plugin and synced skills; `Layout` says whether skills sit in
   `skills/<name>/` or directly in the source folder.
 - `Skill.Id` is `<source id>#<path relative to the source root>`. It is unique inside a scan and survives a
@@ -110,8 +128,8 @@ ScanResult(Sources, Skills, Conflicts, Issues, ScannedAt, Duration) { Overrides 
   skills and by short name otherwise, so `unity:ui` and a global `ui` do not collide, while two copies of
   `design:critique` (an installed and a synced plugin) do.
 - `Skill.Tags` are computed: own-prefix tags, `plugin`, `synced`, `command`, `broken`, `duplicate`.
-- `ScanResult.Overrides` holds the `skillOverrides` of user, project and project-local settings (see
-  [Visibility](#visibility)).
+- `ScanResult.Settings` holds the `skillOverrides` and `enabledPlugins` of managed, user, project and project-local
+  settings (see [Visibility](#visibility)).
 
 ## Health
 
@@ -133,16 +151,25 @@ one entry). YAML errors are reported as `Line <n>: <cause>`, counted from the to
 
 ## Effective set and Missing
 
-`EffectiveSetBuilder.Build(scan, project)` takes that project's skills, the global skills, the skills of enabled
-plugins and the skills synced from claude.ai. Within one name it follows Claude Code's documented rules: a skill
-beats a command, and a personal (global) copy beats a project copy. The winner is `Active` and lists what it
-overrides; the loser is `Shadowed` and points at the winner. Prefixed skills are never shadowed. Each active personal
-or project skill also carries the visibility that applies in that project, so a skill turned off there is labelled
-`off`.
+`ProjectContext.For(scan, project)` describes a session started in a project:
+
+| Part | What it holds |
+|---|---|
+| loaded projects | the project and every project source in a parent folder up to the repository root |
+| on-demand projects | project sources in folders below the project, with their folder relative to it |
+| enabled plugins | plugins left on by managed, project-local, project and user settings, in that order |
+
+`EffectiveSetBuilder.Build(scan, context)` takes managed and personal skills, the skills of the loaded projects, the
+on-demand ones, enabled plugins and synced skills. Within one plain name it follows Claude Code's documented rules: a
+skill beats a command, then managed beats personal beats project. Copies in the project and its parents all load, as
+Claude Code loads them. The winner is `Active` and lists what it overrides; a loser is `Shadowed` and points at the
+winner. Skills below the project are `OnDemand` and never compete for a name, because Claude Code invokes a clashing
+one by its folder (`/apps/web:deploy`). Prefixed skills are never shadowed. Each skill also carries the visibility
+that applies in the project, so a skill turned off there is labelled `off`.
 
 `MissingSetBuilder.Build(scan, project)` is the complement: every skill on the machine the project does not load,
-which means skills that live in other projects and skills of disabled plugins. When a same-named copy is loaded in the
-project anyway, the entry says where that copy comes from.
+which means skills in other projects and skills of plugins that are off for this project. When a same-named copy is
+loaded in the project anyway, the entry says where that copy comes from.
 
 ## Search and scopes
 
@@ -152,11 +179,11 @@ it includes.
 | Scope | Includes |
 |---|---|
 | `AllScope` | everything |
-| `KindScope(kind)` | all skills from global, project, plugin or synced sources |
+| `KindScope(kind)` | all skills from managed, global, project, plugin or synced sources |
 | `SourceScope(id)` | one project or one plugin |
 | `MarketplaceScope(name)` | every plugin from one marketplace |
-| `EffectiveScope(projectId)` | that project, global skills, enabled plugins and synced skills |
-| `MissingScope(projectId)` | everything `EffectiveScope` leaves out |
+| `EffectiveScope(context)` | everything a `ProjectContext` loads, at start or on demand |
+| `MissingScope(context)` | everything `EffectiveScope` leaves out |
 | `ProblemsScope` | anything with a health problem, including `DescriptionTooLong` |
 
 `SkillIndex.Search(skills, new SkillQuery(scope, text, requiredTags))` applies the scope and the tags, then the text.
@@ -232,9 +259,11 @@ after 90 s, and a process that outlives its timeout is killed with its children.
 ## Visibility
 
 Claude Code reads a `skillOverrides` map from its settings files: skill name to `on`, `name-only`,
-`user-invocable-only` or `off`. `SkillOverridesReader` reads it from `~/.claude/settings.json` and from each project's
-`.claude/settings.json` and `.claude/settings.local.json`. In a project, local wins over shared, which wins over user
-settings, key by key. Plugin skills and commands are not affected, as in Claude Code.
+`user-invocable-only` or `off`. `SettingsLayersReader` reads it, with `enabledPlugins`, from the managed settings
+(`managed-settings.json`, then every `*.json` in `managed-settings.d/` in name order, each overriding the last), from
+`~/.claude/settings.json` and from each project's `.claude/settings.json` and `.claude/settings.local.json`. Managed
+wins over project-local, which wins over project, which wins over user settings, key by key. Plugin skills and
+commands are not affected, as in Claude Code.
 
 | Value | Claude sees | `/name` in the menu | Label in Lustrum |
 |---|---|---|---|
@@ -244,7 +273,10 @@ settings, key by key. Plugin skills and commands are not affected, as in Claude 
 | `off` | nothing | no | `off`, row dimmed |
 
 The card's control writes one entry: to `~/.claude/settings.json` for a personal skill, and to the project's
-`.claude/settings.local.json` for a project skill, the file Claude Code's own `/skills` menu writes. Choosing **On**
+`.claude/settings.local.json` for a project skill, the file Claude Code's own `/skills` menu writes. In a project view,
+a skill inherited from a parent or nested folder is written to the session project's `settings.local.json`, because
+only the settings of the folder a session starts in apply there. Managed skills and
+managed settings are never written; when a managed entry decides a skill's visibility, the card says so. Choosing **On**
 removes the entry, unless a lower file would then hide the skill again; then an explicit `on` is written.
 
 `ClaudeSettingsWriter` changes only that entry and keeps every other key and character. It follows a linked settings

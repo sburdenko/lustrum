@@ -10,5 +10,5 @@ public sealed record ScanResult(
     DateTimeOffset ScannedAt,
     TimeSpan Duration)
 {
-    public SkillOverrides Overrides { get; init; } = SkillOverrides.Empty;
+    public SettingsLayers Settings { get; init; } = SettingsLayers.Empty;
 }

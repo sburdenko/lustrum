@@ -9,13 +9,12 @@ internal static class PluginDiscovery
 
     public static IEnumerable<SkillSource> Discover(ClaudePaths paths, Action<ScanIssue> report)
     {
-        var disabled = DisabledPlugins(paths.SettingsJson, report);
         var installed = File.Exists(paths.InstalledPluginsJson)
             ? Installed(paths.InstalledPluginsJson, report)
             : Cached(paths.PluginCacheDir, report);
 
         return installed
-            .Select(p => Source(p.Marketplace, p.Plugin, p.InstallPath, !disabled.Contains($"{p.Plugin}@{p.Marketplace}")))
+            .Select(p => Source(p.Marketplace, p.Plugin, p.InstallPath, true))
             .ToList();
     }
 
@@ -71,35 +70,6 @@ internal static class PluginDiscovery
         }
 
         return found;
-    }
-
-    private static HashSet<string> DisabledPlugins(string settingsPath, Action<ScanIssue> report)
-    {
-        var disabled = new HashSet<string>(StringComparer.Ordinal);
-        if (!File.Exists(settingsPath))
-        {
-            return disabled;
-        }
-
-        try
-        {
-            using var doc = JsonDocument.Parse(SharedFile.ReadAllText(settingsPath));
-            if (doc.RootElement.ValueKind == JsonValueKind.Object
-                && doc.RootElement.TryGetProperty("enabledPlugins", out var enabled)
-                && enabled.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var entry in enabled.EnumerateObject().Where(e => e.Value.ValueKind == JsonValueKind.False))
-                {
-                    disabled.Add(entry.Name);
-                }
-            }
-        }
-        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
-        {
-            report(new ScanIssue(settingsPath, $"Cannot read Claude Code settings: {ex.Message}"));
-        }
-
-        return disabled;
     }
 
     private static (string Plugin, string Marketplace) SplitKey(string key)

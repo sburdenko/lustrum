@@ -53,6 +53,8 @@ internal sealed partial class DemoHome : IDisposable
 
     public string Home { get; }
 
+    public string ManagedDir => Path.Combine(Home, "managed");
+
     private string Claude => Path.Combine(Home, ".claude");
 
     private string Work(string name) => Path.Combine(Home, "work", name);
@@ -109,6 +111,8 @@ internal sealed partial class DemoHome : IDisposable
         Write(Path.Combine(Home, ".claude.json"), JsonSerializer.Serialize(new { projects = known.ToDictionary(p => p, _ => new { }) }));
         Write(Path.Combine(Claude, "settings.json"), """{ "skillOverrides": { "legacy-import": "off", "brand-voice": "name-only" } }""");
         Write(Path.Combine(Work("storefront"), ".claude", "settings.json"), """{ "skillOverrides": { "sql-helper": "off" } }""");
+        Skill(Path.Combine(Work("storefront"), "apps", "admin", ".claude"), "admin-reports", "Build the weekly admin reports from the orders database.");
+        Skill(Path.Combine(ManagedDir, ".claude"), "secure-coding", "Company rules for secrets, dependencies and data handling. Deployed by IT.");
     }
 
     private void Plugins()

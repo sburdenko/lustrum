@@ -1,42 +1,43 @@
 using Lustrum.Core.ClaudeSettings;
-using Lustrum.Core.Indexing;
 using Lustrum.Core.Models;
 using Lustrum.Core.Scanning;
 
 namespace Lustrum.Core.Effective;
 
 /// <summary>
-/// Resolves what Claude Code loads in one project: that project's skills, global skills, enabled plugins and
-/// skills synced from the claude.ai account. Within one name a skill beats a command, and a personal (global)
-/// copy beats a project copy, as Claude Code resolves them; plugin and synced skills are always prefixed.
+/// Resolves what Claude Code loads in one project, as described by its <see cref="ProjectContext"/>. Within one plain
+/// name a skill beats a command, and managed beats personal beats project, as Claude Code resolves them. Copies in
+/// the project and its parent folders all load; skills in folders below the project load on demand and never compete
+/// for a name, because Claude Code qualifies them with their folder. Plugin and synced skills are always prefixed.
 /// </summary>
 public static class EffectiveSetBuilder
 {
-    private const string ProjectPrefix = "project:";
+    public static EffectiveSet Build(ScanResult scan, SkillSource project) => Build(scan, ProjectContext.For(scan, project));
 
-    public static EffectiveSet Build(ScanResult scan, SkillSource project)
+    public static EffectiveSet Build(ScanResult scan, ProjectContext context)
     {
-        var candidates = scan.Skills.Where(new EffectiveScope(project.Id).Includes).ToList();
+        var candidates = scan.Skills.Where(context.Includes).ToList();
         var resolved = candidates
-            .Where(s => !s.Source.IsNamespaced)
+            .Where(s => !s.Source.IsNamespaced && context.OnDemandFolder(s.Source) is null)
             .GroupBy(s => s.Name, StringComparer.Ordinal)
             .SelectMany(Resolve)
             .DistinctBy(e => e.Skill.Id, StringComparer.Ordinal)
             .ToDictionary(e => e.Skill.Id, StringComparer.Ordinal);
 
         var entries = candidates
-            .Select(s => resolved.GetValueOrDefault(s.Id) ?? Active(s, []))
-            .Select(e => WithVisibility(e, scan.Overrides, project))
+            .Select(s => context.OnDemandFolder(s.Source) is { } folder
+                ? new EffectiveEntry(s, Availability.OnDemand, null, [], LoadsUnder: folder)
+                : resolved.GetValueOrDefault(s.Id) ?? Active(s, []))
+            .Select(e => WithVisibility(e, scan.Settings, context.Project))
             .ToList();
-        return new EffectiveSet(project, entries);
+        return new EffectiveSet(context.Project, entries);
     }
 
     public static SkillSource? FindProject(ScanResult scan, string projectPath)
     {
         var wanted = PathKey.Normalize(Path.GetFullPath(projectPath));
         return scan.Sources.FirstOrDefault(s =>
-            s.Kind == SourceKind.Project
-            && PathKey.Comparer.Equals(PathKey.Normalize(s.Id[ProjectPrefix.Length..]), wanted));
+            s.ProjectFolder is { } folder && PathKey.Comparer.Equals(PathKey.Normalize(folder), wanted));
     }
 
     private static IEnumerable<EffectiveEntry> Resolve(IGrouping<string, Skill> sameName)
@@ -49,14 +50,18 @@ public static class EffectiveSetBuilder
             .Concat(losers.Select(l => new EffectiveEntry(l, Availability.Shadowed, winners[0], [])));
     }
 
-    private static EffectiveEntry WithVisibility(EffectiveEntry entry, SkillOverrides overrides, SkillSource project) =>
-        entry.Availability == Availability.Active && SkillOverrides.Applies(entry.Skill)
-            ? entry with { Visibility = overrides.Resolve(entry.Skill.Name, project) }
+    private static EffectiveEntry WithVisibility(EffectiveEntry entry, SettingsLayers settings, SkillSource project) =>
+        entry.Availability != Availability.Shadowed && SettingsLayers.Applies(entry.Skill)
+            ? entry with { Visibility = settings.Resolve(entry.Skill.Name, project) }
             : entry;
 
     private static EffectiveEntry Active(Skill skill, IReadOnlyList<Skill> overrides) =>
         new(skill, Availability.Active, null, overrides);
 
-    private static int Rank(Skill skill) =>
-        (skill.Kind == SkillKind.Command ? 2 : 0) + (skill.Source.Kind == SourceKind.Project ? 1 : 0);
+    private static int Rank(Skill skill) => (skill.Kind == SkillKind.Command ? 10 : 0) + skill.Source.Kind switch
+    {
+        SourceKind.Managed => 0,
+        SourceKind.Global => 1,
+        _ => 2,
+    };
 }

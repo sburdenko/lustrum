@@ -18,7 +18,9 @@ public sealed class FakeClaudeHome : IDisposable
 
     public string ClaudeDir => Path.Combine(Home, ".claude");
 
-    public ClaudePaths Paths => new(Home);
+    public string ManagedDir => System.IO.Path.Combine(_root, "managed");
+
+    public ClaudePaths Paths => new(Home, ManagedDir);
 
     public string Dir(string relativeToRoot)
     {

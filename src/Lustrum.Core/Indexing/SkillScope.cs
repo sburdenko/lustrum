@@ -1,3 +1,4 @@
+using Lustrum.Core.Effective;
 using Lustrum.Core.Models;
 
 namespace Lustrum.Core.Indexing;
@@ -38,19 +39,12 @@ public sealed record MarketplaceScope(string Marketplace) : SkillScope
         && skill.Source.Id.StartsWith($"plugin:{Marketplace}/", StringComparison.Ordinal);
 }
 
-public sealed record EffectiveScope(string ProjectSourceId) : SkillScope
+public sealed record EffectiveScope(ProjectContext Context) : SkillScope
 {
-    public override bool Includes(Skill skill) => skill.Source.Kind switch
-    {
-        SourceKind.Global or SourceKind.BuiltIn => true,
-        SourceKind.Plugin or SourceKind.Synced => skill.Source.IsEnabled,
-        _ => skill.Source.Id == ProjectSourceId,
-    };
+    public override bool Includes(Skill skill) => Context.Includes(skill);
 }
 
-public sealed record MissingScope(string ProjectSourceId) : SkillScope
+public sealed record MissingScope(ProjectContext Context) : SkillScope
 {
-    private readonly EffectiveScope _effective = new(ProjectSourceId);
-
-    public override bool Includes(Skill skill) => !_effective.Includes(skill);
+    public override bool Includes(Skill skill) => !Context.Includes(skill);
 }

@@ -8,7 +8,8 @@ public sealed record EffectiveEntry(
     Availability Availability,
     Skill? ShadowedBy,
     IReadOnlyList<Skill> Overrides,
-    ResolvedVisibility? Visibility = null)
+    ResolvedVisibility? Visibility = null,
+    string? LoadsUnder = null)
 {
     public SkillVisibility VisibilityValue => Visibility?.Value ?? SkillVisibility.On;
 
@@ -20,6 +21,11 @@ public sealed record EffectiveEntry(
         if (ShadowedBy is { } winner)
         {
             return $"shadowed by {sourceName(winner.Source)}";
+        }
+
+        if (Availability == Availability.OnDemand)
+        {
+            return $"on demand · {LoadsUnder}";
         }
 
         if (VisibilityValue.Label() is { } visibility)

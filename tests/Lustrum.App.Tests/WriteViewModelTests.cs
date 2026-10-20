@@ -15,7 +15,7 @@ public class WriteViewModelTests
     private static readonly string AppLocal = Path.Combine(TestData.Project.RootPath, "settings.local.json");
 
     private readonly FakeSkillWriter _writer = new();
-    private SkillOverrides _overrides = SkillOverrides.Empty with { User = SettingsLayer.Empty(SettingsScope.User, UserSettings) };
+    private SettingsLayers _overrides = SettingsLayers.Empty with { User = SettingsLayer.Empty(SettingsScope.User, UserSettings) };
     private int _scans;
 
     private static ImmutableDictionary<string, SkillVisibility> Map(params (string Name, SkillVisibility Value)[] entries) =>
@@ -27,7 +27,7 @@ public class WriteViewModelTests
             (_, _) =>
             {
                 _scans++;
-                return Task.FromResult((scan ?? TestData.WithShadowing()) with { Overrides = _overrides });
+                return Task.FromResult((scan ?? TestData.WithShadowing()) with { Settings = _overrides });
             },
             _ => Task.FromResult(UsageReport.Empty),
             new AppServices(new FakeShell(), new FakeClipboard(), new FakeSettings(LustrumSettings.Default), new FakeTheme(), new FakeSkillGit(), _writer));

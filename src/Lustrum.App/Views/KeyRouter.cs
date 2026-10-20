@@ -14,6 +14,7 @@ public static class KeyRouter
     private static readonly Dictionary<Key, string> Sections = new()
     {
         [Key.A] = "A",
+        [Key.M] = "M",
         [Key.G] = "G",
         [Key.P] = "P",
         [Key.L] = "L",

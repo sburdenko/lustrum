@@ -105,6 +105,7 @@ public sealed partial class SkillCardViewModel : ObservableObject
             var kind = Skill.Kind == SkillKind.Command ? "COMMAND" : "SKILL";
             var source = Skill.Source.Kind switch
             {
+                SourceKind.Managed => "MANAGED",
                 SourceKind.Global => "GLOBAL",
                 SourceKind.Synced => $"CLAUDE.AI · {SourceLabel.ToUpperInvariant()}",
                 _ => SourceLabel.ToUpperInvariant(),
@@ -287,6 +288,11 @@ public sealed partial class SkillCardViewModel : ObservableObject
             return $"Not loaded in {project}: the copy in {SkillItemViewModel.SourceLabelFor(winner.Source)} takes precedence";
         }
 
+        if (entry.Availability == Availability.OnDemand)
+        {
+            return $"Loads in {project} once Claude works on files under {entry.LoadsUnder}";
+        }
+
         var loaded = entry.VisibilityValue switch
         {
             SkillVisibility.Off => $"Turned off in {project}: hidden from Claude and from the / menu",
@@ -301,6 +307,7 @@ public sealed partial class SkillCardViewModel : ObservableObject
     private static string CopyName(Skill skill) => skill switch
     {
         { Source.Kind: SourceKind.Project } => "the project's own copy",
+        { Source.Kind: SourceKind.Managed } => "the managed copy",
         { Kind: SkillKind.Command } => $"the command in {SkillItemViewModel.SourceLabelFor(skill.Source)}",
         _ => $"the copy in {SkillItemViewModel.SourceLabelFor(skill.Source)}",
     };

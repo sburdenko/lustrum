@@ -14,7 +14,7 @@ public sealed partial class MainViewModel
     private void PrepareWrites(SkillCardViewModel card)
     {
         var project = _effective?.Project ?? _missing?.Project;
-        card.ShowVisibility(VisibilityPanel.For(card.Skill, _result.Overrides, _effective?.Find(card.Skill.Id), project));
+        card.ShowVisibility(VisibilityPanel.For(card.Skill, _result.Settings, _effective?.Find(card.Skill.Id), project));
         card.VisibilityRequested += (target, value) => _ = SetVisibilityAsync(target, value);
         card.CopyTargets = SkillCopier.Targets(_result, card.Skill).Select(t => CopyTargetFor(card.Skill, t)).ToList();
     }
@@ -37,7 +37,7 @@ public sealed partial class MainViewModel
         card.IsSavingVisibility = true;
         try
         {
-            var entry = _result.Overrides.EntryFor(card.Skill, panel.Layer, value);
+            var entry = _result.Settings.EntryFor(card.Skill, panel.Layer, value, panel.Session);
             await _services.Writer.SetVisibilityAsync(panel.Layer.Path, card.Skill.Name, entry);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -83,6 +83,7 @@ public sealed partial class MainViewModel
     private static string Describe(SettingsLayer layer) => layer.Scope switch
     {
         SettingsScope.User => "your user settings",
+        SettingsScope.Managed => "managed settings",
         _ => Path.GetFileName(layer.Path),
     };
 }

@@ -57,7 +57,7 @@
           <TextBlock Grid.Row="1" Grid.Column="1" Text="search" Classes="mono mute" FontSize="11" />
           <TextBlock Grid.Row="2" Text="⏎" Classes="mono b" FontSize="11" />
           <TextBlock Grid.Row="2" Grid.Column="1" Text="open in editor" Classes="mono mute" FontSize="11" />
-          <TextBlock Grid.Row="3" Text="A G P L S !" Classes="mono b" FontSize="11" />
+          <TextBlock Grid.Row="3" Text="A M G P L S !" Classes="mono b" FontSize="11" />
           <TextBlock Grid.Row="3" Grid.Column="1" Text="jump to a source" Classes="mono mute" FontSize="11" />
           <TextBlock Grid.Row="4" Text="esc" Classes="mono b" FontSize="11" />
           <TextBlock Grid.Row="4" Grid.Column="1" Text="clear search" Classes="mono mute" FontSize="11" />

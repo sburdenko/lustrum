@@ -39,6 +39,7 @@ public sealed partial class NavSection : ObservableObject
     public static string KeyFor(SkillScope scope) => scope switch
     {
         AllScope => "A",
+        KindScope { Kind: SourceKind.Managed } => "M",
         KindScope { Kind: SourceKind.Global } => "G",
         KindScope { Kind: SourceKind.Project } => "P",
         KindScope { Kind: SourceKind.Plugin } => "L",

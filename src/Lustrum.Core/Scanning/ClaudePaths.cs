@@ -1,7 +1,24 @@
 namespace Lustrum.Core.Scanning;
 
-public sealed record ClaudePaths(string Home)
+/// <summary>
+/// Where Claude Code keeps its files. <paramref name="ManagedRoot"/> overrides the system folder that holds managed
+/// settings and managed skills, which tests point at a throw-away folder.
+/// </summary>
+public sealed record ClaudePaths(string Home, string? ManagedRoot = null)
 {
+    public string ManagedDir => ManagedRoot ?? DefaultManagedDir;
+
+    public string ManagedSettingsJson => Path.Combine(ManagedDir, "managed-settings.json");
+
+    public string ManagedSettingsDropIns => Path.Combine(ManagedDir, "managed-settings.d");
+
+    public string ManagedClaudeDir => Path.Combine(ManagedDir, ".claude");
+
+    public static string DefaultManagedDir =>
+        OperatingSystem.IsMacOS() ? "/Library/Application Support/ClaudeCode"
+        : OperatingSystem.IsWindows() ? @"C:\Program Files\ClaudeCode"
+        : "/etc/claude-code";
+
     public string ClaudeDir => Path.Combine(Home, ".claude");
 
     public string SkillsDir => Path.Combine(ClaudeDir, "skills");
