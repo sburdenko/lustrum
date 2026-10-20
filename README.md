@@ -39,8 +39,8 @@ edit skills.
 
 | | |
 |---|---|
-| **Inventory** | Every skill and command from personal, project, plugin and claude.ai sources, with counts per source and per marketplace. Fuzzy search on names, substring on descriptions and tags, optionally the text of every `SKILL.md`. |
-| **Project views** | Pick a project and switch between **Own** (its skills), **Effective** (exactly what Claude Code loads there, following its precedence rules) and **Missing** (skills on this machine it does not load). |
+| **Inventory** | Every skill and command from managed, personal, project, plugin and claude.ai sources, with counts per source and per marketplace. Fuzzy search on names, substring on descriptions and tags, optionally the text of every `SKILL.md`. |
+| **Project views** | Pick a project and switch between **Own** (its skills), **Effective** (exactly what Claude Code loads there: its own skills and those of parent folders up to the repository root, folders below it on demand, managed and personal skills, and the plugins its settings leave on, resolved by Claude Code's precedence rules) and **Missing** (skills on this machine it does not load). |
 | **Register** | A numbered list grouped by kind, with the state of each skill (shadowed, off, behind) and a mark for errors, long descriptions and duplicate names. Filter chips combine: own prefixes, `plugin`, `synced`, `command`, `broken`, `duplicate`, `unused`, `updates`. |
 | **Health** | One Problems list: broken frontmatter with the YAML line and cause, over-long descriptions, projects whose folder is gone, paths that could not be read. |
 | **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, with a 30-day strip, read incrementally from Claude Code transcripts. |
@@ -95,7 +95,7 @@ edit skills.
 | `j` `k` | move through the list | `/` | search |
 | `⏎` | open in editor | `O` | show in folder |
 | `C` | copy to… | `D` | compare copies |
-| `U` | check all repositories for updates | `A` `G` `P` `L` `S` `!` | jump to All, Global, Projects, Plugins, claude.ai, Problems |
+| `U` | check all repositories for updates | `A` `M` `G` `P` `L` `S` `!` | jump to All, Managed, Global, Projects, Plugins, claude.ai, Problems |
 | `Esc` | clear search | `F5` | rescan |
 | `Cmd/Ctrl+C` | copy the invocation name | `Cmd/Ctrl+Shift+C` | copy the path |
 | `Cmd/Ctrl+,` | settings | `Cmd/Ctrl+1/2/3` | focus a column |
@@ -123,7 +123,7 @@ xattr -dr com.apple.quarantine Lustrum.app
 git clone https://github.com/sburdenko/lustrum.git && cd lustrum
 dotnet run --project src/Lustrum.App               # the window
 dotnet run --project src/Lustrum.Cli -- list       # the same data in a terminal
-dotnet test                                        # 396 tests
+dotnet test                                        # 413 tests
 ```
 
 ## Architecture
@@ -201,11 +201,11 @@ Network access happens only on **Check for updates** and **Update**.
 |---|---|---|
 | `Scanning` · `Parsing` | find sources, read skills, parse frontmatter, decode project folder names | `SkillScanner`, `SourceDiscovery`, `FrontmatterParser`, `ProjectPathDecoder` |
 | `Indexing` | scopes and ranked search | `SkillScope`, `SkillIndex`, `FuzzyMatcher` |
-| `Effective` | what a project loads and what it misses, by Claude Code's rules | `EffectiveSetBuilder`, `MissingSetBuilder` |
+| `Effective` | what a project loads (parents, on-demand folders, per-project plugins) and what it misses, by Claude Code's rules | `ProjectContext`, `EffectiveSetBuilder`, `MissingSetBuilder` |
 | `Problems` · `Comparing` | health problems; folded line diffs | `ProblemCollector`, `SkillComparer` |
 | `Usage` | incremental transcript reading | `UsageCollector`, `TranscriptParser`, `SkillUsage` |
 | `Git` | repository roles, status, fetch, update policy | `GitRepositoryLocator`, `SkillGit`, `UpdatePolicy`, `GitCli` |
-| `ClaudeSettings` | `skillOverrides` across settings files, safe edits | `SkillOverrides`, `ClaudeSettingsWriter` |
+| `ClaudeSettings` | `skillOverrides` and `enabledPlugins` across managed, user, project and local settings; safe edits | `SettingsLayers`, `ClaudeSettingsWriter` |
 | `Copying` | planned, staged copies | `SkillCopier`, `CopyPlan` |
 | `Watching` | what to watch, debouncing, polling fallback | `WatchTargets`, `SkillTreeWatcher` |
 
@@ -216,7 +216,7 @@ The full design notes, from discovery and the data model to the git and write pa
 ## CLI
 
 ```text
-lustrum list [--json] [--source global|project|plugin|synced] [--broken] [--project <folder> [--missing]] [--usage] [--unused]
+lustrum list [--json] [--source managed|global|project|plugin|synced] [--broken] [--project <folder> [--missing]] [--usage] [--unused]
 lustrum diff <name>
 ```
 
@@ -248,7 +248,7 @@ legacy-import  Global  NoFrontmatter       Imports old markdown notes.
 
 | | |
 |---|---|
-| **Tests** | 396 xUnit tests, about 4,700 lines, more than the Core code they cover |
+| **Tests** | 413 xUnit tests, about 4,700 lines, more than the Core code they cover |
 | **Coverage** | 91% of lines in `Lustrum.Core`, 87% in the view models (coverlet) |
 | **Real environments** | scanner tests on throw-away home folders; git tests on real repositories with a bare remote; writer tests on real files, links and file modes |
 | **CI** | the full suite on Ubuntu, macOS and Windows for every pull request; `main` only accepts green changes |
@@ -278,10 +278,11 @@ on macOS, `~/.config` on Linux, `%APPDATA%` on Windows) and are written only on 
 
 - Only files on disk are visible. claude.ai skills appear only where the Claude desktop app has synced them, and the
   synced layout is not documented by Anthropic; nor is the transcript format usage is read from.
-- Enterprise (managed) skills and settings are not read. Plugins count as enabled or disabled by the user-level
-  `~/.claude/settings.json` only.
-- Skills in nested `.claude/skills` folders below a project root, or in parent folders up to the repository root, are
-  not discovered; Claude Code loads those too.
+- Managed settings are read from `managed-settings.json` and `managed-settings.d/`; policies delivered as a macOS
+  configuration profile, through the Windows registry or from the claude.ai console are not.
+- Folders below a project are searched to the configured depth (default 4). Directories added with `--add-dir` are a
+  per-session choice and are not modelled, and a worktree without its own `.claude/skills` does not fall back to the
+  main checkout's skills, as recent Claude Code versions do.
 - Claude Code's documentation does not say how `skillOverrides` from several files combine; Lustrum assumes key by key,
   the higher file winning.
 - Git features need `git` on the `PATH`; a remote that asks for a password fails the check instead of prompting.

@@ -8,21 +8,24 @@ namespace Lustrum.App.ViewModels;
 /// What the card's visibility control shows and edits. Current is what applies to the skill at home (its own project,
 /// or user settings for a personal skill); Layer is the file a change goes to.
 /// </summary>
-public sealed record VisibilityPanel(SettingsLayer Layer, SkillVisibility Current, string Hint, string? Note)
+public sealed record VisibilityPanel(SettingsLayer Layer, SkillVisibility Current, string Hint, string? Note, SkillSource? Session = null)
 {
-    public static VisibilityPanel? For(Skill skill, SkillOverrides overrides, EffectiveEntry? entry, SkillSource? project)
+    public static VisibilityPanel? For(Skill skill, SettingsLayers overrides, EffectiveEntry? entry, SkillSource? project)
     {
-        if (overrides.WritableLayerFor(skill) is not { } layer)
+        var session = skill.Source.Kind == SourceKind.Project && project is { Kind: SourceKind.Project } && project.Id != skill.Source.Id
+            ? project
+            : null;
+        if (overrides.WritableLayerFor(skill, session) is not { } layer)
         {
             return null;
         }
 
-        var home = overrides.ResolveAtHome(skill);
+        var home = session is null ? overrides.ResolveAtHome(skill) : overrides.Resolve(skill.Name, session);
         var where = skill.Source.Kind == SourceKind.Global
             ? "Saved in your user settings for every project"
-            : $"Saved in {skill.Source.DisplayName}/.claude/settings.local.json, for you only";
+            : $"Saved in {(session ?? skill.Source).DisplayName}/.claude/settings.local.json, for you only";
         var hint = $"{where}. Claude Code matches it by name, so it covers every skill named {skill.Name}.";
-        return new VisibilityPanel(layer, home.Value, hint, NoteFor(home, layer, entry, project));
+        return new VisibilityPanel(layer, home.Value, hint, NoteFor(home, layer, entry, project), session);
     }
 
     private static string? NoteFor(ResolvedVisibility home, SettingsLayer layer, EffectiveEntry? entry, SkillSource? project)
@@ -43,6 +46,7 @@ public sealed record VisibilityPanel(SettingsLayer Layer, SkillVisibility Curren
     {
         SettingsScope.Local => ".claude/settings.local.json",
         SettingsScope.Project => ".claude/settings.json",
+        SettingsScope.Managed => "managed settings",
         _ => "your user settings",
     };
 }

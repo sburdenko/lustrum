@@ -7,12 +7,12 @@ using Lustrum.Core.Tests.Fixtures;
 
 namespace Lustrum.Core.Tests;
 
-public class SkillOverridesTests : IDisposable
+public class SettingsLayersTests : IDisposable
 {
     private readonly FakeClaudeHome _home = new();
     private readonly string _app;
 
-    public SkillOverridesTests()
+    public SettingsLayersTests()
     {
         _app = _home.Project("dev/app");
         _home.RegisterProjectFolder(_app);
@@ -42,11 +42,11 @@ public class SkillOverridesTests : IDisposable
 
         var (scan, project) = await Scan();
 
-        scan.Overrides.Resolve("deploy", project).Should().Match<ResolvedVisibility>(r => r.Value == SkillVisibility.On && r.From!.Scope == SettingsScope.Project);
-        scan.Overrides.Resolve("notes", project).Should().Match<ResolvedVisibility>(r => r.Value == SkillVisibility.Off && r.From!.Scope == SettingsScope.Local);
-        scan.Overrides.Resolve("lint", project).Should().Match<ResolvedVisibility>(r => r.Value == SkillVisibility.Off && r.From!.Scope == SettingsScope.User);
-        scan.Overrides.Resolve("other", project).Should().Be(ResolvedVisibility.Default);
-        scan.Overrides.Resolve("notes", null).Value.Should().Be(SkillVisibility.NameOnly);
+        scan.Settings.Resolve("deploy", project).Should().Match<ResolvedVisibility>(r => r.Value == SkillVisibility.On && r.From!.Scope == SettingsScope.Project);
+        scan.Settings.Resolve("notes", project).Should().Match<ResolvedVisibility>(r => r.Value == SkillVisibility.Off && r.From!.Scope == SettingsScope.Local);
+        scan.Settings.Resolve("lint", project).Should().Match<ResolvedVisibility>(r => r.Value == SkillVisibility.Off && r.From!.Scope == SettingsScope.User);
+        scan.Settings.Resolve("other", project).Should().Be(ResolvedVisibility.Default);
+        scan.Settings.Resolve("notes", null).Value.Should().Be(SkillVisibility.NameOnly);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class SkillOverridesTests : IDisposable
 
         var (scan, project) = await Scan();
 
-        scan.Overrides.Resolve("deploy", project).Should().Be(ResolvedVisibility.Default);
+        scan.Settings.Resolve("deploy", project).Should().Be(ResolvedVisibility.Default);
         scan.Issues.Should().ContainSingle(i => i.Path.EndsWith("settings.local.json") && i.Message.StartsWith("Cannot read Claude Code settings"));
     }
 
@@ -71,9 +71,9 @@ public class SkillOverridesTests : IDisposable
 
         var (scan, _) = await Scan();
 
-        scan.Overrides.WritableLayerFor(scan.Skills.Single(s => s.Name == "g"))!.Path.Should().Be(_home.Paths.SettingsJson);
-        scan.Overrides.WritableLayerFor(scan.Skills.Single(s => s.Name == "p"))!.Path.Should().Be(Path.Combine(_app, ".claude", "settings.local.json"));
-        scan.Overrides.WritableLayerFor(scan.Skills.Single(s => s.Name == "ship")).Should().BeNull();
+        scan.Settings.WritableLayerFor(scan.Skills.Single(s => s.Name == "g"))!.Path.Should().Be(_home.Paths.SettingsJson);
+        scan.Settings.WritableLayerFor(scan.Skills.Single(s => s.Name == "p"))!.Path.Should().Be(Path.Combine(_app, ".claude", "settings.local.json"));
+        scan.Settings.WritableLayerFor(scan.Skills.Single(s => s.Name == "ship")).Should().BeNull();
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class SkillOverridesTests : IDisposable
 
         var (scan, _) = await Scan();
 
-        scan.Overrides.Resolve("deploy", null).Value.Should().Be(SkillVisibility.NameOnly);
+        scan.Settings.Resolve("deploy", null).Value.Should().Be(SkillVisibility.NameOnly);
         scan.Issues.Should().BeEmpty();
     }
 
@@ -115,7 +115,7 @@ public class SkillOverridesTests : IDisposable
         SkillVisibility? EntryFor(string name)
         {
             var skill = scan.Skills.Single(s => s.Name == name);
-            return scan.Overrides.EntryFor(skill, scan.Overrides.WritableLayerFor(skill)!, SkillVisibility.On);
+            return scan.Settings.EntryFor(skill, scan.Settings.WritableLayerFor(skill)!, SkillVisibility.On);
         }
 
         EntryFor("p").Should().Be(SkillVisibility.On);

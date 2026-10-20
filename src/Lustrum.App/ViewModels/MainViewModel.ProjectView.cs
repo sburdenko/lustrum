@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Lustrum.Core.Effective;
 using Lustrum.Core.Indexing;
 using Lustrum.Core.Models;
 
@@ -34,10 +35,10 @@ public sealed partial class MainViewModel
         RefreshList();
     }
 
-    private SkillScope ActiveScope(SkillSource? project) => (ActiveView, project) switch
+    private SkillScope ActiveScope(ProjectContext? context) => (ActiveView, context) switch
     {
-        (ProjectView.Effective, { } p) => new EffectiveScope(p.Id),
-        (ProjectView.Missing, { } p) => new MissingScope(p.Id),
+        (ProjectView.Effective, { } c) => new EffectiveScope(c),
+        (ProjectView.Missing, { } c) => new MissingScope(c),
         _ => SelectedNode?.Scope ?? SkillScope.All,
     };
 }

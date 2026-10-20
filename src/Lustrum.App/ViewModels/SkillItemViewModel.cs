@@ -19,8 +19,12 @@ public sealed class SkillItemViewModel : IListRow
         Behind = behind;
         Entry = entry;
         IsShadowed = entry?.Availability == Availability.Shadowed;
-        IsDisabled = (skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled)
-            || (entry is null ? visibility == SkillVisibility.Off : entry.IsTurnedOff);
+        IsDisabled = (entry, missing) switch
+        {
+            ({ } loaded, _) => loaded.IsTurnedOff,
+            (_, { } absent) => absent.PluginOff,
+            _ => IsPluginOff(skill) || visibility == SkillVisibility.Off,
+        };
         AvailabilityLabel = missing is not null
             ? missing.Reason(SourceLabelFor)
             : LabelFor(skill, entry) ?? (entry is null ? visibility.Label() : null);
@@ -103,6 +107,7 @@ public sealed class SkillItemViewModel : IListRow
 
     public static Symbol SourceSymbol(SourceKind kind) => kind switch
     {
+        SourceKind.Managed => Symbol.ShieldCheckmark,
         SourceKind.Global => Symbol.Globe,
         SourceKind.Project => Symbol.Folder,
         SourceKind.Plugin => Symbol.PuzzlePiece,
@@ -112,14 +117,17 @@ public sealed class SkillItemViewModel : IListRow
 
     public static string SourceLabelFor(SkillSource source) => source.Kind switch
     {
+        SourceKind.Managed => "Managed",
         SourceKind.Global => "Global",
         SourceKind.Plugin or SourceKind.Synced => source.Namespace ?? source.DisplayName,
         _ => source.DisplayName,
     };
 
+    // Outside a project a plugin's own switch decides; inside one the effective set already knows.
     public static string? LabelFor(Skill skill, EffectiveEntry? entry) =>
-        entry?.Label(SourceLabelFor)
-        ?? (skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled ? "disabled" : null);
+        entry is not null ? entry.Label(SourceLabelFor) : IsPluginOff(skill) ? "disabled" : null;
+
+    private static bool IsPluginOff(Skill skill) => skill.Source.Kind == SourceKind.Plugin && !skill.Source.IsEnabled;
 
     private static string PluginPrefix(Skill skill) =>
         skill.FullName.Length > skill.Name.Length ? skill.FullName[..(skill.FullName.Length - skill.Name.Length)] : string.Empty;

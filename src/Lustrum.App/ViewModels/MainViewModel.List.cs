@@ -38,6 +38,7 @@ public sealed partial class MainViewModel
 
     private Dictionary<string, int> _numbers = new(StringComparer.Ordinal);
     private Dictionary<string, int> _copies = new(StringComparer.Ordinal);
+    private Dictionary<string, ProjectContext> _contexts = new(StringComparer.Ordinal);
 
     public IReadOnlyList<SortOption> Sorts => SortChoices;
 
@@ -87,9 +88,10 @@ public sealed partial class MainViewModel
     {
         var keepId = SelectedSkill?.Skill.Id;
         var project = SelectedProject;
-        _effective = ActiveView == ProjectView.Effective && project is not null ? EffectiveSetBuilder.Build(_result, project) : null;
-        _missing = ActiveView == ProjectView.Missing && project is not null ? MissingSetBuilder.Build(_result, project) : null;
-        var scope = ActiveScope(project);
+        var context = project is not null && ActiveView != ProjectView.Own ? ContextFor(project) : null;
+        _effective = ActiveView == ProjectView.Effective && context is not null ? EffectiveSetBuilder.Build(_result, context) : null;
+        _missing = ActiveView == ProjectView.Missing && context is not null ? MissingSetBuilder.Build(_result, context) : null;
+        var scope = ActiveScope(context);
         var found = SkillIndex.Search(_result.Skills, new SkillQuery(scope, SearchText)).Where(MatchesChips).ToList();
         var withBody = WithBodyMatches(found, scope);
 
@@ -186,6 +188,7 @@ public sealed partial class MainViewModel
 
     private static string GroupTitle(SourceKind kind) => kind switch
     {
+        SourceKind.Managed => "MANAGED",
         SourceKind.Global => "GLOBAL",
         SourceKind.Project => "PROJECTS",
         SourceKind.Plugin => "PLUGINS",
@@ -193,14 +196,27 @@ public sealed partial class MainViewModel
         _ => kind.ToString().ToUpperInvariant(),
     };
 
+    // Built once per scan and project: it probes the file system, and the list refreshes on every keystroke.
+    private ProjectContext ContextFor(SkillSource project)
+    {
+        if (!_contexts.TryGetValue(project.Id, out var context))
+        {
+            context = ProjectContext.For(_result, project);
+            _contexts[project.Id] = context;
+        }
+
+        return context;
+    }
+
     private void IndexResult(ScanResult result)
     {
+        _contexts = new Dictionary<string, ProjectContext>(StringComparer.Ordinal);
         _numbers = result.Skills.Select((s, i) => (s.Id, i)).ToDictionary(p => p.Id, p => p.i + 1, StringComparer.Ordinal);
         _copies = result.Conflicts.ToDictionary(c => c.Name, c => c.Skills.Count, StringComparer.Ordinal);
     }
 
     private SkillVisibility HomeVisibility(Skill skill) =>
-        SkillOverrides.Applies(skill) ? _result.Overrides.ResolveAtHome(skill).Value : SkillVisibility.On;
+        SettingsLayers.Applies(skill) ? _result.Settings.ResolveAtHome(skill).Value : SkillVisibility.On;
 
     private IEnumerable<Skill> Sort(IEnumerable<Skill> skills) => SelectedSort.Mode switch
     {

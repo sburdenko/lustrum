@@ -92,8 +92,11 @@ public class MissingSetTests : IDisposable
         var skill = new Skill("builtin#x", "x", "x", "d", SkillKind.Skill, builtIn, "/none/x", null,
             new Dictionary<string, string>(), [], [], 0, DateTimeOffset.UnixEpoch, Health.Ok, []);
 
-        new Lustrum.Core.Indexing.EffectiveScope("project:/a").Includes(skill).Should().BeTrue();
-        new Lustrum.Core.Indexing.MissingScope("project:/a").Includes(skill).Should().BeFalse();
+        var project = new SkillSource("project:/a", SourceKind.Project, "a", "/a/.claude", null, false);
+        var context = ProjectContext.For(new ScanResult([project, builtIn], [skill], [], [], DateTimeOffset.UtcNow, TimeSpan.Zero), project);
+
+        new Lustrum.Core.Indexing.EffectiveScope(context).Includes(skill).Should().BeTrue();
+        new Lustrum.Core.Indexing.MissingScope(context).Includes(skill).Should().BeFalse();
     }
 
     [Fact]

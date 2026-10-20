@@ -26,7 +26,7 @@ internal static class ListCommand
         var json = new Option<bool>("--json") { Description = "Emit machine-readable JSON" };
         var source = new Option<string?>("--source")
         {
-            Description = "Limit to one source kind: global, project, plugin or synced",
+            Description = "Limit to one source kind: managed, global, project, plugin or synced",
         };
         var broken = new Option<bool>("--broken") { Description = "Only skills with a health problem" };
         var usage = new Option<bool>("--usage") { Description = "Add how often and when each skill was used, read from Claude Code transcripts" };
@@ -34,7 +34,7 @@ internal static class ListCommand
         var missing = new Option<bool>("--missing") { Description = "With --project: skills on this machine that the project does not load" };
         var project = new Option<string?>("--project")
         {
-            Description = "Show what Claude Code loads in this project folder: its skills, global skills and enabled plugins",
+            Description = "Show what Claude Code loads in this project folder: its skills and those of its parent folders, managed and global skills, enabled plugins, and on demand the skills of folders below it",
         };
 
         var command = new Command("list", "List skills and commands found on this machine");
@@ -66,7 +66,7 @@ internal static class ListCommand
         {
             if (!SkillFilter.SourceNames.TryGetValue(request.Source, out var parsed))
             {
-                await Console.Error.WriteLineAsync($"Unknown source '{request.Source}'. Use global, project, plugin or synced.");
+                await Console.Error.WriteLineAsync($"Unknown source '{request.Source}'. Use managed, global, project, plugin or synced.");
                 return UsageError;
             }
 
@@ -192,6 +192,7 @@ internal static class ListCommand
         ShadowedBy = entry.ShadowedBy?.Id,
         Overrides = entry.Overrides.Select(o => o.Id).ToList(),
         Visibility = entry.VisibilityValue.ToSetting(),
+        entry.LoadsUnder,
     };
 
     private sealed record ListRequest(bool AsJson, string? Source, bool BrokenOnly, string? Project, bool WithUsage, bool UnusedOnly, bool Missing);

@@ -15,22 +15,24 @@ public static class SkillScanner
         var stopwatch = Stopwatch.StartNew();
         var settings = options ?? ScanOptions.Default;
         var discovered = SourceDiscovery.Discover(paths, settings);
-
         var skills = new ConcurrentBag<Skill>();
         var issues = new ConcurrentBag<ScanIssue>(discovered.Issues);
+        var claudeSettings = SettingsLayersReader.Read(paths, discovered.Sources, issues.Add);
+        var sources = discovered.Sources
+            .Select(s => s.Kind == SourceKind.Plugin ? s with { IsEnabled = claudeSettings.PluginEnabled(s, null) } : s)
+            .ToList();
         var parallelism = new ParallelOptions
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount,
             CancellationToken = cancellationToken,
         };
 
-        await Parallel.ForEachAsync(discovered.Sources, parallelism, (source, _) =>
+        await Parallel.ForEachAsync(sources, parallelism, (source, _) =>
         {
             ScanSource(source, skills, issues);
             return ValueTask.CompletedTask;
         });
 
-        var overrides = SkillOverridesReader.Read(paths, discovered.Sources, issues.Add);
         var tagged = SkillTagger.Apply(skills.ToList(), settings);
         var ordered = tagged
             .OrderBy(s => s.FullName, StringComparer.OrdinalIgnoreCase)
@@ -39,14 +41,14 @@ public static class SkillScanner
 
         stopwatch.Stop();
         return new ScanResult(
-            OrderSources(discovered.Sources),
+            OrderSources(sources),
             ordered,
             ConflictDetector.Detect(ordered),
             issues.OrderBy(i => i.Path, StringComparer.Ordinal).ToList(),
             DateTimeOffset.UtcNow,
             stopwatch.Elapsed)
         {
-            Overrides = overrides,
+            Settings = claudeSettings,
         };
     }
 

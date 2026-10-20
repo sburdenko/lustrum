@@ -26,6 +26,13 @@ public static class WatchTargets
             new(paths.ProjectsDir, Recursive: false),
         };
 
+        if (Directory.Exists(paths.ManagedDir))
+        {
+            targets.Add(new WatchTarget(paths.ManagedDir, Recursive: false));
+            targets.Add(new WatchTarget(paths.ManagedSettingsDropIns, Recursive: false));
+            targets.Add(new WatchTarget(Path.Combine(paths.ManagedClaudeDir, "skills"), Recursive: true));
+        }
+
         foreach (var project in scan.Sources.Where(s => s.Kind == SourceKind.Project && s.Exists))
         {
             targets.Add(new WatchTarget(project.RootPath, Recursive: false));

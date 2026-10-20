@@ -15,9 +15,13 @@ public static class NavTreeBuilder
         int CountKind(SourceKind kind) => scan.Skills.Count(s => s.Source.Kind == kind);
 
         var synced = SyncedNodes(scan, CountOf);
+        var managed = scan.Sources.Any(s => s.Kind == SourceKind.Managed)
+            ? [new NavNode("Managed", new KindScope(SourceKind.Managed), CountKind(SourceKind.Managed), Symbol.ShieldCheckmark, [], Hint: "Skills your organization deploys; they take precedence over yours")]
+            : Array.Empty<NavNode>();
         return
         [
             new NavNode("All", SkillScope.All, scan.Skills.Count, Symbol.Apps, []),
+            .. managed,
             new NavNode("Global", new KindScope(SourceKind.Global), CountKind(SourceKind.Global), Symbol.Globe, []),
             new NavNode("Projects", new KindScope(SourceKind.Project), CountKind(SourceKind.Project), Symbol.FolderOpen, ProjectNodes(scan, CountOf, includeEmptySources)),
             new NavNode("Plugins", new KindScope(SourceKind.Plugin), CountKind(SourceKind.Plugin), Symbol.PuzzlePiece, PluginNodes(scan, CountOf)),

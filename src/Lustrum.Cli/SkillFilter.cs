@@ -8,6 +8,7 @@ internal static class SkillFilter
     public static readonly IReadOnlyDictionary<string, SourceKind> SourceNames =
         new Dictionary<string, SourceKind>(StringComparer.OrdinalIgnoreCase)
         {
+            ["managed"] = SourceKind.Managed,
             ["global"] = SourceKind.Global,
             ["project"] = SourceKind.Project,
             ["plugin"] = SourceKind.Plugin,
