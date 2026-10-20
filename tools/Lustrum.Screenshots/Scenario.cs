@@ -21,6 +21,7 @@ internal sealed record Scenario(
     public static IReadOnlyList<Scenario> Readme { get; } =
     [
         new("overview.png", ThemeVariant.Light, Select: "release-notes", SelectSource: "Global"),
+        new("overview-dark.png", ThemeVariant.Dark, Select: "release-notes", SelectSource: "Global"),
         new("effective.png", ThemeVariant.Light, Node: "storefront", View: ProjectView.Effective, Select: "release-notes", SelectSource: "Global"),
         new("problems.png", ThemeVariant.Light, Node: "Problems", Problem: "broken-yaml"),
         new("content.png", ThemeVariant.Dark, Select: "code-review", Tab: 1, HidePaths: false),

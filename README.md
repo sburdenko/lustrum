@@ -1,42 +1,109 @@
 <div align="center">
 
-<img src="src/Lustrum.App/Assets/lustrum.png" alt="" width="96"/>
+<img src="src/Lustrum.App/Assets/lustrum.png" alt="" width="104"/>
 
 # Lustrum
 
 **A census of every Claude Code skill on your machine.**
 
-Global, project, plugin and claude.ai-synced skills and slash commands, in one window.<br/>
-Nothing changes on its own: Lustrum writes only when you use **Copy to**, **Visibility** or **Update**.
+Global, project, plugin and claude.ai-synced skills and slash commands in one keyboard-first window,<br/>
+with the same data in a CLI. Nothing changes on its own: Lustrum writes only when you ask it to.
 
 [![CI](https://github.com/sburdenko/lustrum/actions/workflows/ci.yml/badge.svg)](https://github.com/sburdenko/lustrum/actions/workflows/ci.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
-![Avalonia 11](https://img.shields.io/badge/Avalonia-11.3-8B5CF6)
+![Avalonia 11.3](https://img.shields.io/badge/Avalonia-11.3-8B5CF6)
+![macOS · Windows · Linux](https://img.shields.io/badge/macOS%20·%20Windows%20·%20Linux-0E0E0C)
 
-<img src="docs/overview.png" alt="Lustrum main window: source tree, skill list and skill card" width="900"/>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/overview-dark.png">
+  <img src="docs/overview.png" alt="Lustrum: source column with counts, numbered skill register grouped by kind, skill card with usage and actions, CLI line at the bottom" width="920"/>
+</picture>
 
 </div>
 
 ## Why
 
-Claude Code spreads skills over several places. `/plugin` shows plugins, `/skills` shows the current project,
-and `npx skills list` shows the current folder plus home. Nothing answers the questions that come up once you
-have a few dozen skills:
+Claude Code spreads skills over several places. `/plugin` shows plugins, `/skills` shows the current project, and
+`npx skills list` shows the current folder plus home. Nothing answers the questions that come up once you have a few
+dozen skills:
 
 - What skills do I have, and where does each one live?
-- Which ones does project X actually load?
-- Where do names collide, which copy wins, and how do the copies differ?
-- Which ones are broken (no frontmatter, bad YAML, missing description)?
-- Which ones are never used?
+- Which ones does project X actually load, and which copy wins when names collide?
+- Which ones are broken, and which are never used?
 - Which ones came from git, and has the upstream moved on since?
 
-Lustrum scans the disk, builds an immutable snapshot and shows it in a desktop window or prints it from a CLI.
-The window keeps itself up to date while you edit skills.
+Lustrum scans the disk into an immutable snapshot, derives every view from it, and keeps itself up to date while you
+edit skills.
+
+## What it does
+
+| | |
+|---|---|
+| **Inventory** | Every skill and command from personal, project, plugin and claude.ai sources, with counts per source and per marketplace. Fuzzy search on names, substring on descriptions and tags, optionally the text of every `SKILL.md`. |
+| **Project views** | Pick a project and switch between **Own** (its skills), **Effective** (exactly what Claude Code loads there, following its precedence rules) and **Missing** (skills on this machine it does not load). |
+| **Register** | A numbered list grouped by kind, with the state of each skill (shadowed, off, behind) and a mark for errors, long descriptions and duplicate names. Filter chips combine: own prefixes, `plugin`, `synced`, `command`, `broken`, `duplicate`, `unused`, `updates`. |
+| **Health** | One Problems list: broken frontmatter with the YAML line and cause, over-long descriptions, projects whose folder is gone, paths that could not be read. |
+| **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, with a 30-day strip, read incrementally from Claude Code transcripts. |
+| **Compare** | A line diff between copies of one name, with unchanged runs folded. |
+| **Git** | Branch, upstream, behind and ahead, uncommitted changes and last commit for skills in a git repository. **Check for updates** fetches; **Update** fast-forwards a repository that holds only skills. |
+| **Visibility** | Turn a skill on, name-only, user-only or off through Claude Code's own `skillOverrides` setting, the switch behind its `/skills` menu. |
+| **Copy to** | Copy a skill into your personal skills or a project, for example to share it with a team or to customise a plugin skill. Nothing is overwritten. |
+| **CLI line** | The bar at the bottom shows the `lustrum` command that prints the current view, such as `list --project ~/work/storefront --missing` or `diff release-notes`. |
+| **Live** | File system watchers rescan half a second after a skill or a plugin setting changes. |
+
+<table>
+<tr>
+<td width="50%"><img src="docs/effective.png" alt="Effective set for a project: the personal copy shadows the project copy, one skill is turned off"/></td>
+<td width="50%"><img src="docs/missing.png" alt="Missing view: skills from other projects that this project does not load"/></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Effective</b> · what a project loads; the personal copy wins</sub></td>
+<td align="center"><sub><b>Missing</b> · what other projects have and this one does not</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/problems.png" alt="Problems list: invalid YAML, missing frontmatter, long description, missing project"/></td>
+<td width="50%"><img src="docs/compare.png" alt="Line diff between a project copy and the personal copy of a skill"/></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Problems</b> · every broken thing in one list</sub></td>
+<td align="center"><sub><b>Compare</b> · two copies of one name, line by line</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/git.png" alt="A cloned skill two commits behind its upstream with Update enabled and the updates chip on"/></td>
+<td width="50%"><img src="docs/visibility.png" alt="A personal skill turned off by project settings, with the Copy to menu open"/></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Git</b> · a cloned skill two commits behind</sub></td>
+<td align="center"><sub><b>Visibility · Copy to</b> · project settings turn a skill off</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/content.png" alt="Rendered SKILL.md in the dark theme"/></td>
+<td width="50%"><img src="docs/settings.png" alt="Settings panel in the dark theme"/></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Content</b> · rendered <code>SKILL.md</code>, dark theme</sub></td>
+<td align="center"><sub><b>Settings</b> · prefixes, roots, editor, theme</sub></td>
+</tr>
+</table>
+
+<sub>Screenshots come from a synthetic `~/.claude`, rendered headless by `tools/Lustrum.Screenshots`.</sub>
+
+## Keyboard
+
+| Key | Action | Key | Action |
+|---|---|---|---|
+| `j` `k` | move through the list | `/` | search |
+| `⏎` | open in editor | `O` | show in folder |
+| `C` | copy to… | `D` | compare copies |
+| `U` | check all repositories for updates | `A` `G` `P` `L` `S` `!` | jump to All, Global, Projects, Plugins, claude.ai, Problems |
+| `Esc` | clear search | `F5` | rescan |
+| `Cmd/Ctrl+C` | copy the invocation name | `Cmd/Ctrl+Shift+C` | copy the path |
+| `Cmd/Ctrl+,` | settings | `Cmd/Ctrl+1/2/3` | focus a column |
 
 ## Get it
 
 **Prebuilt.** Every `v*` tag publishes self-contained builds to
-[Releases](https://github.com/sburdenko/lustrum/releases). No .NET install is needed.
+[Releases](https://github.com/sburdenko/lustrum/releases); no .NET install is needed.
 
 | Platform | Download | Contents |
 |---|---|---|
@@ -53,416 +120,98 @@ xattr -dr com.apple.quarantine Lustrum.app
 **From source.** You need the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ```bash
-git clone https://github.com/sburdenko/lustrum.git
-cd lustrum
-
-dotnet run --project src/Lustrum.App                   # the window
-dotnet run --project src/Lustrum.Cli -- list           # the same data in the terminal
-dotnet test                                            # 396 tests
+git clone https://github.com/sburdenko/lustrum.git && cd lustrum
+dotnet run --project src/Lustrum.App               # the window
+dotnet run --project src/Lustrum.Cli -- list       # the same data in a terminal
+dotnet test                                        # 396 tests
 ```
 
-The window is developed on macOS. CI builds and tests on Ubuntu, macOS and Windows.
-
-## What you get
-
-| | |
-|---|---|
-| **Source column** | All, Global, Projects, Plugins (marketplace, then plugin), claude.ai (skills and plugins synced from your account), Problems, each with a large count and a key to jump to it. The selected source opens its projects or plugins below it; disabled plugins and empty projects are dimmed. |
-| **Project views** | Pick a project and switch between **Own** (its skills), **Effective** (exactly what Claude Code loads there, with shadowed skills marked) and **Missing** (skills on this machine it does not load). |
-| **Skill list** | A register: a number that stays with the skill across views, name with plugin prefix, description, state (shadowed, off, behind), source and a mark for errors, long descriptions and duplicate names. The full list is grouped by kind. Sort by best match, name, source, date or last use. |
-| **Search** | Fuzzy on names, substring on descriptions and tags, ranked by relevance. Optionally searches the text of every `SKILL.md`. |
-| **Filter chips** | One chip per own prefix (`sb-*` by default), plus `plugin`, `synced`, `command`, `broken`, `duplicate`, `unused` and `updates`. Chips combine. |
-| **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, with a strip of the last 30 days, read from Claude Code transcripts. Sort by last use. |
-| **Problems** | One list of broken skills (with the YAML line and cause), over-long descriptions, projects whose folder is gone and paths that could not be read. |
-| **Skill card** | Description, health, usage, visibility, git status, parsed frontmatter, file path, sibling files, name conflicts, rendered `SKILL.md`. |
-| **Git** | For global and project skills inside a git repository: branch, upstream, commits behind and ahead, uncommitted changes in the skill folder and its last commit. **Check for updates** fetches, for one repository from the card or for all of them from the toolbar; **Update** fast-forwards a repository that holds only skills. |
-| **Compare** | For a name that exists in several places, a line diff between this copy and any other, with unchanged runs folded. |
-| **Actions** | Show in file manager, open in editor, copy path, copy invocation name (`/deploy`, `unity:ui`). |
-| **Copy to** | Copy a skill or command into your personal skills or into a project, for example to share a personal skill with a team or to customise a plugin skill. Nothing is overwritten. |
-| **Visibility** | Set what Claude Code does with a skill (on, name only, you only, off) through its `skillOverrides` setting, the same switch as the `/skills` menu. Lists show turned-off skills dimmed. |
-| **Live updates** | File system watchers trigger a rescan half a second after skills or plugin settings change. |
-| **Settings** | Own prefixes, extra project roots, search depth, skipped folders, editor command (quote paths with spaces), theme. |
-| **Keys** | `j` `k` move through the list · `/` search · `⏎` open in editor · `O` show in folder · `C` copy to · `D` compare · `U` check for updates · `A` `G` `P` `L` `S` `!` jump to a source · `Esc` clear search · `F5` rescan · `Cmd/Ctrl+,` settings · `Cmd/Ctrl+C` copy name · `Cmd/Ctrl+Shift+C` copy path · `Cmd/Ctrl+1/2/3` focus a column |
-| **CLI line** | The bar at the bottom shows the `lustrum` command that prints the current view in a terminal, for example `list --project ~/work/storefront --missing` or `diff release-notes`, next to scan, watch and usage status. |
-
-<table>
-<tr>
-<td width="50%"><img src="docs/effective.png" alt="Effective set for one project with a shadowed global skill"/></td>
-<td width="50%"><img src="docs/problems.png" alt="Problems list: broken YAML, missing frontmatter, long description, missing project"/></td>
-</tr>
-<tr>
-<td align="center"><sub>Effective set: the personal copy wins over the project one</sub></td>
-<td align="center"><sub>Problems</sub></td>
-</tr>
-<tr>
-<td width="50%"><img src="docs/content.png" alt="Rendered SKILL.md in the dark theme"/></td>
-<td width="50%"><img src="docs/settings.png" alt="Settings panel and an active filter chip, dark theme"/></td>
-</tr>
-<tr>
-<td align="center"><sub>Rendered <code>SKILL.md</code>, dark theme</sub></td>
-<td align="center"><sub>Settings and filter chips</sub></td>
-</tr>
-<tr>
-<td width="50%"><img src="docs/compare.png" alt="Line diff between a project copy and the global copy of a skill"/></td>
-<td width="50%"><img src="docs/missing.png" alt="Missing view: skills from other projects that this project does not load"/></td>
-</tr>
-<tr>
-<td align="center"><sub>Compare: project copy against the global one</sub></td>
-<td align="center"><sub>Missing: what other projects have and this one does not load</sub></td>
-</tr>
-<tr>
-<td colspan="2" align="center"><img src="docs/git.png" alt="A cloned skill two commits behind its upstream, with the Update button enabled and the updates chip on" width="70%"/></td>
-</tr>
-<tr>
-<td colspan="2" align="center"><sub>Git: a cloned skill after Check for updates, two commits behind</sub></td>
-</tr>
-<tr>
-<td colspan="2" align="center"><img src="docs/visibility.png" alt="A personal skill turned off by the project's settings, with the Copy to menu open" width="70%"/></td>
-</tr>
-<tr>
-<td colspan="2" align="center"><sub>Visibility and Copy to: the project's settings turn a personal skill off</sub></td>
-</tr>
-</table>
-
-The screenshots use a synthetic `~/.claude` tree, not a real machine. `dotnet run --project tools/Lustrum.Screenshots`
-rebuilds them in `docs/`.
-
-## Where it looks
-
-| Source | Location | Skill name |
-|---|---|---|
-| Global skills | `~/.claude/skills/<folder>/SKILL.md` | `name` from frontmatter, else the folder name |
-| Global commands | `~/.claude/commands/**/*.md` (up to 3 levels) | file path without `.md`, folders joined with `:` (`git/squash.md` is `/git:squash`) |
-| Project skills and commands | `<project>/.claude/skills`, `<project>/.claude/commands` | same rules as global |
-| Plugins | the `installPath` of every entry in `~/.claude/plugins/installed_plugins.json` | `<plugin>:<name>` |
-| claude.ai skills | `~/.claude/skills/synced/<account>/<folder>/SKILL.md` | `anthropic-skills:<name>` |
-| claude.ai plugins | `~/.claude/plugins/synced/<account>/<plugin>/` (newest `~gN` generation) | `<plugin>:<name>` |
-
-**Which projects.** Lustrum merges three lists by normalised path:
-
-1. the keys of `projects` in `~/.claude.json`;
-2. the folder names in `~/.claude/projects`;
-3. folders with a `.claude` directory under the extra roots from Settings (searched to the configured depth,
-   default 4, skipping `node_modules`, `Library`, `bin`, `obj`, `.git`).
-
-Your home directory is skipped, because its `.claude` is already the global source. A project whose folder no
-longer exists stays in the data with `Exists = false`; the tree hides it until you tick **empty**, and the
-Problems list shows it.
-
-**Which plugins.** The registry file is authoritative. Without it, Lustrum falls back to
-`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>` and ignores versions that carry an `.orphaned_at` marker.
-A plugin set to `false` under `enabledPlugins` in `~/.claude/settings.json` is shown as disabled and left out of
-every effective set.
-
-**claude.ai skills and plugins.** The Claude desktop app syncs the skills and plugins of your claude.ai account,
-including Anthropic's own skills such as `xlsx` or `skill-creator`, into `~/.claude/skills/synced` and
-`~/.claude/plugins/synced`. Lustrum lists them as source kind `Synced`, under the same names Claude uses to invoke
-them. Plugin folders can exist in several generations (`design`, `design~g2`); the highest one is read. Folders
-starting with a dot, such as `.staging`, are skipped. Synced skills are part of every effective set.
-
-**Project folder names.** `~/.claude/projects` stores each path with every non-alphanumeric character replaced
-by `-`. That mapping is lossy (`my-app`, `my_app` and `my/app` encode the same), so `ProjectPathDecoder`
-resolves a name against the real file system: at each level it only follows directories whose own encoded
-name is a prefix of the remaining string, preferring the longest match. Exact paths from `~/.claude.json` win
-over decoding. Names that cannot be resolved are shown as missing, not guessed.
-
-More on-disk details are in [docs/claude-code-layout.md](docs/claude-code-layout.md).
-
 ## Architecture
-
-Three projects, one rule: **front ends never scan the file system themselves; everything goes through Core.**
 
 ```mermaid
 flowchart TB
     subgraph front["Front ends"]
+        direction LR
         app["<b>Lustrum.App</b><br/>Avalonia 11 · MVVM"]
-        cli["<b>Lustrum.Cli</b><br/>System.CommandLine"]
+        cli["<b>Lustrum.Cli</b><br/>list · diff"]
     end
 
-    subgraph core["Lustrum.Core · no UI dependencies"]
-        scanner["Scanning<br/>SkillScanner · discovery · reader"]
-        parser["Parsing<br/>FrontmatterParser"]
-        index["Indexing<br/>SkillIndex · FuzzyMatcher · scopes"]
-        effective["Effective<br/>EffectiveSetBuilder"]
-        problems["Problems<br/>ProblemCollector"]
-        watching["Watching<br/>SkillTreeWatcher"]
-        settings["Settings<br/>SettingsStore"]
-        usage["Usage<br/>UsageCollector · TranscriptParser"]
-        comparing["Comparing<br/>SkillComparer · DiffFolding"]
-        git["Git<br/>SkillGit · GitCli · UpdatePolicy"]
-        claudesettings["ClaudeSettings<br/>SkillOverrides · ClaudeSettingsWriter"]
-        copying["Copying<br/>SkillCopier"]
+    subgraph core["Lustrum.Core · no UI dependency"]
+        direction TB
+        read["<b>Read</b><br/>Scanning · Parsing · Usage · Watching"]
+        derive["<b>Derive</b><br/>Indexing · Effective · Problems · Comparing"]
+        act["<b>Act on request</b><br/>Git · ClaudeSettings · Copying"]
+        read --> derive --> act
     end
 
-    disk[("~/.claude<br/>~/.claude.json<br/>&lt;project&gt;/.claude")]
-    gitcli[["git command line"]]
+    disk[("~/.claude · ~/.claude.json · &lt;project&gt;/.claude")]
+    gitcli[["git"]]
 
-    app --> scanner & index & effective & problems & watching & settings & usage & comparing & git & claudesettings & copying
-    cli --> scanner & settings & usage & comparing
-    scanner --> parser
-    scanner --> disk
-    watching --> disk
-    usage --> disk
-    git --> gitcli
+    front --> core
+    read --> disk
+    act --> disk
+    act --> gitcli
 ```
 
-### Scan pipeline
+**Principles**
+
+- **One snapshot.** A scan produces an immutable `ScanResult`. Every list, count, effective set and problem is derived
+  from it, and the window and the CLI share the same code.
+- **Core owns the rules.** Discovery, Claude Code's precedence rules, health, usage, git and settings handling live in
+  `Lustrum.Core`, which has no UI dependency. Front ends only present.
+- **States are types, not flags.** Scopes, project views, usage, git state, update decisions and copy plans are small
+  record hierarchies; each case carries exactly the data it needs and knows how to describe itself.
+- **Read-only until asked.** Three writes exist, each behind an explicit control, each re-checking its preconditions
+  on fresh state right before it writes.
+- **Failures are data.** An unreadable file becomes a `ScanIssue` and shows up in Problems; nothing aborts a scan, and
+  no error closes the window.
+- **The OS sits behind interfaces.** Shell, clipboard, settings, theme, git and writes are services, faked in view
+  model tests; Core tests run against throw-away homes and real git repositories.
 
 ```mermaid
-flowchart LR
-    A["Discover sources<br/>global · plugins · projects · roots"] --> B["Per source, in parallel<br/>skills/*/SKILL.md<br/>commands/**/*.md"]
-    B --> C["Read the first 64 KB<br/>parse YAML frontmatter"]
-    C --> D["Build Skill<br/>compute Health"]
-    D --> E["Tag · detect<br/>name conflicts"]
-    E --> F["ScanResult<br/>immutable snapshot"]
+sequenceDiagram
+    autonumber
+    participant UI as Window
+    participant Core as SkillScanner
+    participant Disk as ~/.claude and projects
+    participant Usage as UsageCollector
+    participant Watch as SkillTreeWatcher
+    UI->>Core: ScanAsync(paths, options)
+    Core->>Disk: discover sources, read file heads in parallel
+    Core-->>UI: ScanResult (immutable)
+    UI->>UI: derive register, card, effective set, problems
+    UI->>Usage: CollectAsync (background)
+    Usage->>Disk: read only what was appended since last time
+    Usage-->>UI: UsageReport
+    Disk-->>Watch: file events
+    Watch-->>UI: debounced 500 ms, then rescan
 ```
 
-- Sources are scanned with `Parallel.ForEachAsync`, one source per task.
-- Only the head of each file is read during a scan. `Skill.Body` stays `null`; the card loads it on demand
-  through `SkillBodyReader` (capped at 1 MB).
-- A file or folder that cannot be read becomes a `ScanIssue`. It never aborts the scan.
+**What Lustrum writes, and the guarantees**
 
-### Data model
-
-Everything in `Lustrum.Core.Models` is an immutable `record`.
-
-```csharp
-SkillSource(Id, Kind, DisplayName, RootPath, LastSeen, Exists, IsEnabled)
-Skill(Id, Name, FullName, Description, Kind, Source, Path, Body, Frontmatter,
-      AllowedTools, Files, SizeBytes, Modified, Health, Tags)
-Conflict(Name, Skills)
-ScanResult(Sources, Skills, Conflicts, Issues, ScannedAt, Duration)
-```
-
-- `SourceKind`: `Global`, `Project`, `Plugin`, `Synced`. `SkillKind`: `Skill`, `Command`.
-- `SkillSource.Namespace` is the prefix of plugin and synced skills; `Layout` says whether skills sit in
-  `skills/<name>/` or directly in the source folder.
-- `Skill.Id` is `<source id>#<path relative to the source root>`. It is unique inside a scan and survives
-  a frontmatter rename.
-- `FullName` carries the prefix (`unity:ui`, `anthropic-skills:xlsx`). Conflicts are keyed by full name for
-  prefixed skills and by short name otherwise, so `unity:ui` and a global `ui` do not collide, while two copies of
-  `design:critique` (say, an installed and a synced plugin) do.
-- `Skill.Tags` are computed: own-prefix tags, `plugin`, `synced`, `command`, `broken`, `duplicate`.
-
-### Health
-
-| Health | When | Counts as a problem |
-|---|---|---|
-| `Ok` | name and description present and valid | no |
-| `DescriptionTooLong` | description longer than 1024 characters | yes, as a warning |
-| `MissingDescription` | frontmatter has no `description` | yes |
-| `MissingName` | frontmatter has no `name` (the folder name is used) | yes |
-| `NoFrontmatter` | file does not start with `---` (folder name and first body line are used) | yes |
-| `ParseError` | unclosed fence, invalid YAML or unreadable file | yes |
-
-Commands are checked more leniently, because Claude Code does not require frontmatter for them: only
-`ParseError` and `DescriptionTooLong` apply, and the name is always the file path.
-
-The frontmatter parser strips a BOM, accepts CRLF, converts leading tabs to spaces, and takes
-`allowed-tools` as either a YAML list or a comma-separated string (commas inside parentheses are kept,
-so `Bash(git:*, status)` stays one entry). YAML errors are reported as `Line <n>: <cause>`, counted from the
-top of the file.
-
-### Effective set
-
-`EffectiveSetBuilder.Build(scan, project)` takes that project's skills, the global skills, the skills of
-enabled plugins and the skills synced from claude.ai. Within one name it follows Claude Code's rules: a skill beats
-a command, and a personal (global) copy beats a project copy. The winner is `Active` and lists what it overrides, the
-loser is `Shadowed` and points at the winner. Prefixed skills are never shadowed. Skills from other projects are not part of the set.
-Each active personal or project skill also carries the visibility that applies in that project (see below), so a
-skill turned off there is labelled `off`.
-
-### Missing
-
-`MissingSetBuilder.Build(scan, project)` is the complement of the effective set: every skill on the machine the
-project does not load, which means skills that live in other projects and skills of disabled plugins. When a
-same-named copy is loaded in the project anyway, the entry says where that copy comes from.
-
-### Search and scopes
-
-`SkillScope` is a small polymorphic hierarchy rather than a set of flags. Each scope decides for itself
-which skills it includes.
-
-| Scope | Includes |
-|---|---|
-| `AllScope` | everything |
-| `KindScope(kind)` | all skills from global, project or plugin sources |
-| `SourceScope(id)` | one project or one plugin |
-| `MarketplaceScope(name)` | every plugin from one marketplace |
-| `EffectiveScope(projectId)` | that project, global skills, enabled plugins and synced skills |
-| `MissingScope(projectId)` | everything `EffectiveScope` leaves out |
-| `ProblemsScope` | anything with a health problem, including `DescriptionTooLong` |
-
-`SkillIndex.Search(skills, new SkillQuery(scope, text, requiredTags))` applies the scope and the tags, then the
-text. Every word must match. Names are scored by `FuzzyMatcher`: exact, then prefix, then word start, then
-substring, then an ordered subsequence (at least three characters, within three times the pattern length, so
-`rlsnotes` finds `release-notes`). Descriptions and tags match as substrings only. With text, results are ordered
-by score.
-
-**Search SKILL.md text** runs `SkillBodySearch` 250 ms after you stop typing: it reads each `SKILL.md` body from
-disk, keeps the ones that contain every word and appends them to the results. Bodies are not kept in memory.
-
-### Usage
-
-Claude Code writes every session to `~/.claude/projects/<encoded>/*.jsonl` (subagents included). A skill counts as
-used by Claude when an assistant entry has a `Skill` tool call (`input.skill`), and as used by you when a user entry
-contains `<command-name>/name</command-name>`. Usage is matched to skills by full name (`unity:ui`, `deploy`), so two
-skills with the same name share their numbers.
-
-Those files can add up to gigabytes, so `UsageCollector` reads them incrementally: it remembers, per file, the
-length, the modification time and the offset after the last complete line, and on the next pass reads only what was
-appended. A hash of the first 4 KB catches files that were replaced rather than appended to. Lines are split on raw
-bytes and only lines that contain one of the two markers are decoded and parsed. Lines over 16 MB (pasted images,
-huge tool output) are skipped. On one machine with 1.4 GB of transcripts the first pass took 0.3 s and the next one
-7 ms.
-
-The window collects usage in the background after the first scan and again on every manual rescan; file-watcher
-rescans leave it alone. The cache lives in memory, so each launch starts with a full pass. Until usage is known, the
-`unused` chip is disabled; it stays disabled when no transcripts exist, because then every skill would look unused.
-
-### Compare
-
-`SkillComparer` runs a line diff ([DiffPlex](https://github.com/mmanela/diffplex)) over the whole files, frontmatter
-included. Line endings, a byte order mark and trailing blank lines are ignored. `DiffFolding` keeps three lines of
-context around each change and folds longer unchanged runs; the card shows at most 2,000 rows. The card labels the sides plainly: `−` is only in the copy you selected, `+` only in the
-other one. The CLI prints the same diff in unified format.
-
-### Git
-
-Only global and project skills are considered. Plugin and synced folders are managed by Claude Code and the Claude
-desktop app, so Lustrum leaves them alone.
-
-`GitRepositoryLocator` finds a skill's repository by walking up from its folder to the nearest `.git` entry (a
-folder, or a file for worktrees and submodules), without starting git. Symbolic links are resolved first, so a
-`skills` folder linked into a dotfiles checkout is matched against that checkout. The repository gets one of two
-roles:
-
-| Role | When | What Lustrum does |
-|---|---|---|
-| `SkillsOnly` | the repository root is the skill folder itself, or lies inside a `skills` or `commands` folder | status, checks and updates |
-| `Containing` | anything larger: a project, `~/.claude`, a dotfiles repository | status and checks only |
-
-The card reads local state with the git command line: `symbolic-ref` and `rev-list --left-right --count HEAD...@{u}`
-for branch, upstream, behind and ahead; `status --porcelain=v1 -z` for uncommitted changes (only under the skill
-folder in a `Containing` repository); `log -1` for the last commit that touched the skill. Behind and ahead are
-relative to the upstream as of the last fetch, and the card says so until you check.
-
-Nothing goes over the network until you press **Check for updates**, which runs `git fetch` for a repository with
-an upstream. The toolbar button checks every repository that holds skills, project repositories included, four at a
-time. The `updates` chip then keeps the skills of skills repositories that are behind; a project repository's count
-stays on the card, because commits elsewhere in the project say nothing about the skill. A repository that is being
-checked or updated is not checked again. Results last for the session and survive rescans.
-
-`UpdatePolicy` decides whether **Update** is enabled. The repository must be `SkillsOnly`, on a branch with an
-upstream, behind it, with no uncommitted changes and no local commits. `SkillGit.UpdateAsync` fetches, checks the
-policy again on fresh state, refuses when the upstream starts tracking a file that exists locally as an ignored file
-(git would replace it silently), and only then runs `git merge --ff-only @{u}`, which cannot create a merge commit
-or touch local work. Because of that fetch, an update can bring in commits newer than the last check. A rescan
-follows.
-
-git runs without a terminal: `GIT_TERMINAL_PROMPT=0` and `SSH_ASKPASS_REQUIRE=never` turn a password prompt into a
-failed check, `LC_ALL=C` keeps messages in English, `GIT_OPTIONAL_LOCKS=0` stops `status` from rewriting the index,
-and `core.fsmonitor` is switched off so reading a repository never starts a monitor daemon. Local commands time out
-after 30 s, fetches after 90 s.
-
-### Visibility
-
-Claude Code reads a `skillOverrides` map from its settings files: skill name to `on`, `name-only`,
-`user-invocable-only` or `off`. The scan reads it from `~/.claude/settings.json` and from each project's
-`.claude/settings.json` and `.claude/settings.local.json`. In a project, the local file wins over the shared one, which
-wins over user settings, key by key. Plugin skills and commands are not affected, as in Claude Code.
-
-| Value | Claude sees | `/name` in the menu | Label in Lustrum |
+| Action | Writes | Before writing it checks | How it writes |
 |---|---|---|---|
-| `on` (or no entry) | name and description | yes | none |
-| `name-only` | the name only | yes | `name only` |
-| `user-invocable-only` | nothing | yes | `you only` |
-| `off` | nothing | no | `off`, row dimmed |
+| **Visibility** | one `skillOverrides` entry in `~/.claude/settings.json` (personal skill) or `<project>/.claude/settings.local.json` (project skill) | the file is plain JSON and an object; it has not changed since it was read | every other key and character kept; follows links; temporary file with the same mode, flushed, then moved over |
+| **Copy to** | a new skill folder or command file in personal skills or a project | nothing with that folder name or skill name exists in the target; under 2,000 files and 50 MB | without `.git` and linked files; staged outside `skills/`, moved into place at the end |
+| **Update** | the working tree of a git repository that holds only skills | fresh fetch; on a branch with an upstream; behind; clean tree; no local commits; no ignored file would be replaced | `git merge --ff-only @{u}`, never a merge commit |
 
-The card's **Visibility** control writes one entry. For a personal skill it goes to `~/.claude/settings.json`; for a
-project skill to that project's `.claude/settings.local.json`, the file Claude Code's own `/skills` menu writes.
-Entries are keyed by name, so one entry covers every skill with that name, and the card says so. The control shows
-what applies to the skill at home, and the card names the file when that value comes from somewhere else; in a
-project view it also says when the project's settings take precedence.
+Network access happens only on **Check for updates** and **Update**.
 
-Choosing **On** removes the entry, unless a lower file would then hide the skill again; in that case Lustrum writes
-an explicit `on`. `ClaudeSettingsWriter` changes only that entry and keeps every other key and character. It follows a
-linked settings file to the real one, writes a temporary file next to it with the same file mode, flushes it to disk
-and moves it over the original. If the file changed while Lustrum was writing, the change is refused instead of
-overwriting it. A file that is not plain JSON, for example one with comments or trailing commas, is left alone too,
-because rewriting it would lose what makes it different. Writes are serialised, and the control is disabled while one
-is in progress.
+| Core module | Responsibility | Key types |
+|---|---|---|
+| `Scanning` · `Parsing` | find sources, read skills, parse frontmatter, decode project folder names | `SkillScanner`, `SourceDiscovery`, `FrontmatterParser`, `ProjectPathDecoder` |
+| `Indexing` | scopes and ranked search | `SkillScope`, `SkillIndex`, `FuzzyMatcher` |
+| `Effective` | what a project loads and what it misses, by Claude Code's rules | `EffectiveSetBuilder`, `MissingSetBuilder` |
+| `Problems` · `Comparing` | health problems; folded line diffs | `ProblemCollector`, `SkillComparer` |
+| `Usage` | incremental transcript reading | `UsageCollector`, `TranscriptParser`, `SkillUsage` |
+| `Git` | repository roles, status, fetch, update policy | `GitRepositoryLocator`, `SkillGit`, `UpdatePolicy`, `GitCli` |
+| `ClaudeSettings` | `skillOverrides` across settings files, safe edits | `SkillOverrides`, `ClaudeSettingsWriter` |
+| `Copying` | planned, staged copies | `SkillCopier`, `CopyPlan` |
+| `Watching` | what to watch, debouncing, polling fallback | `WatchTargets`, `SkillTreeWatcher` |
 
-### Copy
-
-**Copy to** lists your personal skills and every existing project other than the skill's own source. `SkillCopier`
-plans each target first and greys out the ones it would refuse: the folder or file already exists there, or the
-target already has a skill or command with that name. A skill folder is copied whole, without `.git` and without
-linked files or folders (their content lives outside the skill), into a staging folder next to `skills/`, where neither
-Lustrum nor Claude Code looks for skills, and moved into place at the end, so a failure or a rescan never sees half a
-skill.
-A command keeps its relative path under `commands/`. Plugin and synced skills can be copied out as well, which is the
-way to customise one. Copies over 2,000 files or 50 MB are refused.
-
-Remember the precedence rule: a project copy of a personal skill is shadowed by the personal one in that project.
-Copying into a project is for sharing a skill with the team through the repository.
-
-### Live updates
-
-`WatchTargets` picks what to watch. Skill and command folders (including those of synced plugins) and the plugin
-cache are watched recursively.
-`~/.claude/plugins`, `~/.claude/projects` and each project's `.claude` are watched without subfolders, and
-`~/.claude` itself only for `settings.json`, `skills` and `commands`, because Claude Code writes transcripts,
-history and worktrees there constantly. `~/.claude.json` is not watched for the same reason; a new project still shows
-up, because Claude Code creates its folder in `~/.claude/projects`. Events inside folders whose name starts with a
-dot (`.staging` during a sync, `.DS_Store`) are ignored.
-
-`SkillTreeWatcher` debounces events by 500 ms. It falls back to polling a fingerprint every 30 s when there are
-more folders than the platform handles comfortably (64 on Linux, where each watcher is an inotify instance, 256
-elsewhere) or when native watchers cannot be created. It is built off the UI thread, and the status bar says which
-mode is active.
-
-### Threading
-
-- The scan runs on the thread pool; `MainViewModel` applies the result on the UI thread.
-- Starting a new rescan cancels the previous one, and a result from a superseded scan is dropped.
-- git runs as a child process with asynchronous I/O; the window never waits on it.
-- Failures from the scan, the content search, git, the editor or the file manager are reported in the status bar.
-
-### The window
-
-The layout is a Swiss grid in three columns under a header and above a terminal-style CLI line, set in Archivo
-(regular, semi-condensed, condensed and extra-condensed cuts) and JetBrains Mono, bundled with the app. Each cut is
-loaded from its own file, because Avalonia does not tell the width variants of one family apart. Light and dark
-themes share one set of semantic colours; the accent is a single lime. The mark, a 5×5 census grid whose found
-cells form an L, is drawn by the `LustrumMark` control, and the app icons are rendered from the same geometry.
-
-`MainViewModel` is split into partial files by concern: list and sorting, content search, project views, usage,
-git, writes, footer, problems, card, commands, settings. The project view is one `ProjectView` value (`Own`, `Effective`, `Missing`),
-not a set of checkboxes. The view is split the same way into `SourcesPane`, `SkillListPane`,
-`SkillCardPane` and `SettingsPanel`.
-
-| Piece | Role |
-|---|---|
-| `NavTreeBuilder` | `ScanResult` to the source tree, with counts |
-| `NavSection` | a top-level row of the source column with its key, and its children when open |
-| `SkillItemViewModel`, `ListHeader` | one list row with its number, state and mark; a group heading |
-| `SkillCardViewModel` | the card; loads the `SKILL.md` body and the git state in the background |
-| `GitSection`, `RepoState` | what the card's git section shows, and what has been done to each repository this session |
-| `ProblemItemViewModel` | one row in the Problems list |
-| `SettingsEditorViewModel` | the editable copy of the settings |
-| `IShellService`, `IClipboardService`, `ISettingsService`, `IThemeService`, `ISkillGit`, `ISkillWriter` | the only places that touch the OS; faked in tests |
-
-## Settings and logs
-
-Settings live in `lustrum/settings.json` under the user's application-data folder:
-`~/Library/Application Support` on macOS, `~/.config` on Linux, `%APPDATA%` on Windows. The file is written only
-when you press **Apply and rescan**. Missing fields fall back to defaults; an unreadable file is reported and the
-defaults are used. The CLI reads the same file.
-
-Logs go to `lustrum/logs/lustrum-<date>.log` next to the settings, kept for 7 days. Each scan logs its size and
-duration, every missing source and every read issue; the first scan also logs how long the window took to show
-data. **Open logs** in the settings panel opens the folder.
+The full design notes, from discovery and the data model to the git and write paths, threading and the window, are in
+**[docs/architecture.md](docs/architecture.md)**. The Claude Code files Lustrum reads are described in
+[docs/claude-code-layout.md](docs/claude-code-layout.md).
 
 ## CLI
 
@@ -472,14 +221,11 @@ lustrum diff <name>
 ```
 
 ```text
-$ lustrum list --source plugin
-NAME                            SOURCE                       HEALTH              DESCRIPTION
-data-kit:chart-builder          data-kit (acme-tools)        ok                  Turn a table into an accessible chart with sensible defaults.
-data-kit:csv-clean              data-kit (acme-tools)        ok                  Normalise encodings, delimiters and column names in messy CSV files.
-/data-kit:export                data-kit (acme-tools)        ok                  Export the current dataset to CSV or Parquet.
-ops-runbooks:incident-response  ops-runbooks (field-guides)  ok                  Walk through an incident: triage, comms, mitigation, follow-up.
-review-kit:perf-audit           review-kit (acme-tools)      ok                  Find hot paths and allocation-heavy code in a profile or diff.
-review-kit:security-scan        review-kit (acme-tools)      ok                  Scan changed files for injection, secrets and unsafe deserialization.
+$ lustrum list --project ~/work/storefront --source project
+NAME           SOURCE      HEALTH              IN PROJECT          DESCRIPTION
+checkout-flow  storefront  ok                  loaded              Trace the checkout flow and find where an order can get stuck.
+release-notes  storefront  ok                  shadowed by Global  Release notes for the storefront: customer-facing wording, no ticket id…
+ui-kit         storefront  ok                  loaded              Use the shared component library correctly: tokens, spacing, accessibil…
 
 $ lustrum list --broken
 NAME           SOURCE  HEALTH              DESCRIPTION
@@ -488,100 +234,70 @@ broken-yaml    Global  ParseError          (no description)
 legacy-import  Global  NoFrontmatter       Imports old markdown notes.
 ```
 
-`--project` prints the effective set for one project folder, with an extra column saying what wins. The folder
-needs a `.claude` directory; Claude Code does not have to know about it yet.
+- `--project <folder>` prints that project's effective set with an `IN PROJECT` column; `--missing` lists what it
+  does not load, with a `NOTE` for disabled plugins and names loaded from elsewhere.
+- `--usage` adds `USES` and `LAST USED`; `--unused` keeps skills with no recorded use and refuses to run when there are
+  no transcripts at all.
+- `--json` prints full records: frontmatter, allowed tools, files, health, tags, and with `--project` the
+  availability, `shadowedBy`, `overrides` and `visibility`.
+- `diff <name>` prints every copy of a name against the project copy in unified format.
+- Unreadable files go to stderr as `warning: <path>: <reason>`. Exit code 2 means bad input (unknown source, a folder
+  without `.claude`, an unknown name); exit code 1 means a copy could not be read.
 
-```text
-$ lustrum list --project ~/work/storefront --source project
-NAME           SOURCE      HEALTH              IN PROJECT          DESCRIPTION
-checkout-flow  storefront  ok                  loaded              Trace the checkout flow and find where an order can get stuck.
-release-notes  storefront  ok                  shadowed by Global  Release notes for the storefront: customer-facing wording, no ticket id…
-ui-kit         storefront  ok                  loaded              Use the shared component library correctly: tokens, spacing, accessibil…
-```
+## Quality
 
-`--project <folder> --missing` lists the skills that project does not load, with a `NOTE` column for disabled
-plugins and for names that are loaded from somewhere else; it combines with `--usage`, and `--json` adds `reason`,
-`loadedHere` and `usage`. `--missing` without `--project` exits with code 2.
-
-`--usage` adds `USES` and `LAST USED` columns read from the transcripts, `--unused` keeps only skills with no
-recorded use. Both work with `--project`. Without any transcripts `--unused` refuses to run instead of reporting
-every skill as unused.
-
-`--json` prints the full `Skill` records, including `frontmatter`, `allowedTools`, `files`, `health` and `tags`.
-With `--project`, each record also carries `availability`, `shadowedBy`, `overrides` (skill ids) and `visibility`; with `--usage`,
-a `usage` object.
-Files that could not be read are reported on stderr as `warning: <path>: <reason>`.
-An unknown `--source`, a folder without `.claude` or `--unused` without transcripts exits with code 2.
-
-`lustrum diff <name>` compares the copies of one name: the project copy (if any) is the base, every other copy is
-diffed against it in unified format. A copy that cannot be read is reported on stderr and the command exits with
-code 1; an unknown name exits with code 2.
-
-## Repository layout
+| | |
+|---|---|
+| **Tests** | 396 xUnit tests, about 4,700 lines, more than the Core code they cover |
+| **Coverage** | 91% of lines in `Lustrum.Core`, 87% in the view models (coverlet) |
+| **Real environments** | scanner tests on throw-away home folders; git tests on real repositories with a bare remote; writer tests on real files, links and file modes |
+| **CI** | the full suite on Ubuntu, macOS and Windows for every pull request; `main` only accepts green changes |
+| **Builds** | warnings are errors; self-contained single-file releases for macOS (arm64, x64), Linux x64 and Windows x64 |
+| **Size** | Core about 3,300 lines of C#, the window about 3,000 lines of C# and 1,100 of XAML, the CLI about 350 |
 
 ```text
 lustrum/
 ├── src/
-│   ├── Lustrum.Core/      Models/ Parsing/ Scanning/ Indexing/ Effective/ Problems/ Settings/ Watching/ Usage/ Comparing/ Git/ ClaudeSettings/ Copying/
-│   ├── Lustrum.App/       Views/ ViewModels/ Services/ Controls/ Assets/ (fonts, icons)
-│   └── Lustrum.Cli/       list and diff commands, table renderer
-├── tests/
-│   ├── Lustrum.Core.Tests/   scanner, discovery, parser, decoder, search, effective set, problems, settings, watcher, usage, git, visibility, copy
-│   ├── Lustrum.App.Tests/    view models, source tree, services
-│   └── Lustrum.Cli.Tests/    table output, diff report
-├── docs/                  screenshots, Claude Code on-disk notes
-├── tools/
-│   └── Lustrum.Screenshots/  renders the README screenshots from a synthetic ~/.claude
-├── build/                 packaging scripts: macOS app bundle, Linux AppImage
-├── .github/workflows/     CI on three OSes, release builds on tags
-├── Directory.Build.props  net10.0, nullable, warnings as errors
-└── lustrum.sln
+│   ├── Lustrum.Core/        Scanning/ Parsing/ Indexing/ Effective/ Problems/ Comparing/ Usage/ Git/ ClaudeSettings/ Copying/ Watching/ Settings/ Models/
+│   ├── Lustrum.App/         Views/ ViewModels/ Services/ Controls/ Assets/
+│   └── Lustrum.Cli/         list and diff commands, table renderer
+├── tests/                   Core, App and CLI test projects
+├── tools/Lustrum.Screenshots/   headless renderer for the screenshots above
+├── docs/                    architecture, Claude Code layout, screenshots
+├── build/                   macOS app bundle and Linux AppImage packaging
+└── .github/workflows/       CI on three OSes, release builds on tags
 ```
 
-## Tests
+## Settings and logs
 
-396 xUnit tests with FluentAssertions. Core tests do not scan your real `~/.claude`: `FakeClaudeHome` builds a
-throw-away home directory with skills, commands, plugin registry, settings, project folders and `~/.claude.json`,
-and the scanner runs against it. That makes the awkward cases cheap to cover: colliding project keys, malformed
-registry files, unreadable folders, folders with dashes and dots in their names, frontmatter with a BOM and tabs,
-oversized frontmatter, native and polling file watching. Git tests run the real git command line against
-`GitSandbox`: throw-away repositories with a bare remote, so behind, ahead, dirty trees, detached heads and refused
-updates are real git states. The App tests drive `MainViewModel` with a fake scan
-function, shell, clipboard, settings, theme and git, including overlapping rescans and the effective set.
-
-Measured with coverlet: 91% of lines in `Lustrum.Core`, 87% in the view models.
-
-```bash
-dotnet test
-```
-
-## Built with
-
-[Avalonia 11](https://avaloniaui.net/) · [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) ·
-[YamlDotNet](https://github.com/aaubry/YamlDotNet) · [FluentIcons.Avalonia](https://github.com/davidxuang/FluentIcons) ·
-[Markdown.Avalonia](https://github.com/whistyun/Markdown.Avalonia) · [System.CommandLine](https://github.com/dotnet/command-line-api) ·
-[Serilog](https://serilog.net/) · [DiffPlex](https://github.com/mmanela/diffplex) · xUnit
-
-Fonts: [Archivo](https://github.com/Omnibus-Type/Archivo) and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono),
-both under the SIL Open Font License; the licence texts are next to the font files in `src/Lustrum.App/Assets/Fonts`.
+Settings live in `lustrum/settings.json` under the user's application-data folder (`~/Library/Application Support`
+on macOS, `~/.config` on Linux, `%APPDATA%` on Windows) and are written only on **Apply and rescan**. Logs go to
+`lustrum/logs/`, kept for 7 days: scan size and duration, missing sources, read issues and time to first data.
 
 ## Limitations
 
-- Only files on disk are visible. claude.ai skills appear only where the Claude desktop app has synced them, and
-  the synced layout is not documented by Anthropic.
-- The effective set follows Claude Code's documented rules for personal, project and plugin skills. Enterprise
-  (managed) skills and settings are not read, and plugins count as enabled or disabled by the user-level
+- Only files on disk are visible. claude.ai skills appear only where the Claude desktop app has synced them, and the
+  synced layout is not documented by Anthropic; nor is the transcript format usage is read from.
+- Enterprise (managed) skills and settings are not read. Plugins count as enabled or disabled by the user-level
   `~/.claude/settings.json` only.
-- The window has only been run on macOS; on Windows and Linux only the tests run in CI.
-- The macOS app is not notarized, and there is no Windows installer.
-- Usage is counted by skill name from transcripts whose format Anthropic does not document.
-- Skills in nested `.claude/skills` folders below a project root, or in parent folders up to the repository root,
-  are not discovered; Claude Code loads those too.
+- Skills in nested `.claude/skills` folders below a project root, or in parent folders up to the repository root, are
+  not discovered; Claude Code loads those too.
 - Claude Code's documentation does not say how `skillOverrides` from several files combine; Lustrum assumes key by key,
   the higher file winning.
-- Git features need `git` on the `PATH`. A remote that asks for a password fails the check instead of prompting.
-- **Update** only fast-forwards. A diverged or dirty repository, or one that holds more than skills, has to be
-  updated with git directly. The merge runs the repository's own hooks and filters, as `git merge` would.
+- Git features need `git` on the `PATH`; a remote that asks for a password fails the check instead of prompting.
+  **Update** only fast-forwards and runs the repository's own hooks, as `git merge` would.
+- The window is developed on macOS; on Windows and Linux the test suite runs in CI. The macOS app is not notarized, and
+  there is no Windows installer.
+
+## Built with
+
+[Avalonia](https://avaloniaui.net/) · [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) ·
+[YamlDotNet](https://github.com/aaubry/YamlDotNet) · [DiffPlex](https://github.com/mmanela/diffplex) ·
+[Markdown.Avalonia](https://github.com/whistyun/Markdown.Avalonia) · [System.CommandLine](https://github.com/dotnet/command-line-api) ·
+[Serilog](https://serilog.net/) · [FluentIcons](https://github.com/davidxuang/FluentIcons) · xUnit · FluentAssertions
+
+Type: [Archivo](https://github.com/Omnibus-Type/Archivo) and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono),
+both under the SIL Open Font License; the licence texts sit next to the font files.
 
 ## Name
 
