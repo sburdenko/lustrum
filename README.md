@@ -131,37 +131,40 @@ dotnet test                                        # 396 tests
 ```mermaid
 flowchart TB
     subgraph front["Front ends"]
-        app["<b>Lustrum.App</b><br/>Avalonia 11 · MVVM<br/>views · view models · services"]
-        cli["<b>Lustrum.Cli</b><br/>System.CommandLine<br/>list · diff"]
+        direction LR
+        app["<b>Lustrum.App</b><br/>Avalonia 11 · MVVM"]
+        cli["<b>Lustrum.Cli</b><br/>list · diff"]
     end
 
     subgraph core["Lustrum.Core · no UI dependency"]
-        direction LR
+        direction TB
         subgraph read["Read"]
-            scanning["Scanning · Parsing<br/>discovery · reader · frontmatter"]
-            usage["Usage<br/>incremental transcript reader"]
-            watching["Watching<br/>debounced watchers · polling"]
+            direction LR
+            scanning["Scanning · Parsing"]
+            usage["Usage"]
+            watching["Watching"]
         end
         subgraph derive["Derive"]
-            indexing["Indexing<br/>scopes · fuzzy search"]
-            effective["Effective<br/>precedence · missing"]
-            problems["Problems · Comparing<br/>health · line diff"]
+            direction LR
+            indexing["Indexing"]
+            effective["Effective"]
+            problems["Problems · Comparing"]
         end
         subgraph act["Act on request"]
-            git["Git<br/>status · fetch · fast-forward"]
-            claude["ClaudeSettings<br/>skillOverrides"]
-            copying["Copying<br/>staged copies"]
+            direction LR
+            git["Git"]
+            claude["ClaudeSettings"]
+            copying["Copying"]
         end
+        read --> derive --> act
     end
 
-    disk[("~/.claude · ~/.claude.json<br/>&lt;project&gt;/.claude")]
+    disk[("~/.claude · ~/.claude.json · &lt;project&gt;/.claude")]
     gitcli[["git"]]
 
-    app --> core
-    cli --> scanning & usage & effective & problems
-    read --> disk
-    act --> disk
-    git --> gitcli
+    front --> core
+    core --> disk
+    core --> gitcli
 ```
 
 **Principles**
