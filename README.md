@@ -123,7 +123,7 @@ xattr -dr com.apple.quarantine Lustrum.app
 git clone https://github.com/sburdenko/lustrum.git && cd lustrum
 dotnet run --project src/Lustrum.App               # the window
 dotnet run --project src/Lustrum.Cli -- list       # the same data in a terminal
-dotnet test                                        # 413 tests
+dotnet test                                        # 434 tests
 ```
 
 ## Architecture
@@ -205,7 +205,7 @@ Network access happens only on **Check for updates** and **Update**.
 | `Problems` · `Comparing` | health problems; folded line diffs | `ProblemCollector`, `SkillComparer` |
 | `Usage` | incremental transcript reading | `UsageCollector`, `TranscriptParser`, `SkillUsage` |
 | `Git` | repository roles, status, fetch, update policy | `GitRepositoryLocator`, `SkillGit`, `UpdatePolicy`, `GitCli` |
-| `ClaudeSettings` | `skillOverrides` and `enabledPlugins` across managed, user, project and local settings; safe edits | `SettingsLayers`, `ClaudeSettingsWriter` |
+| `ClaudeSettings` | `skillOverrides` and `enabledPlugins` from every managed source (server cache, configuration profile or registry, files), user, project and local settings; safe edits | `SettingsLayers`, `SettingsLayersReader`, `SystemPolicyStore`, `ClaudeSettingsWriter` |
 | `Copying` | planned, staged copies | `SkillCopier`, `CopyPlan` |
 | `Watching` | what to watch, debouncing, polling fallback | `WatchTargets`, `SkillTreeWatcher` |
 
@@ -248,7 +248,7 @@ legacy-import  Global  NoFrontmatter       Imports old markdown notes.
 
 | | |
 |---|---|
-| **Tests** | 413 xUnit tests, about 4,700 lines, more than the Core code they cover |
+| **Tests** | 434 xUnit tests, about 4,700 lines, more than the Core code they cover |
 | **Coverage** | 91% of lines in `Lustrum.Core`, 87% in the view models (coverlet) |
 | **Real environments** | scanner tests on throw-away home folders; git tests on real repositories with a bare remote; writer tests on real files, links and file modes |
 | **CI** | the full suite on Ubuntu, macOS and Windows for every pull request; `main` only accepts green changes |
@@ -278,11 +278,10 @@ on macOS, `~/.config` on Linux, `%APPDATA%` on Windows) and are written only on 
 
 - Only files on disk are visible. claude.ai skills appear only where the Claude desktop app has synced them, and the
   synced layout is not documented by Anthropic; nor is the transcript format usage is read from.
-- Managed settings are read from `managed-settings.json` and `managed-settings.d/`; policies delivered as a macOS
-  configuration profile, through the Windows registry or from the claude.ai console are not.
-- Folders below a project are searched to the configured depth (default 4). Directories added with `--add-dir` are a
-  per-session choice and are not modelled, and a worktree without its own `.claude/skills` does not fall back to the
-  main checkout's skills, as recent Claude Code versions do.
+- Server-managed settings are read from Claude Code's local cache, `~/.claude/remote-settings.json`; Lustrum never
+  fetches them itself, so they are as fresh as Claude Code's last fetch.
+- Folders below a project are searched to the configured depth (default 4). Directories added with `--add-dir` are
+  chosen per session on the command line and stored nowhere, so they cannot be modelled.
 - Claude Code's documentation does not say how `skillOverrides` from several files combine; Lustrum assumes key by key,
   the higher file winning.
 - Git features need `git` on the `PATH`; a remote that asks for a password fails the check instead of prompting.

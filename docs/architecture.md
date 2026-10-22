@@ -57,6 +57,11 @@ The home directory is skipped, because its `.claude` is already the global sourc
 exists stays in the data with `Exists = false`; the source column hides it until **show empty and missing projects**
 is ticked, and the Problems list shows it.
 
+**Worktrees.** A linked git worktree (its `.git` is a file whose `gitdir` leads to `.git/worktrees/<name>`, with a
+`commondir` back to the main repository) that has no `.claude/skills` folder of its own loads the main checkout's
+project skills, as Claude Code does since 2.1.277. `GitWorktree.MainCheckout` finds that checkout without starting git;
+submodules, whose `.git` file has no `commondir`, are not treated as worktrees.
+
 **Parent and nested folders.** Claude Code loads project skills from the folder a session starts in and from every
 parent up to the repository root, and skills in folders below it once Claude works on files there. For every known
 project, `ProjectDiscovery.Related` adds the parent folders with skills of their own, stopping at the repository root
@@ -259,11 +264,26 @@ after 90 s, and a process that outlives its timeout is killed with its children.
 ## Visibility
 
 Claude Code reads a `skillOverrides` map from its settings files: skill name to `on`, `name-only`,
-`user-invocable-only` or `off`. `SettingsLayersReader` reads it, with `enabledPlugins`, from the managed settings
-(`managed-settings.json`, then every `*.json` in `managed-settings.d/` in name order, each overriding the last), from
-`~/.claude/settings.json` and from each project's `.claude/settings.json` and `.claude/settings.local.json`. Managed
-wins over project-local, which wins over project, which wins over user settings, key by key. Plugin skills and
-commands are not affected, as in Claude Code.
+`user-invocable-only` or `off`. `SettingsLayersReader` reads it, with `enabledPlugins`, from the managed settings,
+from `~/.claude/settings.json` and from each project's `.claude/settings.json` and `.claude/settings.local.json`.
+Managed wins over project-local, which wins over project, which wins over user settings, key by key.
+
+The managed layer is chosen the way Claude Code ranks its admin sources:
+
+| Rank | Source | Read from |
+|---|---|---|
+| 1 | server-managed settings (claude.ai console or a gateway) | Claude Code's cache, `~/.claude/remote-settings.json` |
+| 2 | device policy | macOS: the `com.anthropic.claudecode` configuration profile in `/Library/Managed Preferences` (device-wide, then the user's), converted with `plutil`; Windows: the `Settings` value under `HKLM\SOFTWARE\Policies\ClaudeCode` |
+| 3 | managed files | `managed-settings.json`, then every `*.json` in `managed-settings.d/` in name order, each overriding the last |
+| fallback | user policy | Windows: the `Settings` value under `HKCU\SOFTWARE\Policies\ClaudeCode`, only when none of the above is present |
+
+The first source with a policy key supplies the policy and the rest are skipped. When the highest present source sets
+`managedSourcesBehavior` to `"merge"`, every admin source contributes, higher ones winning key by key. A source that
+exists but cannot be read is reported in Problems and still counts as present. OS policies are read only through an
+`IPolicyStore` the caller passes: the window and the CLI pass `SystemPolicyStore`, tests a fake one. A converted
+profile is kept until its file changes, and `/Library/Managed Preferences` is watched like the skill folders.
+
+`skillOverrides` does not affect plugin skills or commands, as in Claude Code.
 
 | Value | Claude sees | `/name` in the menu | Label in Lustrum |
 |---|---|---|---|

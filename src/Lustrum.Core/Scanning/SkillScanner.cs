@@ -7,17 +7,22 @@ namespace Lustrum.Core.Scanning;
 
 public static class SkillScanner
 {
+    /// <summary>
+    /// Scans every source. OS policies (configuration profiles, the registry) are read only through
+    /// <paramref name="policies"/>; pass <see cref="SystemPolicyStore.Instance"/> to read the machine's own.
+    /// </summary>
     public static async Task<ScanResult> ScanAsync(
         ClaudePaths paths,
         ScanOptions? options = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IPolicyStore? policies = null)
     {
         var stopwatch = Stopwatch.StartNew();
         var settings = options ?? ScanOptions.Default;
         var discovered = SourceDiscovery.Discover(paths, settings);
         var skills = new ConcurrentBag<Skill>();
         var issues = new ConcurrentBag<ScanIssue>(discovered.Issues);
-        var claudeSettings = SettingsLayersReader.Read(paths, discovered.Sources, issues.Add);
+        var claudeSettings = SettingsLayersReader.Read(paths, discovered.Sources, issues.Add, policies);
         var sources = discovered.Sources
             .Select(s => s.Kind == SourceKind.Plugin ? s with { IsEnabled = claudeSettings.PluginEnabled(s, null) } : s)
             .ToList();
