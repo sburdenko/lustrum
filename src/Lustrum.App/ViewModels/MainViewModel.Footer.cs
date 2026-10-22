@@ -77,6 +77,7 @@ public sealed partial class MainViewModel
             {
                 ProjectView.Missing => "--missing",
                 ProjectView.Own => "--source project",
+                _ when SelectedSort.Mode == SortMode.ContextCost => "--budget",
                 _ => string.Empty,
             });
         }

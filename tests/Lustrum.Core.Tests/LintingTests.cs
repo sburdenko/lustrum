@@ -30,6 +30,13 @@ public class ReferenceLinterTests : IDisposable
     }
 
     [Fact]
+    public void Encoded_spaces_in_links_are_decoded_before_the_file_is_looked_up()
+    {
+        Missing("[guide](references/api%20guide.md) and [gone](references/old%20guide.md) and [pct](references/100%.md)")
+            .Should().Equal("references/old guide.md", "references/100%.md");
+    }
+
+    [Fact]
     public void Inline_paths_count_under_spec_folders_and_under_resource_folders_the_skill_has()
     {
         _home.File(Path.Combine(_folder, "templates", "a.md"), "x");

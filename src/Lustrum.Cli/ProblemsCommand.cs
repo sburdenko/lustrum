@@ -3,10 +3,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Problems;
-using Lustrum.Core.Scanning;
-using Lustrum.Core.Settings;
 
 namespace Lustrum.Cli;
 
@@ -33,8 +30,7 @@ internal static class ProblemsCommand
 
     private static async Task<int> RunAsync(bool asJson, CancellationToken cancellationToken)
     {
-        var settings = SettingsStore.Load(SettingsStore.DefaultPath).Settings;
-        var scan = await SkillScanner.ScanAsync(ClaudePaths.ForCurrentUser(), settings.ToScanOptions(), cancellationToken, SystemPolicyStore.Instance);
+        var scan = await CliScan.RunAsync(null, cancellationToken);
         var problems = ProblemCollector.Collect(scan);
         Console.WriteLine(asJson
             ? JsonSerializer.Serialize(problems.Select(p => new { p.Kind, p.Subject, Message = Message(p), p.Path }), JsonOptions)
@@ -58,7 +54,7 @@ internal static class ProblemsCommand
             builder.AppendLine($"{Label(problem.Kind).PadRight(kindWidth)}  {problem.Subject.PadRight(subjectWidth)}  {Message(problem)}");
         }
 
-        builder.Append(CultureInfo.InvariantCulture, $"\n{problems.Count} {(problems.Count == 1 ? "problem" : "problems")}");
+        builder.AppendLine().Append(CultureInfo.InvariantCulture, $"{problems.Count} {(problems.Count == 1 ? "problem" : "problems")}");
         return builder.ToString();
     }
 

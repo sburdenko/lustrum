@@ -58,6 +58,31 @@ public class ContextBudgetViewModelTests
     }
 
     [Fact]
+    public async Task Sorting_the_effective_set_by_cost_shows_the_budget_command()
+    {
+        var vm = await Effective();
+
+        vm.SelectedSort = vm.Sorts.Single(s => s.Mode == SortMode.ContextCost);
+
+        vm.CliCommand.Should().Be("list --project /dev/app --budget");
+    }
+
+    [Fact]
+    public async Task A_finding_marks_the_row_unless_the_skill_has_a_health_problem()
+    {
+        var finding = new SkillFinding(FindingKind.MissingFile, "scripts/run.sh", "Links to scripts/run.sh, which is not in the skill folder");
+        var linked = TestData.Skill(TestData.Global, "linked") with { Findings = [finding] };
+        var broken = TestData.Skill(TestData.Global, "broken", health: Health.MissingName) with { Findings = [finding] };
+        var vm = await Scanned(TestData.Scan([TestData.Global], [linked, broken]));
+
+        var row = vm.VisibleSkills.Single(s => s.Name == "linked");
+        row.Mark.Should().Be("LINK");
+        row.IsMarkWarning.Should().BeTrue();
+        row.MarkTip.Should().Be(finding.Message);
+        vm.VisibleSkills.Single(s => s.Skill.Health == Health.MissingName).Mark.Should().Be("ERR");
+    }
+
+    [Fact]
     public async Task Other_views_have_no_budget_line_or_row_cost()
     {
         var vm = await Scanned();

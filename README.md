@@ -41,7 +41,7 @@ edit skills.
 |---|---|
 | **Inventory** | Every skill and command from managed, personal, project, plugin and claude.ai sources, with counts per source and per marketplace. Fuzzy search on names, substring on descriptions and tags, optionally the text of every `SKILL.md`. |
 | **Project views** | Pick a project and switch between **Own** (its skills), **Effective** (exactly what Claude Code loads there: its own skills and those of parent folders up to the repository root, folders below it on demand, managed and personal skills, and the plugins its settings leave on, resolved by Claude Code's precedence rules) and **Missing** (skills on this machine it does not load). |
-| **Register** | A numbered list grouped by kind, with the state of each skill (shadowed, off, behind) and a mark for errors, long descriptions and duplicate names. Filter chips combine: own prefixes, `plugin`, `synced`, `command`, `broken`, `duplicate`, `unused`, `updates`. |
+| **Register** | A numbered list grouped by kind, with the state of each skill (shadowed, off, behind) and a mark for errors, long descriptions, failed checks and duplicate names. Filter chips combine: own prefixes, `plugin`, `synced`, `command`, `broken`, `duplicate`, `unused`, `updates`. |
 | **Health** | One Problems list: broken frontmatter with the YAML line and cause, over-long descriptions, projects whose folder is gone, paths that could not be read. |
 | **Checks** | Each `SKILL.md` is linted while it is read: links and `scripts/`, `references/` or `assets/` paths to files that are not in the skill folder, malformed `allowed-tools` entries, misspelt tool names with the likely meant one, and a bare `Bash` or `PowerShell` that allows any shell command. Findings show on the card and in Problems. |
 | **Context budget** | In a project's Effective view, an estimate of how many tokens the skill list takes in every session, per skill and in total, by Claude Code's rules: description plus `when_to_use`, capped at 1,536 characters, name only for `name-only`, nothing for hidden skills and `disable-model-invocation`. Skills sort by cost on request; the card shows what a skill costs listed and invoked, and what name-only would save. |
@@ -133,7 +133,7 @@ xattr -dr com.apple.quarantine Lustrum.app
 git clone https://github.com/sburdenko/lustrum.git && cd lustrum
 dotnet run --project src/Lustrum.App               # the window
 dotnet run --project src/Lustrum.Cli -- list       # the same data in a terminal
-dotnet test                                        # 494 tests
+dotnet test                                        # 498 tests
 ```
 
 ## Architecture
@@ -281,7 +281,7 @@ gone    retired-prototype  Project folder no longer exists: /Users/you/work/reti
 
 | | |
 |---|---|
-| **Tests** | 494 xUnit tests, about 5,200 lines, more than the Core code they cover |
+| **Tests** | 498 xUnit tests, about 5,200 lines, more than the Core code they cover |
 | **Coverage** | 88% of lines in `Lustrum.Core`, 87% in the view models (coverlet) |
 | **Real environments** | scanner tests on throw-away home folders; git tests on real repositories with a bare remote; writer tests on real files, links and file modes |
 | **CI** | the full suite on Ubuntu, macOS and Windows for every pull request; `main` only accepts green changes |

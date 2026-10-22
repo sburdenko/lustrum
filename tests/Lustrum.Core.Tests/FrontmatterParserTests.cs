@@ -96,6 +96,7 @@ public class FrontmatterParserTests
     [InlineData("Read Grep Glob", new[] { "Read", "Grep", "Glob" })]
     [InlineData("Bash(git add *) Bash(git commit *)", new[] { "Bash(git add *)", "Bash(git commit *)" })]
     [InlineData("Read,  Bash (git:*)", new[] { "Read", "Bash(git:*)" })]
+    [InlineData("Read, (git:*)", new[] { "Read", "(git:*)" })]
     public void Allowed_tools_may_be_separated_by_spaces(string value, string[] expected)
     {
         var result = FrontmatterParser.Parse($"---\nname: a\ndescription: b\nallowed-tools: {value}\n---\n");

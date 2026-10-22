@@ -6,7 +6,6 @@ using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Effective;
 using Lustrum.Core.Models;
 using Lustrum.Core.Scanning;
-using Lustrum.Core.Settings;
 using Lustrum.Core.Usage;
 
 namespace Lustrum.Cli;
@@ -77,13 +76,19 @@ internal static class ListCommand
             kind = parsed;
         }
 
+        if (request.Missing && request.Budget)
+        {
+            await Console.Error.WriteLineAsync("Use --missing or --budget, not both.");
+            return UsageError;
+        }
+
         if ((request.Missing || request.Budget) && request.Project is null)
         {
             await Console.Error.WriteLineAsync($"{(request.Missing ? "--missing" : "--budget")} needs --project <folder>.");
             return UsageError;
         }
 
-        var scan = await ScanAsync(request.Project, cancellationToken);
+        var scan = await CliScan.RunAsync(request.Project, cancellationToken);
         UsageReport? report = null;
         if (request.WithUsage || request.UnusedOnly)
         {
@@ -139,29 +144,6 @@ internal static class ListCommand
 
         Console.WriteLine(request.WithUsage && report is not null ? SkillTable.Render(entries, report) : SkillTable.Render(entries));
         return 0;
-    }
-
-    private static async Task<ScanResult> ScanAsync(string? project, CancellationToken cancellationToken)
-    {
-        var settings = SettingsStore.Load(SettingsStore.DefaultPath);
-        if (settings.Warning is { } warning)
-        {
-            await Console.Error.WriteLineAsync($"warning: {warning}");
-        }
-
-        var options = settings.Settings.ToScanOptions();
-        if (project is not null)
-        {
-            options = options with { ExtraRoots = [.. options.ExtraRoots, Path.GetFullPath(project)] };
-        }
-
-        var scan = await SkillScanner.ScanAsync(ClaudePaths.ForCurrentUser(), options, cancellationToken, SystemPolicyStore.Instance);
-        foreach (var issue in scan.Issues)
-        {
-            await Console.Error.WriteLineAsync($"warning: {issue.Path}: {issue.Message}");
-        }
-
-        return scan;
     }
 
     private static string Plain(IReadOnlyList<Skill> skills, bool asJson, UsageReport? usage)

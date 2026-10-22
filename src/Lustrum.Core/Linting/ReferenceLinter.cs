@@ -92,7 +92,13 @@ public static partial class ReferenceLinter
             target = target[..cut];
         }
 
-        return Plain(Uri.UnescapeDataString(target));
+        return Plain(target) is { } plain ? Decoded(plain) : null;
+    }
+
+    private static string? Decoded(string target)
+    {
+        var decoded = Uri.UnescapeDataString(target).Replace('\\', '/');
+        return decoded.Contains('\0') || decoded.IndexOfAny(Path.GetInvalidPathChars()) >= 0 ? null : decoded;
     }
 
     private static string? Plain(string raw)

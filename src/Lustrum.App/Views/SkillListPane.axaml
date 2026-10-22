@@ -91,7 +91,7 @@
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                 <Border Grid.Column="6" Classes="badge" IsVisible="{Binding HasMark}" MinWidth="40"
                         Classes.err="{Binding IsMarkError}" Classes.warn="{Binding IsMarkWarning}" Classes.quiet="{Binding IsMarkQuiet}"
-                        ToolTip.Tip="{Binding Health.Text}">
+                        ToolTip.Tip="{Binding MarkTip}">
                   <TextBlock Text="{Binding Mark}" HorizontalAlignment="Center" />
                 </Border>
               </Grid>

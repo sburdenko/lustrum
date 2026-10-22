@@ -130,9 +130,10 @@ public static partial class FrontmatterParser
         var items = new List<string>();
         var current = new StringBuilder();
         var depth = 0;
+        var afterComma = false;
         foreach (var ch in text)
         {
-            if (ch == '(' && depth == 0 && current.Length == 0 && items.Count > 0)
+            if (ch == '(' && depth == 0 && current.Length == 0 && items.Count > 0 && !afterComma)
             {
                 current.Append(items[^1]);
                 items.RemoveAt(items.Count - 1);
@@ -141,10 +142,12 @@ public static partial class FrontmatterParser
             depth += ch == '(' ? 1 : ch == ')' ? -1 : 0;
             if ((ch == ',' || char.IsWhiteSpace(ch)) && depth == 0)
             {
+                afterComma = ch == ',' || (afterComma && current.Length == 0);
                 Flush(items, current);
                 continue;
             }
 
+            afterComma = false;
             current.Append(ch);
         }
 

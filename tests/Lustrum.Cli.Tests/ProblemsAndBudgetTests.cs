@@ -25,7 +25,7 @@ public class ProblemsAndBudgetTests
             new Problem(ProblemKind.BroadPermission, "risky", skill.Path, "allowed-tools entry Bash lets the skill run any shell command without asking", skill),
         };
 
-        var lines = ProblemsCommand.Render(problems).Split('\n');
+        var lines = ProblemsCommand.Render(problems).ReplaceLineEndings("\n").Split('\n');
 
         lines[0].Should().MatchRegex(@"^KIND\s+SUBJECT\s+MESSAGE$");
         lines[1].Should().StartWith("link").And.EndWith("which is not in the skill folder");
@@ -47,7 +47,7 @@ public class ProblemsAndBudgetTests
             new EffectiveEntry(Skill("quiet", "desc"), Availability.Active, null, [], new ResolvedVisibility(SkillVisibility.Off, null)),
         };
 
-        var lines = SkillTable.RenderBudget(entries).Split('\n');
+        var lines = SkillTable.RenderBudget(entries).ReplaceLineEndings("\n").Split('\n');
 
         lines[0].Should().Contain("IN PROJECT  ≈TOKENS");
         lines[1].Should().MatchRegex(@"^big\s.*\s100\s+d+…$");
