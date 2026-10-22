@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Scanning;
 using Lustrum.Core.Settings;
 
@@ -21,7 +22,7 @@ internal static class DiffCommand
     private static async Task<int> RunAsync(string name, CancellationToken cancellationToken)
     {
         var settings = SettingsStore.Load(SettingsStore.DefaultPath).Settings;
-        var scan = await SkillScanner.ScanAsync(ClaudePaths.ForCurrentUser(), settings.ToScanOptions(), cancellationToken);
+        var scan = await SkillScanner.ScanAsync(ClaudePaths.ForCurrentUser(), settings.ToScanOptions(), cancellationToken, SystemPolicyStore.Instance);
         var wanted = name.TrimStart('/');
         var copies = scan.Skills.Where(s => s.FullName == wanted).ToList();
         if (copies.Count == 0)

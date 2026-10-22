@@ -38,8 +38,9 @@ internal static class ProjectDiscovery
     }
 
     /// <summary>
-    /// Folders Claude Code also loads skills from for a known project: every parent up to the repository root, and
-    /// every folder below it (to the search depth) that has skills of its own and loads them on demand.
+    /// Folders Claude Code also loads skills from for a known project: every parent up to the repository root, every
+    /// folder below it (to the search depth) that has skills of its own and loads them on demand, and for a linked
+    /// worktree without a .claude/skills folder, the main checkout.
     /// </summary>
     public static IReadOnlyList<SkillSource> Related(IEnumerable<SkillSource> projects, ClaudePaths paths, ScanOptions options, Action<ScanIssue> report)
     {
@@ -55,6 +56,12 @@ internal static class ProjectDiscovery
             related.AddRange(Ancestors(folder, Real)
                 .Where(a => !PathKey.Comparer.Equals(PathKey.Normalize(a), home) && HasSkills(a))
                 .Select(a => Source(a, null)));
+            if (LinkedCheckout(folder) is { } main
+                && !projects.Any(p => p.ProjectFolder is { } known && PathKey.Comparer.Equals(Real(known), Real(main))))
+            {
+                related.Add(Source(main, null));
+            }
+
             var nested = new List<string>();
             SearchNested(folder, options.SearchDepth, excluded, walked, nested, report);
             related.AddRange(nested.Select(n => Source(n, null) with { DisplayName = $"{project.DisplayName}/{RelativeName(folder, n)}" }));
@@ -62,6 +69,13 @@ internal static class ProjectDiscovery
 
         return related;
     }
+
+    /// <summary>
+    /// The main checkout whose project skills a linked worktree loads instead of its own: set when the worktree has
+    /// no .claude/skills folder at its root and the main checkout has one.
+    /// </summary>
+    public static string? LinkedCheckout(string folder) =>
+        !HasSkills(folder) && GitWorktree.MainCheckout(folder) is { } main && HasSkills(main) ? main : null;
 
     public static string ProjectFolder(SkillSource project) =>
         project.Id.StartsWith("project:", StringComparison.Ordinal) ? project.Id["project:".Length..] : project.RootPath;

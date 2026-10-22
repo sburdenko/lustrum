@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Lustrum.App.Services;
 using Lustrum.App.ViewModels;
 using Lustrum.App.Views;
+using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Git;
 using Lustrum.Core.Scanning;
 using Lustrum.Core.Settings;
@@ -28,7 +29,7 @@ public sealed class App : Application
             var window = new MainWindow();
             var usage = new UsageCollector();
             var viewModel = new MainViewModel(
-                (options, token) => Task.Run(() => SkillScanner.ScanAsync(paths, options, token), token),
+                (options, token) => Task.Run(() => SkillScanner.ScanAsync(paths, options, token, SystemPolicyStore.Instance), token),
                 token => Task.Run(() => usage.CollectAsync(paths.ProjectsDir, token), token),
                 new AppServices(new ShellService(), new AvaloniaClipboardService(window), settings, new ThemeService(), new SkillGit(new GitCli()), new SkillWriter()));
             var live = new LiveRescan(viewModel, paths);

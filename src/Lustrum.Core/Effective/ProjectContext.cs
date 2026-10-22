@@ -6,8 +6,8 @@ namespace Lustrum.Core.Effective;
 
 /// <summary>
 /// What a Claude Code session started in one project can load: that project and every parent up to the repository
-/// root at once, folders below it on demand, managed and personal skills, synced skills, and the plugins its
-/// settings leave on.
+/// root at once (for a linked worktree without skills of its own, the main checkout's), folders below it on demand,
+/// managed and personal skills, synced skills, and the plugins its settings leave on.
 /// </summary>
 public sealed record ProjectContext(
     SkillSource Project,
@@ -35,6 +35,15 @@ public sealed record ProjectContext(
             else if (repository is not null && PathKey.IsWithin(folder, otherFolder) && PathKey.IsWithin(RealPath.Resolve(otherFolder), repository))
             {
                 loaded.Add(other.Id);
+            }
+        }
+
+        if (project.Exists && ProjectDiscovery.LinkedCheckout(folder) is { } main)
+        {
+            var real = RealPath.Resolve(main);
+            if (scan.Sources.FirstOrDefault(s => s.ProjectFolder is { } f && PathKey.Comparer.Equals(RealPath.Resolve(f), real)) is { } checkout)
+            {
+                loaded.Add(checkout.Id);
             }
         }
 

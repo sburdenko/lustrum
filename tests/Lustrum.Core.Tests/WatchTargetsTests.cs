@@ -25,7 +25,7 @@ public class WatchTargetsTests
         targets.Should().Contain(new WatchTarget(home.Paths.ProjectsDir, Recursive: false));
         targets.Should().NotContain(t => t.Path == home.ClaudeDir && t.Filter == WatchTarget.All);
         targets.Where(t => t.Path == home.ClaudeDir).Select(t => t.Filter)
-            .Should().BeEquivalentTo("settings.json", "skills", "commands");
+            .Should().BeEquivalentTo("settings.json", "remote-settings.json", "skills", "commands");
         targets.Should().NotContain(t => t.Path == home.Paths.ProjectsDir && t.Recursive);
     }
 }

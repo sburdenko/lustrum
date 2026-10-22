@@ -39,6 +39,9 @@ public sealed record ClaudePaths(string Home, string? ManagedRoot = null)
 
     public string SettingsJson => Path.Combine(ClaudeDir, "settings.json");
 
+    /// <summary>Claude Code's cache of server-managed settings fetched from claude.ai or a gateway.</summary>
+    public string RemoteSettingsJson => Path.Combine(ClaudeDir, "remote-settings.json");
+
     public string ClaudeJson => Path.Combine(Home, ".claude.json");
 
     public static ClaudePaths ForCurrentUser() =>
