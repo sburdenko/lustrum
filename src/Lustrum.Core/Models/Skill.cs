@@ -1,3 +1,5 @@
+using Lustrum.Core.Linting;
+
 namespace Lustrum.Core.Models;
 
 public sealed record Skill(
@@ -22,4 +24,7 @@ public sealed record Skill(
     public string InvocationName => Kind == SkillKind.Command ? "/" + FullName : FullName;
 
     public string ConflictKey => Source.IsNamespaced ? FullName : Name;
+
+    /// <summary>Broken file links and allowed-tools issues found while the skill was read.</summary>
+    public IReadOnlyList<SkillFinding> Findings { get; init; } = [];
 }

@@ -92,6 +92,18 @@ public class FrontmatterParserTests
         result.AllowedTools.Should().Equal("Read", "Bash(git:*)", "Grep");
     }
 
+    [Theory]
+    [InlineData("Read Grep Glob", new[] { "Read", "Grep", "Glob" })]
+    [InlineData("Bash(git add *) Bash(git commit *)", new[] { "Bash(git add *)", "Bash(git commit *)" })]
+    [InlineData("Read,  Bash (git:*)", new[] { "Read", "Bash(git:*)" })]
+    [InlineData("Read, (git:*)", new[] { "Read", "(git:*)" })]
+    public void Allowed_tools_may_be_separated_by_spaces(string value, string[] expected)
+    {
+        var result = FrontmatterParser.Parse($"---\nname: a\ndescription: b\nallowed-tools: {value}\n---\n");
+
+        result.AllowedTools.Should().Equal(expected);
+    }
+
     [Fact]
     public void Empty_frontmatter_block_is_parsed_with_no_fields()
     {

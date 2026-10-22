@@ -41,8 +41,10 @@ edit skills.
 |---|---|
 | **Inventory** | Every skill and command from managed, personal, project, plugin and claude.ai sources, with counts per source and per marketplace. Fuzzy search on names, substring on descriptions and tags, optionally the text of every `SKILL.md`. |
 | **Project views** | Pick a project and switch between **Own** (its skills), **Effective** (exactly what Claude Code loads there: its own skills and those of parent folders up to the repository root, folders below it on demand, managed and personal skills, and the plugins its settings leave on, resolved by Claude Code's precedence rules) and **Missing** (skills on this machine it does not load). |
-| **Register** | A numbered list grouped by kind, with the state of each skill (shadowed, off, behind) and a mark for errors, long descriptions and duplicate names. Filter chips combine: own prefixes, `plugin`, `synced`, `command`, `broken`, `duplicate`, `unused`, `updates`. |
+| **Register** | A numbered list grouped by kind, with the state of each skill (shadowed, off, behind) and a mark for errors, long descriptions, failed checks and duplicate names. Filter chips combine: own prefixes, `plugin`, `synced`, `command`, `broken`, `duplicate`, `unused`, `updates`. |
 | **Health** | One Problems list: broken frontmatter with the YAML line and cause, over-long descriptions, projects whose folder is gone, paths that could not be read. |
+| **Checks** | Each `SKILL.md` is linted while it is read: links and `scripts/`, `references/` or `assets/` paths to files that are not in the skill folder, malformed `allowed-tools` entries, misspelt tool names with the likely meant one, and a bare `Bash` or `PowerShell` that allows any shell command. Findings show on the card and in Problems. |
+| **Context budget** | In a project's Effective view, an estimate of how many tokens the skill list takes in every session, per skill and in total, by Claude Code's rules: description plus `when_to_use`, capped at 1,536 characters, name only for `name-only`, nothing for hidden skills and `disable-model-invocation`. Skills sort by cost on request; the card shows what a skill costs listed and invoked, and what name-only would save. |
 | **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, with a 30-day strip, read incrementally from Claude Code transcripts. |
 | **Compare** | A line diff between copies of one name, with unchanged runs folded. |
 | **Git** | Branch, upstream, behind and ahead, uncommitted changes and last commit for skills in a git repository. **Check for updates** fetches; **Update** fast-forwards a repository that holds only skills. |
@@ -61,28 +63,36 @@ edit skills.
 <td align="center"><sub><b>Missing</b> · what other projects have and this one does not</sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/problems.png" alt="Problems list: invalid YAML, missing frontmatter, long description, missing project"/></td>
-<td width="50%"><img src="docs/compare.png" alt="Line diff between a project copy and the personal copy of a skill"/></td>
+<td width="50%"><img src="docs/problems.png" alt="Problems list: invalid YAML, missing frontmatter, long description, dead links, allowed-tools issues, missing project"/></td>
+<td width="50%"><img src="docs/checks.png" alt="Effective view with the token budget and a cost column; the card lists two dead links and the context a skill takes"/></td>
 </tr>
 <tr>
 <td align="center"><sub><b>Problems</b> · every broken thing in one list</sub></td>
-<td align="center"><sub><b>Compare</b> · two copies of one name, line by line</sub></td>
+<td align="center"><sub><b>Checks · Context</b> · dead links and what a skill costs in context</sub></td>
 </tr>
 <tr>
+<td width="50%"><img src="docs/compare.png" alt="Line diff between a project copy and the personal copy of a skill"/></td>
 <td width="50%"><img src="docs/git.png" alt="A cloned skill two commits behind its upstream with Update enabled and the updates chip on"/></td>
-<td width="50%"><img src="docs/visibility.png" alt="A personal skill turned off by project settings, with the Copy to menu open"/></td>
 </tr>
 <tr>
+<td align="center"><sub><b>Compare</b> · two copies of one name, line by line</sub></td>
 <td align="center"><sub><b>Git</b> · a cloned skill two commits behind</sub></td>
-<td align="center"><sub><b>Visibility · Copy to</b> · project settings turn a skill off</sub></td>
 </tr>
 <tr>
+<td width="50%"><img src="docs/visibility.png" alt="A personal skill turned off by project settings, with the Copy to menu open"/></td>
 <td width="50%"><img src="docs/content.png" alt="Rendered SKILL.md in the dark theme"/></td>
-<td width="50%"><img src="docs/settings.png" alt="Settings panel in the dark theme"/></td>
 </tr>
 <tr>
+<td align="center"><sub><b>Visibility · Copy to</b> · project settings turn a skill off</sub></td>
 <td align="center"><sub><b>Content</b> · rendered <code>SKILL.md</code>, dark theme</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/settings.png" alt="Settings panel in the dark theme"/></td>
+<td width="50%"></td>
+</tr>
+<tr>
 <td align="center"><sub><b>Settings</b> · prefixes, roots, editor, theme</sub></td>
+<td></td>
 </tr>
 </table>
 
@@ -123,7 +133,7 @@ xattr -dr com.apple.quarantine Lustrum.app
 git clone https://github.com/sburdenko/lustrum.git && cd lustrum
 dotnet run --project src/Lustrum.App               # the window
 dotnet run --project src/Lustrum.Cli -- list       # the same data in a terminal
-dotnet test                                        # 434 tests
+dotnet test                                        # 498 tests
 ```
 
 ## Architecture
@@ -202,6 +212,8 @@ Network access happens only on **Check for updates** and **Update**.
 | `Scanning` · `Parsing` | find sources, read skills, parse frontmatter, decode project folder names | `SkillScanner`, `SourceDiscovery`, `FrontmatterParser`, `ProjectPathDecoder` |
 | `Indexing` | scopes and ranked search | `SkillScope`, `SkillIndex`, `FuzzyMatcher` |
 | `Effective` | what a project loads (parents, on-demand folders, per-project plugins) and what it misses, by Claude Code's rules | `ProjectContext`, `EffectiveSetBuilder`, `MissingSetBuilder` |
+| `Linting` | dead links and resource paths in `SKILL.md`, `allowed-tools` syntax, unknown and over-broad tools | `ReferenceLinter`, `ToolLinter`, `SkillFinding` |
+| `Budget` | characters and estimated tokens a skill takes in Claude's skill list | `ContextBudget`, `BudgetSummary` |
 | `Problems` · `Comparing` | health problems; folded line diffs | `ProblemCollector`, `SkillComparer` |
 | `Usage` | incremental transcript reading | `UsageCollector`, `TranscriptParser`, `SkillUsage` |
 | `Git` | repository roles, status, fetch, update policy | `GitRepositoryLocator`, `SkillGit`, `UpdatePolicy`, `GitCli` |
@@ -216,49 +228,70 @@ The full design notes, from discovery and the data model to the git and write pa
 ## CLI
 
 ```text
-lustrum list [--json] [--source managed|global|project|plugin|synced] [--broken] [--project <folder> [--missing]] [--usage] [--unused]
+lustrum list [--json] [--source managed|global|project|plugin|synced] [--broken] [--project <folder> [--missing|--budget]] [--usage] [--unused]
+lustrum problems [--json]
 lustrum diff <name>
 ```
 
 ```text
-$ lustrum list --project ~/work/storefront --source project
-NAME           SOURCE      HEALTH              IN PROJECT          DESCRIPTION
-checkout-flow  storefront  ok                  loaded              Trace the checkout flow and find where an order can get stuck.
-release-notes  storefront  ok                  shadowed by Global  Release notes for the storefront: customer-facing wording, no ticket id…
-ui-kit         storefront  ok                  loaded              Use the shared component library correctly: tokens, spacing, accessibil…
+$ lustrum list --project ~/work/storefront --source project --budget
+NAME           SOURCE      HEALTH  IN PROJECT              ≈TOKENS  DESCRIPTION
+ui-kit         storefront  ok      loaded                  21       Use the shared component library correctly: tokens, spacing, accessibil…
+checkout-flow  storefront  ok      loaded                  19       Trace the checkout flow and find where an order can get stuck.
+admin-reports  admin       ok      on demand · apps/admin  18       Build the weekly admin reports from the orders database.
+release-notes  storefront  ok      shadowed by Global      0        Release notes for the storefront: customer-facing wording, no ticket id…
+
+≈356 tokens in Claude's skill list from 20 listed skills, 2 hidden; 1 more on demand, ≈18 tokens. Estimate: about four characters per token.
 
 $ lustrum list --broken
 NAME           SOURCE  HEALTH              DESCRIPTION
 brand-voice    Global  DescriptionTooLong  Rewrite copy in the house tone of voice. Applies the style guide, banne…
 broken-yaml    Global  ParseError          (no description)
 legacy-import  Global  NoFrontmatter       Imports old markdown notes.
+
+$ lustrum problems
+KIND    SUBJECT            MESSAGE
+broken  broken-yaml        ParseError: Line 2: syntax error, check brackets, quotes and colons
+broken  legacy-import      NoFrontmatter
+long    brand-voice        Description is over 1024 characters (1660 characters)
+link    pdf-forms          Links to scripts/fields.py, which is not in the skill folder
+link    pdf-forms          Links to references/fields.md, which is not in the skill folder
+tool    sql-helper         allowed-tools names Grpe, which is not a Claude Code tool; did you mean Grep?
+wide    sql-helper         allowed-tools entry Bash lets the skill run any shell command without asking
+gone    retired-prototype  Project folder no longer exists: /Users/you/work/retired-prototype
+
+8 problems
 ```
 
 - `--project <folder>` prints that project's effective set with an `IN PROJECT` column; `--missing` lists what it
-  does not load, with a `NOTE` for disabled plugins and names loaded from elsewhere.
+  does not load, with a `NOTE` for disabled plugins and names loaded from elsewhere; `--budget` adds an estimated
+  `≈TOKENS` column, sorts by it and ends with the total for the whole skill list, whatever the filters.
+- `problems` prints the Problems list and exits with 1 when there is anything in it, so it can run in CI or a
+  pre-commit hook.
 - `--usage` adds `USES` and `LAST USED`; `--unused` keeps skills with no recorded use and refuses to run when there are
   no transcripts at all.
 - `--json` prints full records: frontmatter, allowed tools, files, health, tags, and with `--project` the
-  availability, `shadowedBy`, `overrides` and `visibility`.
+  availability, `shadowedBy`, `overrides`, `visibility` and `listedChars`.
 - `diff <name>` prints every copy of a name against the project copy in unified format.
 - Unreadable files go to stderr as `warning: <path>: <reason>`. Exit code 2 means bad input (unknown source, a folder
-  without `.claude`, an unknown name); exit code 1 means a copy could not be read.
+  without `.claude`, an unknown name); exit code 1 means a copy could not be read, or for `problems`, that there is at
+  least one problem.
 
 ## Quality
 
 | | |
 |---|---|
-| **Tests** | 434 xUnit tests, about 4,700 lines, more than the Core code they cover |
-| **Coverage** | 91% of lines in `Lustrum.Core`, 87% in the view models (coverlet) |
+| **Tests** | 498 xUnit tests, about 5,200 lines, more than the Core code they cover |
+| **Coverage** | 88% of lines in `Lustrum.Core`, 87% in the view models (coverlet) |
 | **Real environments** | scanner tests on throw-away home folders; git tests on real repositories with a bare remote; writer tests on real files, links and file modes |
 | **CI** | the full suite on Ubuntu, macOS and Windows for every pull request; `main` only accepts green changes |
 | **Builds** | warnings are errors; self-contained single-file releases for macOS (arm64, x64), Linux x64 and Windows x64 |
-| **Size** | Core about 3,300 lines of C#, the window about 3,000 lines of C# and 1,100 of XAML, the CLI about 350 |
+| **Size** | Core about 3,700 lines of C#, the window about 2,900 lines of C# and 1,200 of XAML, the CLI about 420 |
 
 ```text
 lustrum/
 ├── src/
-│   ├── Lustrum.Core/        Scanning/ Parsing/ Indexing/ Effective/ Problems/ Comparing/ Usage/ Git/ ClaudeSettings/ Copying/ Watching/ Settings/ Models/
+│   ├── Lustrum.Core/        Scanning/ Parsing/ Indexing/ Effective/ Linting/ Budget/ Problems/ Comparing/ Usage/ Git/ ClaudeSettings/ Copying/ Watching/ Settings/ Models/
 │   ├── Lustrum.App/         Views/ ViewModels/ Services/ Controls/ Assets/
 │   └── Lustrum.Cli/         list and diff commands, table renderer
 ├── tests/                   Core, App and CLI test projects
@@ -282,6 +315,12 @@ on macOS, `~/.config` on Linux, `%APPDATA%` on Windows) and are written only on 
   fetches them itself, so they are as fresh as Claude Code's last fetch.
 - Folders below a project are searched to the configured depth (default 4). Directories added with `--add-dir` are
   chosen per session on the command line and stored nowhere, so they cannot be modelled.
+- Token counts are estimates at about four characters per token; Claude Code does not publish the exact text of its
+  skill list or the tokenizer. They are counted before Claude Code fits the list into its own budget (1% of the
+  context window by default), which drops descriptions of the least-used skills when the list is too long, so a large
+  total means descriptions are being cut rather than that many tokens being spent.
+- Only the first 64 KB of a `SKILL.md` is linted. Misspelt tool names are found against Lustrum's own list of Claude
+  Code tools; a name far from every tool on it is not reported.
 - Claude Code's documentation does not say how `skillOverrides` from several files combine; Lustrum assumes key by key,
   the higher file winning.
 - Git features need `git` on the `PATH`; a remote that asks for a password fails the check instead of prompting.

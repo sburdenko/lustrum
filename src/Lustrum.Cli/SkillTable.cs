@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Lustrum.Core.Budget;
 using Lustrum.Core.Effective;
 using Lustrum.Core.Models;
 using Lustrum.Core.Usage;
@@ -25,6 +26,21 @@ internal static class SkillTable
         Build(
             entries.Select(e => new Row(e.Skill, e, null)).ToList(),
             [.. Base, InProject]);
+
+    public static string RenderBudget(IReadOnlyList<EffectiveEntry> entries) =>
+        Build(
+            entries.OrderByDescending(ContextBudget.ListedChars).ThenBy(e => e.Skill.FullName, StringComparer.OrdinalIgnoreCase).Select(e => new Row(e.Skill, e, null)).ToList(),
+            [.. Base, InProject, new("≈TOKENS", r => ContextBudget.Tokens(ContextBudget.ListedChars(r.Entry!)).ToString(CultureInfo.InvariantCulture))]);
+
+    public static string BudgetLine(BudgetSummary budget)
+    {
+        var line = $"≈{budget.ListedTokens.ToString("N0", CultureInfo.InvariantCulture)} tokens in Claude's skill list from {budget.ListedSkills} listed skills";
+        var hidden = budget.HiddenSkills > 0 ? $", {budget.HiddenSkills} hidden" : string.Empty;
+        var onDemand = budget.OnDemandSkills > 0
+            ? $"; {budget.OnDemandSkills} more on demand, ≈{budget.OnDemandTokens.ToString("N0", CultureInfo.InvariantCulture)} tokens"
+            : string.Empty;
+        return $"{line}{hidden}{onDemand}. Estimate: about four characters per token.";
+    }
 
     private static readonly Column InProject = new("IN PROJECT", r => r.Entry!.Label(s => s.DisplayName) ?? "loaded");
 

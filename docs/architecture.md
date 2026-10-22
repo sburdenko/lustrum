@@ -25,7 +25,7 @@ the overview; this page has the details. For the Claude Code files themselves, s
 
 | Project | Depends on | Role |
 |---|---|---|
-| `Lustrum.Core` | YamlDotNet, DiffPlex | discovery, scanning, parsing, indexing, effective sets, problems, usage, comparison, git, Claude Code settings, copying, watching |
+| `Lustrum.Core` | YamlDotNet, DiffPlex | discovery, scanning, parsing, indexing, effective sets, linting, context budget, problems, usage, comparison, git, Claude Code settings, copying, watching |
 | `Lustrum.App` | Core, Avalonia 11, CommunityToolkit.Mvvm, Markdown.Avalonia, Serilog | the window |
 | `Lustrum.Cli` | Core, System.CommandLine | `list` and `diff` |
 | `tools/Lustrum.Screenshots` | App, Avalonia.Headless | renders the README screenshots from a synthetic home |
@@ -99,7 +99,7 @@ with a dot, such as `.staging`, are skipped.
 flowchart LR
     A["Discover sources<br/>global · plugins · projects · roots · synced"] --> B["Per source, in parallel<br/>skills/*/SKILL.md<br/>commands/**/*.md"]
     B --> C["Read the first 64 KB<br/>parse YAML frontmatter"]
-    C --> D["Build Skill<br/>compute Health"]
+    C --> D["Build Skill<br/>compute Health · lint"]
     D --> E["Tag · detect conflicts<br/>read skillOverrides"]
     E --> F["ScanResult<br/>immutable snapshot"]
 ```
@@ -118,7 +118,7 @@ Everything in `Lustrum.Core.Models` is an immutable `record`.
 ```csharp
 SkillSource(Id, Kind, DisplayName, RootPath, LastSeen, Exists, IsEnabled, Namespace, Layout)   // ProjectFolder
 Skill(Id, Name, FullName, Description, Kind, Source, Path, Body, Frontmatter,
-      AllowedTools, Files, SizeBytes, Modified, Health, Tags)
+      AllowedTools, Files, SizeBytes, Modified, Health, Tags) { Findings }
 Conflict(Name, Skills)
 ScanResult(Sources, Skills, Conflicts, Issues, ScannedAt, Duration) { Settings }
 ```
@@ -133,6 +133,7 @@ ScanResult(Sources, Skills, Conflicts, Issues, ScannedAt, Duration) { Settings }
   skills and by short name otherwise, so `unity:ui` and a global `ui` do not collide, while two copies of
   `design:critique` (an installed and a synced plugin) do.
 - `Skill.Tags` are computed: own-prefix tags, `plugin`, `synced`, `command`, `broken`, `duplicate`.
+- `Skill.Findings` are the linter's `SkillFinding(Kind, Subject, Message)` records (see [Checks](#checks)).
 - `ScanResult.Settings` holds the `skillOverrides` and `enabledPlugins` of managed, user, project and project-local
   settings (see [Visibility](#visibility)).
 
@@ -153,6 +154,40 @@ and `DescriptionTooLong` apply, and the name is always the file path.
 The frontmatter parser strips a BOM, accepts CRLF, converts leading tabs to spaces, and takes `allowed-tools` as
 either a YAML list or a comma-separated string (commas inside parentheses are kept, so `Bash(git:*, status)` stays
 one entry). YAML errors are reported as `Line <n>: <cause>`, counted from the top of the file.
+
+## Checks
+
+Every skill whose frontmatter parses is linted while it is built, on the same 64 KB head the scanner already read;
+the only extra I/O is one existence check per distinct link. Commands get the `allowed-tools` checks only, since they
+have no folder of their own. Each finding becomes one entry in Problems and one row in the card's CHECKS section.
+
+| Finding | Linter | When |
+|---|---|---|
+| `MissingFile` | `ReferenceLinter` | a markdown link (inline or reference style), or an inline-code path under `scripts/`, `references/` or `assets/`, points at a file that is not in the skill folder |
+| `ToolSyntax` | `ToolLinter` | an `allowed-tools` entry is empty, has unbalanced parentheses, an empty pattern or no valid tool name |
+| `UnknownTool` | `ToolLinter` | the name is not a known tool but is one edit away from one (two for names over four letters, a swap of neighbours counting as one) |
+| `BroadTool` | `ToolLinter` | `Bash` or `PowerShell` without a command pattern, or with only a wildcard, which allows any shell command |
+
+The linters are deliberately conservative, because a false alarm teaches people to ignore the list. The reference
+linter skips fenced code (a fence closes only on its own marker and length), link syntax inside inline code, URLs and
+other schemes, anchors, absolute and home paths, paths that leave the skill folder and paths with placeholders such as
+`{name}`. Inline code counts as a path only under the three folders of the Agent Skills layout, or under a folder such
+as `templates/` or `docs/` that the skill actually has, because those names are just as common in the project a skill
+works on. Backslashes are read as folder separators. The tool linter reports a name only when it looks like a typo
+of a known tool, so a tool Claude Code adds later passes, and `mcp__` tools always pass; `allowed-tools` may be a YAML
+list or a comma- or space-separated string.
+
+## Context budget
+
+Claude Code lists every loaded skill to Claude in each session, by name and description with `when_to_use`
+appended and the two capped at 1,536 characters, by name only for `name-only`, and not at all when hidden or when
+`disable-model-invocation` is set; invoking a skill then adds its whole `SKILL.md`. `ContextBudget` counts those
+characters for an effective set: active skills that are listed, skills on demand that join once Claude works below
+their folder, and hidden ones. Shadowed copies cost nothing. Claude Code does not document the exact listing text and
+no Claude tokenizer runs locally, so tokens are an estimate at four characters each and every label says `≈`. The
+same numbers drive the Effective view's budget line and cost column, the card's CONTEXT section with the name-only
+saving, and `lustrum list --budget`. They are counted before Claude Code fits the list into its own budget, 1% of the
+context window by default, which drops the descriptions of the least-used skills first.
 
 ## Effective set and Missing
 
@@ -376,6 +411,8 @@ writes, footer, problems, card, commands, settings. States are types rather than
 - Git tests run the real git command line against `GitSandbox`: throw-away repositories with a bare remote, so
   behind, ahead, dirty trees, detached heads, ignored-file collisions and refused updates are real git states. The
   sandbox hides the machine's global and system git configuration.
+- Linter tests run against real skill folders: present and missing links, fenced code, escapes, placeholders, and
+  `allowed-tools` syntax, suggestions and broad entries.
 - Writer tests cover symlinked settings files, file modes, escaping and refusals; copier tests
   cover staging, links and limits.
 - App tests drive `MainViewModel` with fake scan, usage, shell, clipboard, settings, theme, git and writer services,

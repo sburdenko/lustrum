@@ -64,6 +64,11 @@ public sealed partial class MainViewModel
             return $"diff {card.Skill.FullName}";
         }
 
+        if (scope is ProblemsScope)
+        {
+            return WithSearch("problems");
+        }
+
         var parts = new List<string> { "list" };
         if (project is not null)
         {
@@ -72,6 +77,7 @@ public sealed partial class MainViewModel
             {
                 ProjectView.Missing => "--missing",
                 ProjectView.Own => "--source project",
+                _ when SelectedSort.Mode == SortMode.ContextCost => "--budget",
                 _ => string.Empty,
             });
         }
@@ -80,13 +86,12 @@ public sealed partial class MainViewModel
             parts.Add(scope switch
             {
                 KindScope kind => $"--source {kind.Kind.ToString().ToLowerInvariant()}",
-                ProblemsScope => "--broken",
                 _ => string.Empty,
             });
         }
 
         var tags = Chips.Where(c => c.IsActive).Select(c => c.Label).ToList();
-        if (tags.Contains("broken") && scope is not ProblemsScope)
+        if (tags.Contains("broken"))
         {
             parts.Add("--broken");
         }
@@ -97,13 +102,13 @@ public sealed partial class MainViewModel
         }
 
         var filter = scope is SourceScope or MarketplaceScope && project is null ? SelectedNode?.Title : null;
-        var text = SearchText.Trim();
         var command = string.Join(' ', parts.Where(p => p.Length > 0));
-        if (filter is not null)
-        {
-            command += $" | grep -F {Quote(filter)}";
-        }
+        return WithSearch(filter is null ? command : $"{command} | grep -F {Quote(filter)}");
+    }
 
+    private string WithSearch(string command)
+    {
+        var text = SearchText.Trim();
         return text.Length == 0 ? command : $"{command} | grep -iF {Quote(text)}";
     }
 

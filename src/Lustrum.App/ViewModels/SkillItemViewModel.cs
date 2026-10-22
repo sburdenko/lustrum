@@ -49,8 +49,16 @@ public sealed class SkillItemViewModel : IListRow
 
     public string NumberText => Number.ToString("000");
 
+    /// <summary>Estimated tokens the skill takes in Claude's skill list; set in the Effective view only.</summary>
+    public int? ListedTokens { get; init; }
+
+    public string CostText => ListedTokens is { } tokens ? $"≈{tokens}" : string.Empty;
+
+    public bool HasCost => ListedTokens is not null;
+
     public string Mark => Skill.Health switch
     {
+        CoreHealth.Ok when FirstCheck is { } check => check.Badge,
         CoreHealth.Ok => Copies > 1 ? $"×{Copies}" : string.Empty,
         CoreHealth.DescriptionTooLong => "LONG",
         CoreHealth.Orphaned => "GONE",
@@ -61,9 +69,13 @@ public sealed class SkillItemViewModel : IListRow
 
     public bool IsMarkError => Health.IsError;
 
-    public bool IsMarkWarning => Health.IsWarning;
+    public bool IsMarkWarning => Health.IsWarning || (Health.IsOk && FirstCheck is not null);
 
-    public bool IsMarkQuiet => Health.IsOk;
+    public bool IsMarkQuiet => Health.IsOk && FirstCheck is null;
+
+    public string MarkTip => Health.IsOk && FirstCheck is { } check ? check.Message : Health.Text;
+
+    private CheckRow? FirstCheck => CheckRow.For(Skill).FirstOrDefault();
 
     public string Status => string.Join(" · ", new[] { AvailabilityLabel, HasUpdate ? $"↓{Behind}" : null }.OfType<string>());
 

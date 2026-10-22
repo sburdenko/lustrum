@@ -23,11 +23,16 @@ public sealed class ProblemItemViewModel(Problem problem)
 
     public bool IsWarning => !IsError;
 
-    public string Badge => Problem.Kind switch
+    public string Badge => BadgeFor(Problem.Kind);
+
+    public static string BadgeFor(ProblemKind kind) => kind switch
     {
         ProblemKind.MissingProject => "GONE",
         ProblemKind.LongDescription => "LONG",
         ProblemKind.ReadIssue => "READ",
+        ProblemKind.MissingReference => "LINK",
+        ProblemKind.ToolEntry => "TOOL",
+        ProblemKind.BroadPermission => "WIDE",
         _ => "ERR",
     };
 
