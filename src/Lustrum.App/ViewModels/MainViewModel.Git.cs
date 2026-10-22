@@ -32,8 +32,8 @@ public sealed partial class MainViewModel
         {
             var skills = _result.Skills;
             var mapping = await Task.Run(() => MapRepositories(skills));
-            _updates = _updates with { RepositoryBySkill = mapping };
-            var repositories = mapping.Values.DistinctBy(r => r.Root).ToList();
+            _updates = _updates with { LocationBySkill = mapping };
+            var repositories = mapping.Values.Select(l => l.Repository).DistinctBy(r => r.Root).ToList();
             UpdateStatus = repositories.Count == 0
                 ? "No skills are in a git repository"
                 : $"Checking {Count(repositories.Count, "repository", "repositories")} for updates…";
@@ -60,13 +60,13 @@ public sealed partial class MainViewModel
     [RelayCommand(CanExecute = nameof(CanCheckCard))]
     private async Task CheckCardForUpdatesAsync()
     {
-        if (Card is not { GitRepository: { } repository } card)
+        if (Card is not { GitLocation: { } location } card)
         {
             return;
         }
 
-        _updates = _updates.Mapping(card.Skill, repository);
-        await CheckRepositoryAsync(repository, null);
+        _updates = _updates.Mapping(card.Skill, location);
+        await CheckRepositoryAsync(location.Repository, null);
         RefreshList();
     }
 
@@ -123,7 +123,7 @@ public sealed partial class MainViewModel
         try
         {
             var tracking = await _services.Git.CheckForUpdatesAsync(repository, CancellationToken.None);
-            outcome = new CheckedRepo(tracking, DateTimeOffset.Now);
+            outcome = new CheckedRepo(tracking, DateTimeOffset.Now, await CountIncomingAsync(repository, tracking));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -143,6 +143,43 @@ public sealed partial class MainViewModel
         if (Card is { } card && card.GitRepository == repository)
         {
             ReloadGit(card);
+        }
+    }
+
+    // Counting is local and may fail on its own; the fetch still counts, with the repository-wide fallback.
+    private async Task<IReadOnlyDictionary<string, int>?> CountIncomingAsync(SkillRepository repository, GitTracking tracking)
+    {
+        if (tracking.Behind == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await _services.Git.IncomingCommitsAsync(repository, _updates.PathsIn(repository), CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
+    // After a rescan, skills that were added or moved have no count yet; count them without fetching again.
+    private async Task RecountMovedSkillsAsync()
+    {
+        foreach (var (root, state) in _updates.States)
+        {
+            if (state is not CheckedRepo done || _updates.LocationBySkill.Values.FirstOrDefault(l => l.Repository.Root == root)?.Repository is not { } repository
+                || done.HasCountsFor(_updates.PathsIn(repository)))
+            {
+                continue;
+            }
+
+            var incoming = await CountIncomingAsync(repository, done.Tracking);
+            if (ReferenceEquals(_updates.StateOf(repository), done))
+            {
+                SetRepoState(repository, done with { Incoming = incoming });
+            }
         }
     }
 
@@ -233,7 +270,8 @@ public sealed partial class MainViewModel
             var mapping = await Task.Run(() => MapRepositories(result.Skills));
             if (ReferenceEquals(_result, result))
             {
-                _updates = _updates with { RepositoryBySkill = mapping };
+                _updates = _updates with { LocationBySkill = mapping };
+                await RecountMovedSkillsAsync();
                 RefreshList();
             }
         }
@@ -243,17 +281,17 @@ public sealed partial class MainViewModel
         }
     }
 
-    private ImmutableDictionary<string, SkillRepository> MapRepositories(IEnumerable<Skill> skills) =>
+    private ImmutableDictionary<string, SkillLocation> MapRepositories(IEnumerable<Skill> skills) =>
         skills
             .Where(GitRepositoryLocator.Applies)
             .Select(s => (s.Id, Location: _services.Git.Locate(s)))
             .Where(p => p.Location is not null)
-            .ToImmutableDictionary(p => p.Id, p => p.Location!.Repository);
+            .ToImmutableDictionary(p => p.Id, p => p.Location!);
 
     private string CheckSummary(IReadOnlyList<SkillRepository> repositories)
     {
         var failed = repositories.Count(r => _updates.StateOf(r) is FailedRepo);
-        var behind = _result.Skills.Count(s => _updates.Behind(s) > 0);
+        var behind = _result.Skills.Count(s => _updates.Incoming(s) > 0);
         var updates = behind == 0 ? "no skill has updates" : $"{Count(behind, "skill", "skills")} {(behind == 1 ? "has" : "have")} updates";
         var failures = failed == 0 ? string.Empty : $" · {failed} could not be checked";
         return $"Checked {Count(repositories.Count, "repository", "repositories")} at {DateTimeOffset.Now:HH:mm} · {updates}{failures}";

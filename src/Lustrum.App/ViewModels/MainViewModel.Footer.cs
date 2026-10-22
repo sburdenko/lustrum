@@ -59,7 +59,7 @@ public sealed partial class MainViewModel
 
     private string CliFor(SkillScope? scope, SkillSource? project, ProjectView view)
     {
-        if (Card is { SelectedTab: SkillCardViewModel.CompareTab } card)
+        if (Card is { SelectedTab: SkillCardViewModel.CompareTab, Comparison.Target: SkillCompareTarget } card)
         {
             return $"diff {card.Skill.FullName}";
         }

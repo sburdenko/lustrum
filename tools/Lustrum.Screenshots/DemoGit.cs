@@ -16,6 +16,10 @@ internal sealed class DemoGit(ISkillGit inner, string home, string shownHome) : 
     public Task<GitTracking> CheckForUpdatesAsync(SkillRepository repository, CancellationToken cancellationToken) =>
         inner.CheckForUpdatesAsync(Unmask(repository), cancellationToken);
 
+    public Task<IReadOnlyDictionary<string, int>> IncomingCommitsAsync(
+        SkillRepository repository, IReadOnlyCollection<string> relativePaths, CancellationToken cancellationToken) =>
+        inner.IncomingCommitsAsync(Unmask(repository), relativePaths, cancellationToken);
+
     public Task<GitTracking> UpdateAsync(SkillRepository repository, CancellationToken cancellationToken) =>
         inner.UpdateAsync(Unmask(repository), cancellationToken);
 

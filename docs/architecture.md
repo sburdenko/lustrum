@@ -189,6 +189,17 @@ same numbers drive the Effective view's budget line and cost column, the card's 
 saving, and `lustrum list --budget`. They are counted before Claude Code fits the list into its own budget, 1% of the
 context window by default, which drops the descriptions of the least-used skills first.
 
+## Checking a folder
+
+`lustrum problems <folder>` reads a folder that is not Claude Code's own through `FolderScanner`, without touching
+`~/.claude`, Claude Code's settings or Lustrum's own, so a repository gives the same result on a laptop and in CI. It
+walks the whole folder, skipping only the default excluded folders (`node_modules`, `bin`, `obj`, `.git`, ...) and
+hidden folders, and takes as a source every `.claude` folder (a linked one too), every plugin (a folder with
+`.claude-plugin/plugin.json`), every other folder whose `skills/` holds a `SKILL.md`, and the folder itself when it is
+one skill or a folder of skill folders. Commands are read only from `.claude` folders and plugins, because a
+`commands/` folder elsewhere is more often documentation. The scan then goes through the same `ProblemCollector` as
+the window; a folder with no skills at all exits with 2.
+
 ## Effective set and Missing
 
 `ProjectContext.For(scan, project)` describes a session started in a project:
@@ -238,8 +249,18 @@ disk, keeps the ones that contain every word and appends them to the results. Bo
 
 Claude Code writes every session to `~/.claude/projects/<encoded>/*.jsonl` (subagents included). A skill counts as
 used by Claude when an assistant entry has a `Skill` tool call (`input.skill`), and as used by you when a user entry
-contains `<command-name>/name</command-name>`. Usage is matched to skills by full name, so two skills with the same
-name share their numbers.
+contains `<command-name>/name</command-name>`. Usage is matched to skills by full name.
+
+Transcripts record the name a session invoked and the folder it ran in, not which file ran. When several copies share
+a name, `CopyUsage` gives each use to the copy Claude Code resolves in that folder: the effective set of the nearest
+known project at or above it, or, outside every project, the managed or personal copy. That uses today's files and
+settings, which may have changed since the session, so the card, the CLI (`≈`) and the JSON (`usageIsEstimate`) mark
+those numbers as an estimate, and the card also gives the total for the name. A copy turned off in that folder does
+not take uses. A use no copy can be named for, such as one in a folder where every copy loads only on demand, stays
+unattributed and is reported on the card instead of being guessed. A name with one copy keeps its exact count. The
+`unused` chip and the last-used sort follow the per-copy numbers, so a copy that never wins shows as unused, unless
+some uses of its name are unattributed. The split is redone only when the copies of shared names or the sources
+change, not on every rescan after an edit.
 
 Those files can add up to gigabytes, so `UsageCollector` reads them incrementally. Per file it remembers the length,
 the modification time and the offset after the last complete line, and on the next pass reads only what was
@@ -279,9 +300,18 @@ folder in a `Containing` repository); `log -1` for the last commit that touched 
 relative to the upstream as of the last fetch, and the card says so until a check runs.
 
 Nothing goes over the network until **Check for updates**, which runs `git fetch` for a repository with an upstream.
-The header button checks every repository that holds skills, project repositories included, four at a time. The
-`updates` chip then keeps the skills of skills repositories that are behind; a project repository's count stays on the
-card, because commits elsewhere in the project say nothing about the skill. Per-repository state
+The header button checks every repository that holds skills, project repositories included, four at a time. A
+repository that is behind then runs one `log --name-only HEAD..@{u}`, and each skill counts the incoming commits that
+touch its folder or file, so the row's `↓n` and the `updates` chip mean "new commits for this skill". The card's
+headline keeps the repository's own behind count, since **Update** pulls all of it. When counting fails, or a skill
+added since the check has no count yet, a skills repository falls back to its whole behind count and a project
+repository to none; skills that appear after a rescan are counted again without fetching.
+
+When the branch is behind, the card also lists the files the upstream changes under the skill and offers the upstream
+as a **Compare** target, in the same folded line diff as two copies. Both are taken from the merge base
+(`diff --name-status HEAD...@{u}`, and `git show <merge-base>:` against `git show @{u}:`), so commits that exist only
+locally never show up as coming in. Uncommitted edits are left out too; they are listed as uncommitted changes and
+block **Update** anyway. Per-repository state
 (`RepoState`: not checked, checking, updating, checked, failed) lasts for the session and survives rescans; a
 repository that is busy is not checked again.
 

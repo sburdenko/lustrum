@@ -61,7 +61,8 @@ public sealed class UsageCollector
 
         stopwatch.Stop();
         var sortedIssues = issues.OrderBy(i => i.Path, StringComparer.Ordinal).ToList();
-        return new UsageReport(Aggregate(_files.Values), transcripts.Count, bytesRead, sortedIssues, stopwatch.Elapsed);
+        var invocations = _files.Values.SelectMany(f => f.Invocations).ToList();
+        return new UsageReport(Aggregate(invocations), transcripts.Count, bytesRead, sortedIssues, stopwatch.Elapsed) { Invocations = invocations };
     }
 
     private static IReadOnlyList<string> Transcripts(string projectsDir, ConcurrentBag<ScanIssue> issues)
@@ -186,21 +187,20 @@ public sealed class UsageCollector
         found.AddRange(TranscriptParser.Parse(Encoding.UTF8.GetString(line)));
     }
 
-    private static IReadOnlyDictionary<string, SkillUsage> Aggregate(IEnumerable<FileState> files) =>
-        files
-            .SelectMany(f => f.Invocations)
+    private static IReadOnlyDictionary<string, SkillUsage> Aggregate(IEnumerable<SkillInvocation> invocations) =>
+        invocations
             .GroupBy(i => i.Name, StringComparer.Ordinal)
-            .ToDictionary(
-                g => g.Key,
-                g => new SkillUsage(
-                    g.Key,
-                    g.Count(),
-                    g.Max(i => i.At),
-                    g.Select(i => i.ProjectPath).OfType<string>().Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList(),
-                    g.Count(i => i.Kind == InvocationKind.Model),
-                    g.Count(i => i.Kind == InvocationKind.User),
-                    g.Select(i => i.At).Order().ToList()),
-                StringComparer.Ordinal);
+            .ToDictionary(g => g.Key, g => Summarize(g.Key, g.ToList()), StringComparer.Ordinal);
+
+    internal static SkillUsage Summarize(string name, IReadOnlyList<SkillInvocation> uses) =>
+        new(
+            name,
+            uses.Count,
+            uses.Max(i => i.At),
+            uses.Select(i => i.ProjectPath).OfType<string>().Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList(),
+            uses.Count(i => i.Kind == InvocationKind.Model),
+            uses.Count(i => i.Kind == InvocationKind.User),
+            uses.Select(i => i.At).Order().ToList());
 
     private sealed record FileState(
         long Length,

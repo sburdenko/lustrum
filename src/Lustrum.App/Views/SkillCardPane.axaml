@@ -233,11 +233,27 @@
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
                 </StackPanel>
+                <StackPanel Spacing="2" IsVisible="{Binding Card.Git.HasIncoming}">
+                  <TextBlock Text="{Binding Card.Git.IncomingTitle}" Classes="mono b" FontSize="11" />
+                  <ItemsControl ItemsSource="{Binding Card.Git.IncomingRows}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:GitChangeRow">
+                        <Grid ColumnDefinitions="18,*" Margin="0,1">
+                          <TextBlock Text="{Binding Code}" Classes="mono mute" FontSize="11" />
+                          <TextBlock Grid.Column="1" Text="{Binding Path}" Classes="mono" FontSize="11" TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
                 <TextBlock Text="{Binding Card.Git.RepositoryText}" Classes="mono mute" FontSize="11" TextWrapping="Wrap"
                            IsVisible="{Binding Card.Git.HasRepositoryText}" />
                 <WrapPanel IsVisible="{Binding Card.Git.ShowActions}" ItemSpacing="8" Margin="0,4,0,0">
                   <Button Classes="frame" Command="{Binding CheckCardForUpdatesCommand}" Content="CHECK FOR UPDATES"
                           ToolTip.Tip="Run git fetch for this repository" />
+                  <Button Classes="frame" Command="{Binding Card.ShowIncomingCommand}" Content="SHOW INCOMING"
+                          IsVisible="{Binding Card.Git.CanShowIncoming}"
+                          ToolTip.Tip="Compare the committed SKILL.md with the fetched upstream" />
                   <Button Classes="frame solid" Command="{Binding UpdateCardSkillCommand}" Content="UPDATE"
                           IsVisible="{Binding Card.Git.ShowUpdate}"
                           ToolTip.Tip="Fast-forward the repository to its upstream (git merge --ff-only)" />
@@ -331,7 +347,7 @@
           </Grid>
         </TabItem>
 
-        <TabItem Header="COMPARE" IsVisible="{Binding Card.HasConflicts}">
+        <TabItem Header="COMPARE" IsVisible="{Binding Card.HasComparison}">
           <Grid RowDefinitions="Auto,*" Margin="22,12,22,14">
             <StackPanel Spacing="8">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">

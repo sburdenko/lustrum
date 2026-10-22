@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Lustrum.Core.Effective;
 using Lustrum.Core.Models;
+using Lustrum.Core.Usage;
 
 namespace Lustrum.Cli.Tests;
 
@@ -8,6 +9,9 @@ public class SkillTableTests
 {
     private static readonly SkillSource Global = new("global", SourceKind.Global, "Global", "/h/.claude", null, true);
     private static readonly SkillSource App = new("project:/dev/app", SourceKind.Project, "app", "/dev/app/.claude", null, true);
+
+    private static CopyUsage Copies(UsageReport report, params Skill[] skills) =>
+        CopyUsage.Attribute(new ScanResult(skills.Select(s => s.Source).Distinct().ToList(), skills, [], [], DateTimeOffset.UnixEpoch, TimeSpan.Zero), report);
 
     private static Skill Skill(SkillSource source, string name) => new(
         $"{source.Id}#{name}", name, name, $"{name} description", SkillKind.Skill, source, $"/x/{name}/SKILL.md",
@@ -51,15 +55,16 @@ public class SkillTableTests
     [Fact]
     public void Usage_columns_show_count_and_last_use()
     {
-        var report = Lustrum.Core.Usage.UsageReport.Empty with
+        var report = UsageReport.Empty with
         {
-            ByName = new Dictionary<string, Lustrum.Core.Usage.SkillUsage>
+            ByName = new Dictionary<string, SkillUsage>
             {
                 ["review"] = new("review", 3, DateTimeOffset.Parse("2026-10-01T10:00:00Z"), [], 2, 1),
             },
         };
 
-        var lines = SkillTable.Render([Skill(Global, "review"), Skill(Global, "solo")], report).Split('\n');
+        Skill[] skills = [Skill(Global, "review"), Skill(Global, "solo")];
+        var lines = SkillTable.Render(skills, Copies(report, skills)).Split('\n');
 
         lines[0].Should().Contain("USES").And.Contain("LAST USED");
         lines[1].Should().Contain("3").And.Contain("2026-10-01");
@@ -70,15 +75,15 @@ public class SkillTableTests
     public void Effective_table_can_show_usage_too()
     {
         var skill = Skill(App, "review");
-        var report = Lustrum.Core.Usage.UsageReport.Empty with
+        var report = UsageReport.Empty with
         {
-            ByName = new Dictionary<string, Lustrum.Core.Usage.SkillUsage>
+            ByName = new Dictionary<string, SkillUsage>
             {
                 ["review"] = new("review", 2, DateTimeOffset.Parse("2026-10-02T10:00:00Z"), [], 2, 0),
             },
         };
 
-        var lines = SkillTable.Render([new EffectiveEntry(skill, Availability.Active, null, [])], report).Split('\n');
+        var lines = SkillTable.Render([new EffectiveEntry(skill, Availability.Active, null, [])], Copies(report, skill)).Split('\n');
 
         lines[0].Should().Contain("IN PROJECT").And.Contain("USES");
         lines[1].Should().Contain("loaded").And.Contain("2026-10-02");
@@ -101,17 +106,34 @@ public class SkillTableTests
     public void Missing_table_can_show_usage_too()
     {
         var other = new SkillSource("project:/dev/other", SourceKind.Project, "other", "/dev/other/.claude", null, true);
-        var report = Lustrum.Core.Usage.UsageReport.Empty with
+        var report = UsageReport.Empty with
         {
-            ByName = new Dictionary<string, Lustrum.Core.Usage.SkillUsage>
+            ByName = new Dictionary<string, SkillUsage>
             {
                 ["theirs"] = new("theirs", 5, DateTimeOffset.Parse("2026-10-03T10:00:00Z"), [], 5, 0),
             },
         };
 
-        var lines = SkillTable.Render([new MissingEntry(Skill(other, "theirs"), null)], report).Split('\n');
+        var theirs = Skill(other, "theirs");
+        var lines = SkillTable.Render([new MissingEntry(theirs, null)], Copies(report, theirs)).Split('\n');
 
         lines[0].Should().Contain("NOTE").And.Contain("USES");
         lines[1].Should().Contain("2026-10-03");
+    }
+
+    [Fact]
+    public void Uses_of_a_name_several_copies_share_are_marked_as_an_estimate()
+    {
+        var report = UsageReport.Empty with
+        {
+            ByName = new Dictionary<string, SkillUsage> { ["review"] = new("review", 2, DateTimeOffset.Parse("2026-10-02T10:00:00Z"), [], 2, 0) },
+            Invocations = [new("review", DateTimeOffset.Parse("2026-10-02T10:00:00Z"), null, InvocationKind.Model), new("review", DateTimeOffset.Parse("2026-10-01T10:00:00Z"), null, InvocationKind.Model)],
+        };
+        Skill[] skills = [Skill(Global, "review"), Skill(App, "review")];
+
+        var lines = SkillTable.Render(skills, Copies(report, skills)).ReplaceLineEndings("\n").Split('\n');
+
+        lines[1].Should().StartWith("review").And.Contain("Global").And.Contain("≈2");
+        lines[2].Should().Contain("app").And.Contain("≈0").And.Contain("never");
     }
 }

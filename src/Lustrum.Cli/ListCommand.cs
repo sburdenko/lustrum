@@ -12,8 +12,6 @@ namespace Lustrum.Cli;
 
 internal static class ListCommand
 {
-    private const int UsageError = 2;
-
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -70,7 +68,7 @@ internal static class ListCommand
             if (!SkillFilter.SourceNames.TryGetValue(request.Source, out var parsed))
             {
                 await Console.Error.WriteLineAsync($"Unknown source '{request.Source}'. Use managed, global, project, plugin or synced.");
-                return UsageError;
+                return ExitCodes.Usage;
             }
 
             kind = parsed;
@@ -79,32 +77,34 @@ internal static class ListCommand
         if (request.Missing && request.Budget)
         {
             await Console.Error.WriteLineAsync("Use --missing or --budget, not both.");
-            return UsageError;
+            return ExitCodes.Usage;
         }
 
         if ((request.Missing || request.Budget) && request.Project is null)
         {
             await Console.Error.WriteLineAsync($"{(request.Missing ? "--missing" : "--budget")} needs --project <folder>.");
-            return UsageError;
+            return ExitCodes.Usage;
         }
 
         var scan = await CliScan.RunAsync(request.Project, cancellationToken);
-        UsageReport? report = null;
+        CopyUsage? usage = null;
         if (request.WithUsage || request.UnusedOnly)
         {
-            report = await CollectUsageAsync(cancellationToken);
+            var report = await CollectUsageAsync(cancellationToken);
             if (report is null && request.UnusedOnly)
             {
-                return UsageError;
+                return ExitCodes.Usage;
             }
+
+            usage = report is null ? null : CopyUsage.Attribute(scan, report);
         }
         var selected = SkillFilter.Apply(scan.Skills, kind, request.BrokenOnly)
-            .Where(s => !request.UnusedOnly || report?.For(s.FullName) is null)
+            .Where(s => !request.UnusedOnly || usage?.IsUnused(s) != false)
             .ToList();
 
         if (request.Project is null)
         {
-            Console.WriteLine(Plain(selected, request.AsJson, request.WithUsage ? report : null));
+            Console.WriteLine(Plain(selected, request.AsJson, request.WithUsage ? usage : null));
             return 0;
         }
 
@@ -112,16 +112,16 @@ internal static class ListCommand
         if (target is null)
         {
             await Console.Error.WriteLineAsync($"No Claude Code project at '{request.Project}': expected a folder with a .claude directory.");
-            return UsageError;
+            return ExitCodes.Usage;
         }
 
         var included = selected.Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
         if (request.Missing)
         {
             var absent = MissingSetBuilder.Build(scan, target).Entries.Where(e => included.Contains(e.Skill.Id)).ToList();
-            var missingTable = request.WithUsage && report is not null ? SkillTable.Render(absent, report) : SkillTable.Render(absent);
+            var missingTable = request.WithUsage && usage is not null ? SkillTable.Render(absent, usage) : SkillTable.Render(absent);
             Console.WriteLine(request.AsJson
-                ? JsonSerializer.Serialize(absent.Select(e => ToJson(e, report)), JsonOptions)
+                ? JsonSerializer.Serialize(absent.Select(e => ToJson(e, usage)), JsonOptions)
                 : missingTable);
             return 0;
         }
@@ -130,7 +130,7 @@ internal static class ListCommand
         var entries = set.Entries.Where(e => included.Contains(e.Skill.Id)).ToList();
         if (request.AsJson)
         {
-            Console.WriteLine(JsonSerializer.Serialize(entries.Select(e => ToJson(e, report)), JsonOptions));
+            Console.WriteLine(JsonSerializer.Serialize(entries.Select(e => ToJson(e, usage)), JsonOptions));
             return 0;
         }
 
@@ -142,11 +142,11 @@ internal static class ListCommand
             return 0;
         }
 
-        Console.WriteLine(request.WithUsage && report is not null ? SkillTable.Render(entries, report) : SkillTable.Render(entries));
+        Console.WriteLine(request.WithUsage && usage is not null ? SkillTable.Render(entries, usage) : SkillTable.Render(entries));
         return 0;
     }
 
-    private static string Plain(IReadOnlyList<Skill> skills, bool asJson, UsageReport? usage)
+    private static string Plain(IReadOnlyList<Skill> skills, bool asJson, CopyUsage? usage)
     {
         if (!asJson)
         {
@@ -155,7 +155,7 @@ internal static class ListCommand
 
         return usage is null
             ? JsonSerializer.Serialize(skills, JsonOptions)
-            : JsonSerializer.Serialize(skills.Select(s => new { Skill = s, Usage = usage.For(s.FullName) }), JsonOptions);
+            : JsonSerializer.Serialize(skills.Select(s => new { Skill = s, Usage = usage.For(s), UsageIsEstimate = usage.IsEstimate(s) }), JsonOptions);
     }
 
     private static async Task<UsageReport?> CollectUsageAsync(CancellationToken cancellationToken)
@@ -176,18 +176,20 @@ internal static class ListCommand
         return null;
     }
 
-    private static object ToJson(MissingEntry entry, UsageReport? usage) => new
+    private static object ToJson(MissingEntry entry, CopyUsage? usage) => new
     {
         entry.Skill,
-        Usage = usage?.For(entry.Skill.FullName),
+        Usage = usage?.For(entry.Skill),
+        UsageIsEstimate = usage?.IsEstimate(entry.Skill),
         Reason = entry.Reason(s => s.DisplayName),
         LoadedHere = entry.LoadedHere?.Id,
     };
 
-    private static object ToJson(EffectiveEntry entry, UsageReport? usage) => new
+    private static object ToJson(EffectiveEntry entry, CopyUsage? usage) => new
     {
         entry.Skill,
-        Usage = usage?.For(entry.Skill.FullName),
+        Usage = usage?.For(entry.Skill),
+        UsageIsEstimate = usage?.IsEstimate(entry.Skill),
         entry.Availability,
         ShadowedBy = entry.ShadowedBy?.Id,
         Overrides = entry.Overrides.Select(o => o.Id).ToList(),

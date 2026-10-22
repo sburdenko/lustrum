@@ -43,6 +43,11 @@ internal sealed class Renderer(DemoHome demo)
         }
 
         Apply(scenario, vm, window);
+        if (scenario.Tab == SkillCardViewModel.CompareTab)
+        {
+            await WaitFor(() => vm.Card!.HasComparison);
+            vm.Card!.SelectedTab = scenario.Tab;
+        }
 
         await Task.Delay(Settle);
         Dispatcher.UIThread.RunJobs();
@@ -74,7 +79,7 @@ internal sealed class Renderer(DemoHome demo)
                 : vm.VisibleSkills.FirstOrDefault();
         }
 
-        if (scenario.Tab > 0)
+        if (scenario.Tab > 0 && scenario.Tab != SkillCardViewModel.CompareTab)
         {
             vm.Card!.SelectedTab = scenario.Tab;
         }

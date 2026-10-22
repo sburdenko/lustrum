@@ -48,21 +48,21 @@ internal static class SkillTable
 
     private static readonly Column[] UsageColumns =
     [
-        new("USES", r => (r.Usage?.Count ?? 0).ToString(CultureInfo.InvariantCulture)),
+        new("USES", r => (r.Estimated ? "≈" : string.Empty) + (r.Usage?.Count ?? 0).ToString(CultureInfo.InvariantCulture)),
         new("LAST USED", r => r.Usage?.LastUsed.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "never"),
     ];
 
     public static string Render(IReadOnlyList<MissingEntry> entries) =>
         Build(entries.Select(e => new Row(e.Skill, null, null, e)).ToList(), [.. Base, WhereMissing]);
 
-    public static string Render(IReadOnlyList<MissingEntry> entries, UsageReport usage) =>
-        Build(entries.Select(e => new Row(e.Skill, null, usage.For(e.Skill.FullName), e)).ToList(), [.. Base, WhereMissing, .. UsageColumns]);
+    public static string Render(IReadOnlyList<MissingEntry> entries, CopyUsage usage) =>
+        Build(entries.Select(e => new Row(e.Skill, null, usage.For(e.Skill), e, usage.IsEstimate(e.Skill))).ToList(), [.. Base, WhereMissing, .. UsageColumns]);
 
-    public static string Render(IReadOnlyList<Skill> skills, UsageReport usage) =>
-        Build(skills.Select(s => new Row(s, null, usage.For(s.FullName))).ToList(), [.. Base, .. UsageColumns]);
+    public static string Render(IReadOnlyList<Skill> skills, CopyUsage usage) =>
+        Build(skills.Select(s => new Row(s, null, usage.For(s), Estimated: usage.IsEstimate(s))).ToList(), [.. Base, .. UsageColumns]);
 
-    public static string Render(IReadOnlyList<EffectiveEntry> entries, UsageReport usage) =>
-        Build(entries.Select(e => new Row(e.Skill, e, usage.For(e.Skill.FullName))).ToList(), [.. Base, InProject, .. UsageColumns]);
+    public static string Render(IReadOnlyList<EffectiveEntry> entries, CopyUsage usage) =>
+        Build(entries.Select(e => new Row(e.Skill, e, usage.For(e.Skill), Estimated: usage.IsEstimate(e.Skill))).ToList(), [.. Base, InProject, .. UsageColumns]);
 
     private static string Build(IReadOnlyList<Row> rows, IReadOnlyList<Column> columns)
     {
@@ -91,7 +91,7 @@ internal static class SkillTable
         return single.Length <= DescriptionWidth ? single : single[..(DescriptionWidth - 1)] + "…";
     }
 
-    private sealed record Row(Skill Skill, EffectiveEntry? Entry, SkillUsage? Usage, MissingEntry? Missing = null);
+    private sealed record Row(Skill Skill, EffectiveEntry? Entry, SkillUsage? Usage, MissingEntry? Missing = null, bool Estimated = false);
 
     private sealed record Column(string Header, Func<Row, string> Value);
 }

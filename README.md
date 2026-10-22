@@ -45,9 +45,9 @@ edit skills.
 | **Health** | One Problems list: broken frontmatter with the YAML line and cause, over-long descriptions, projects whose folder is gone, paths that could not be read. |
 | **Checks** | Each `SKILL.md` is linted while it is read: links and `scripts/`, `references/` or `assets/` paths to files that are not in the skill folder, malformed `allowed-tools` entries, misspelt tool names with the likely meant one, and a bare `Bash` or `PowerShell` that allows any shell command. Findings show on the card and in Problems. |
 | **Context budget** | In a project's Effective view, an estimate of how many tokens the skill list takes in every session, per skill and in total, by Claude Code's rules: description plus `when_to_use`, capped at 1,536 characters, name only for `name-only`, nothing for hidden skills and `disable-model-invocation`. Skills sort by cost on request; the card shows what a skill costs listed and invoked, and what name-only would save. |
-| **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, with a 30-day strip, read incrementally from Claude Code transcripts. |
-| **Compare** | A line diff between copies of one name, with unchanged runs folded. |
-| **Git** | Branch, upstream, behind and ahead, uncommitted changes and last commit for skills in a git repository. **Check for updates** fetches; **Update** fast-forwards a repository that holds only skills. |
+| **Usage** | How often each skill was used, by Claude or by you, when last and in which projects, with a 30-day strip, read incrementally from Claude Code transcripts. When several copies share a name, each use goes to the copy that wins in the folder the session ran in, marked as an estimate. |
+| **Compare** | A line diff between copies of one name, or against what the fetched upstream brings, with unchanged runs folded. |
+| **Git** | Branch, upstream, behind and ahead, uncommitted changes and last commit for skills in a git repository. **Check for updates** fetches and counts only the new commits that touch each skill, so a skill in a large repository is not flagged for changes elsewhere; the card lists the files they change and **Compare** shows the `SKILL.md` diff before **Update** fast-forwards a repository that holds only skills. |
 | **Visibility** | Turn a skill on, name-only, user-only or off through Claude Code's own `skillOverrides` setting, the switch behind its `/skills` menu. |
 | **Copy to** | Copy a skill into your personal skills or a project, for example to share it with a team or to customise a plugin skill. Nothing is overwritten. |
 | **CLI line** | The bar at the bottom shows the `lustrum` command that prints the current view, such as `list --project ~/work/storefront --missing` or `diff release-notes`. |
@@ -72,11 +72,11 @@ edit skills.
 </tr>
 <tr>
 <td width="50%"><img src="docs/compare.png" alt="Line diff between a project copy and the personal copy of a skill"/></td>
-<td width="50%"><img src="docs/git.png" alt="A cloned skill two commits behind its upstream with Update enabled and the updates chip on"/></td>
+<td width="50%"><img src="docs/git.png" alt="A cloned skill two commits behind its upstream, the updates chip on, and Compare showing the line the update changes"/></td>
 </tr>
 <tr>
 <td align="center"><sub><b>Compare</b> · two copies of one name, line by line</sub></td>
-<td align="center"><sub><b>Git</b> · a cloned skill two commits behind</sub></td>
+<td align="center"><sub><b>Git</b> · what the update changes, before pulling it</sub></td>
 </tr>
 <tr>
 <td width="50%"><img src="docs/visibility.png" alt="A personal skill turned off by project settings, with the Copy to menu open"/></td>
@@ -133,7 +133,7 @@ xattr -dr com.apple.quarantine Lustrum.app
 git clone https://github.com/sburdenko/lustrum.git && cd lustrum
 dotnet run --project src/Lustrum.App               # the window
 dotnet run --project src/Lustrum.Cli -- list       # the same data in a terminal
-dotnet test                                        # 498 tests
+dotnet test                                        # 525 tests
 ```
 
 ## Architecture
@@ -229,7 +229,7 @@ The full design notes, from discovery and the data model to the git and write pa
 
 ```text
 lustrum list [--json] [--source managed|global|project|plugin|synced] [--broken] [--project <folder> [--missing|--budget]] [--usage] [--unused]
-lustrum problems [--json]
+lustrum problems [<folder>] [--json]
 lustrum diff <name>
 ```
 
@@ -266,8 +266,11 @@ gone    retired-prototype  Project folder no longer exists: /Users/you/work/reti
 - `--project <folder>` prints that project's effective set with an `IN PROJECT` column; `--missing` lists what it
   does not load, with a `NOTE` for disabled plugins and names loaded from elsewhere; `--budget` adds an estimated
   `≈TOKENS` column, sorts by it and ends with the total for the whole skill list, whatever the filters.
-- `problems` prints the Problems list and exits with 1 when there is anything in it, so it can run in CI or a
-  pre-commit hook.
+- `problems` prints the Problems list and exits with 1 when there is anything in it. Given a folder, it checks only
+  the skills and commands in it, ignoring `~/.claude` and every personal setting: its `.claude` folders at any depth,
+  plugins, folders whose `skills/` holds skills, or the folder itself when it is one skill or a folder of them. That is
+  the form for CI in a repository of team skills or plugins, and for a pre-commit hook; a folder with no skills at all
+  exits with 2, so a mistyped path does not pass.
 - `--usage` adds `USES` and `LAST USED`; `--unused` keeps skills with no recorded use and refuses to run when there are
   no transcripts at all.
 - `--json` prints full records: frontmatter, allowed tools, files, health, tags, and with `--project` the
@@ -281,7 +284,7 @@ gone    retired-prototype  Project folder no longer exists: /Users/you/work/reti
 
 | | |
 |---|---|
-| **Tests** | 498 xUnit tests, about 5,200 lines, more than the Core code they cover |
+| **Tests** | 525 xUnit tests, about 5,700 lines, more than the Core code they cover |
 | **Coverage** | 88% of lines in `Lustrum.Core`, 87% in the view models (coverlet) |
 | **Real environments** | scanner tests on throw-away home folders; git tests on real repositories with a bare remote; writer tests on real files, links and file modes |
 | **CI** | the full suite on Ubuntu, macOS and Windows for every pull request; `main` only accepts green changes |
@@ -319,6 +322,8 @@ on macOS, `~/.config` on Linux, `%APPDATA%` on Windows) and are written only on 
   skill list or the tokenizer. They are counted before Claude Code fits the list into its own budget (1% of the
   context window by default), which drops descriptions of the least-used skills when the list is too long, so a large
   total means descriptions are being cut rather than that many tokens being spent.
+- Transcripts do not say which file ran, so when several copies share a name the per-copy split follows today's
+  precedence and settings, not those at the time of each session.
 - Only the first 64 KB of a `SKILL.md` is linted. Misspelt tool names are found against Lustrum's own list of Claude
   Code tools; a name far from every tool on it is not reported.
 - Claude Code's documentation does not say how `skillOverrides` from several files combine; Lustrum assumes key by key,

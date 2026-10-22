@@ -103,7 +103,7 @@ public partial class MainWindow : Window
             case Shortcut.CopyTo when CardPane.CanCopyTo:
                 CardPane.OpenCopyTo();
                 return true;
-            case Shortcut.Compare when viewModel.Card is { HasConflicts: true } card:
+            case Shortcut.Compare when viewModel.Card is { HasComparison: true } card:
                 card.SelectedTab = SkillCardViewModel.CompareTab;
                 return true;
             case Shortcut.Section when section is not null:

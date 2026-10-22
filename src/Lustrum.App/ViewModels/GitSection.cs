@@ -16,7 +16,9 @@ public sealed record GitSection(
     bool ShowUpdate = false,
     bool CanUpdate = false,
     string? CheckNote = null,
-    string? UpdateNote = null)
+    string? UpdateNote = null,
+    string? IncomingTitle = null,
+    IReadOnlyList<GitChangeRow>? Incoming = null)
 {
     private const int MaxChanges = 8;
 
@@ -27,6 +29,12 @@ public sealed record GitSection(
     public bool HasChanges => ChangeRows.Count > 0;
 
     public string ChangesTitle => ChangeRows.Count == 1 ? "1 uncommitted change" : $"{ChangeRows.Count} uncommitted changes";
+
+    public IReadOnlyList<GitChangeRow> IncomingRows => Incoming ?? [];
+
+    public bool HasIncoming => IncomingTitle is not null;
+
+    public bool CanShowIncoming => IncomingRows.Count > 0;
 
     public bool HasLastCommit => LastCommit is not null;
 
@@ -61,8 +69,17 @@ public sealed record GitSection(
             ShowUpdate: skillsOnly,
             CanUpdate: !repo.IsBusy && report.Update.CanUpdate,
             CheckNote: report.Tracking.HasUpstream || repo.IsBusy ? repo.Note : null,
-            UpdateNote: UpdateNoteFor(report));
+            UpdateNote: UpdateNoteFor(report),
+            IncomingTitle: report.Incoming is { } incoming ? IncomingTitleFor(incoming, report.Tracking.Behind) : null,
+            Incoming: report.Incoming?.Files.Take(MaxChanges).Select(c => new GitChangeRow(Code(c.Kind), c.Path)).ToList());
     }
+
+    private static string IncomingTitleFor(SkillIncoming incoming, int behind) => incoming.Commits switch
+    {
+        0 => behind == 1 ? "The new commit upstream does not change this skill" : $"None of the {behind} new commits upstream change this skill",
+        1 => "1 new commit upstream changes this skill",
+        var n => $"{n} new commits upstream change this skill",
+    };
 
     private static string HeadlineFor(GitTracking tracking)
     {

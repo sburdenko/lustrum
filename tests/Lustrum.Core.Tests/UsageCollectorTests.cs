@@ -45,6 +45,8 @@ public class UsageCollectorTests : IDisposable
         review.PerDay(new DateOnly(2026, 9, 3), 5, TimeZoneInfo.Utc).Should().Equal(0, 0, 1, 1, 1);
         report.ByName["deploy"].Count.Should().Be(1);
         report.TranscriptCount.Should().Be(3);
+        report.Invocations.Select(i => (i.Name, i.ProjectPath)).Should().BeEquivalentTo(
+            [("review", "/work/app"), ("review", "/work/app"), ("review", "/work/site"), ("deploy", "/work/site")]);
     }
 
     [Fact]

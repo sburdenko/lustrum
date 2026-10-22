@@ -1,11 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Lustrum.Core.Comparing;
+using Lustrum.Core.Git;
 using Lustrum.Core.Models;
-using Lustrum.Core.Scanning;
 
 namespace Lustrum.App.ViewModels;
-
-public sealed record CompareTarget(string Label, Skill Skill);
 
 public sealed partial class ComparisonViewModel : ObservableObject
 {
@@ -26,15 +24,38 @@ public sealed partial class ComparisonViewModel : ObservableObject
     [ObservableProperty]
     private bool _isLoading;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTargets))]
+    private IReadOnlyList<CompareTarget> _targets;
+
     public ComparisonViewModel(Skill skill, IReadOnlyList<Skill> others)
     {
         _skill = skill;
-        Targets = others.Select(o => new CompareTarget(SkillItemViewModel.SourceLabelFor(o.Source), o)).ToList();
+        _targets = others.Select(o => new SkillCompareTarget(SkillItemViewModel.SourceLabelFor(o.Source), o)).ToList();
     }
 
-    public IReadOnlyList<CompareTarget> Targets { get; }
+    public bool HasTargets => Targets.Count > 0;
 
-    public string Legend => Target is null ? string.Empty : $"− only in this copy   + only in {Target.Label}";
+    public string Legend => Target?.Legend ?? string.Empty;
+
+    /// <summary>Offers what the fetched upstream changes, first in the list; null takes the offer back.</summary>
+    public void ShowIncoming(SkillIncoming? incoming, string? upstream)
+    {
+        var current = Targets.OfType<IncomingCompareTarget>().FirstOrDefault()?.Incoming;
+        if (Equals(current, incoming))
+        {
+            return;
+        }
+
+        var copies = Targets.Where(t => t is not IncomingCompareTarget).ToList();
+
+        var wasShowing = Target is IncomingCompareTarget;
+        Targets = incoming is null ? copies : [new IncomingCompareTarget($"incoming from {upstream}", incoming), .. copies];
+        if (wasShowing)
+        {
+            Target = Targets.FirstOrDefault(t => t is IncomingCompareTarget) ?? Targets.FirstOrDefault();
+        }
+    }
 
     public void Reload()
     {
@@ -51,7 +72,12 @@ public sealed partial class ComparisonViewModel : ObservableObject
         if (value is not null)
         {
             _ = LoadAsync(value, version);
+            return;
         }
+
+        Rows = [];
+        Summary = string.Empty;
+        IsLoading = false;
     }
 
     private async Task LoadAsync(CompareTarget target, int version)
@@ -61,18 +87,18 @@ public sealed partial class ComparisonViewModel : ObservableObject
         Summary = string.Empty;
         try
         {
-            var diff = await Task.Run(() => SkillComparer.Compare(
-                SkillBodyReader.ReadText(_skill.Path),
-                SkillBodyReader.ReadText(target.Skill.Path)));
+            var diff = await Task.Run(() =>
+            {
+                var (left, right) = target.Read(_skill);
+                return SkillComparer.Compare(left, right);
+            });
             if (version != _version)
             {
                 return;
             }
 
             Rows = Cap(DiffFolding.Fold(diff.Lines, Context).Select(DiffRowViewModel.From).ToList());
-            Summary = diff.IsIdentical
-                ? $"Identical to the copy in {target.Label}"
-                : $"{Lines(diff.Removed)} only in this copy, {Lines(diff.Added)} only in {target.Label}";
+            Summary = target.Summarize(diff);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -95,6 +121,4 @@ public sealed partial class ComparisonViewModel : ObservableObject
         rows.Count <= MaxRows
             ? rows
             : [.. rows.Take(MaxRows), DiffRowViewModel.Folded($"⋯ {rows.Count - MaxRows} more lines not shown")];
-
-    private static string Lines(int count) => count == 1 ? "1 line" : $"{count} lines";
 }

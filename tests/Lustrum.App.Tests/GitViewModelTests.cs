@@ -25,11 +25,12 @@ public class GitViewModelTests
         Report(TestData.Project, "deploy", new SkillLocation(AppRepo, ".claude/skills/deploy"));
     }
 
-    private void Report(SkillSource source, string name, SkillLocation location, GitTracking? tracking = null, IReadOnlyList<GitChange>? changes = null)
+    private void Report(
+        SkillSource source, string name, SkillLocation location, GitTracking? tracking = null, IReadOnlyList<GitChange>? changes = null, SkillIncoming? incoming = null)
     {
         var state = tracking ?? Level;
         _git.Reports[$"{source.Id}#{name}"] = new SkillGitReport(
-            location, state, changes ?? [], Commit, UpdatePolicy.Evaluate(location.Repository, state, changes ?? []));
+            location, state, changes ?? [], Commit, UpdatePolicy.Evaluate(location.Repository, state, changes ?? []), incoming);
     }
 
     private async Task<MainViewModel> Scanned()
@@ -121,7 +122,7 @@ public class GitViewModelTests
         vm.Card.Git.UpdateNote.Should().Be("3 new commits to pull");
         vm.Card.Git.CheckNote.Should().StartWith("Checked for updates at ");
         vm.UpdateCardSkillCommand.CanExecute(null).Should().BeTrue();
-        vm.VisibleSkills.Single(s => s.Name == "design").Behind.Should().Be(3);
+        vm.VisibleSkills.Single(s => s.Name == "design").Incoming.Should().Be(3);
     }
 
     [Fact]
@@ -158,10 +159,11 @@ public class GitViewModelTests
     }
 
     [Fact]
-    public async Task Checking_all_repositories_unlocks_the_updates_chip_for_skills_repositories_only()
+    public async Task Checking_all_repositories_marks_only_skills_whose_own_folder_changed_upstream()
     {
         _git.Checked[SkillsRepo.Root] = new GitTracking("main", "origin/main", 0, 2);
         _git.Checked[AppRepo.Root] = new GitTracking("main", "origin/main", 0, 5);
+        _git.IncomingByPath[".claude/skills/deploy"] = 0;
         var vm = await Scanned();
         var chip = vm.Chips.Single(c => c.Label == "updates");
         chip.IsAvailable.Should().BeFalse();
@@ -172,9 +174,94 @@ public class GitViewModelTests
         _git.Fetched.Should().BeEquivalentTo(SkillsRepo.Root, AppRepo.Root);
         chip.IsAvailable.Should().BeTrue();
         vm.VisibleSkills.Select(s => s.Name).Should().Equal("design");
-        vm.VisibleSkills.Single().UpdateHint.Should().Be("2 new commits upstream");
+        vm.VisibleSkills.Single().UpdateHint.Should().Be("2 new commits upstream change this skill");
+        _git.CountedPaths.Should().BeEquivalentTo("design", ".claude/skills/deploy");
         vm.UpdateStatus.Should().MatchRegex(@"^Checked 2 repositories at \d\d:\d\d · 1 skill has updates$");
         vm.IsCheckingUpdates.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_skill_in_a_project_repository_counts_as_updated_when_upstream_commits_touch_it()
+    {
+        _git.Checked[AppRepo.Root] = new GitTracking("main", "origin/main", 0, 40);
+        _git.IncomingByPath[".claude/skills/deploy"] = 1;
+        var vm = await Scanned();
+
+        await vm.CheckAllForUpdatesCommand.ExecuteAsync(null);
+
+        vm.VisibleSkills.Single(s => s.Name == "deploy").Status.Should().EndWith("↓1");
+    }
+
+    [Fact]
+    public async Task A_card_behind_its_upstream_lists_incoming_files_and_compares_with_the_upstream()
+    {
+        var incoming = new SkillIncoming(1, [new GitChange("design/SKILL.md", GitChangeKind.Modified)], "design/SKILL.md", "a\nb\n", "a\nc\n");
+        Report(TestData.Global, "design", new SkillLocation(SkillsRepo, "design"), new GitTracking("main", "origin/main", 0, 3), incoming: incoming);
+        var vm = await Scanned();
+
+        Select(vm, "design");
+        var card = vm.Card!;
+        card.ShowIncomingCommand.Execute(null);
+        await WaitUntil(() => card.Comparison.Summary.Length > 0);
+
+        card.Git.IncomingTitle.Should().Be("1 new commit upstream changes this skill");
+        card.Git.IncomingRows.Should().Equal(new GitChangeRow("M", "design/SKILL.md"));
+        card.HasComparison.Should().BeTrue();
+        card.SelectedTab.Should().Be(SkillCardViewModel.CompareTab);
+        card.Comparison.Target!.Label.Should().Be("incoming from origin/main");
+        card.Comparison.Summary.Should().Be("The update removes 1 line and adds 1 line in SKILL.md");
+        card.Comparison.Legend.Should().Be("− goes with the update   + comes with the update");
+        vm.CliCommand.Should().NotStartWith("diff");
+    }
+
+    [Fact]
+    public async Task When_nothing_is_incoming_any_more_the_compare_tab_gives_way_to_the_overview()
+    {
+        var incoming = new SkillIncoming(1, [new GitChange("design/SKILL.md", GitChangeKind.Modified)], "design/SKILL.md", "a\n", "b\n");
+        Report(TestData.Global, "design", new SkillLocation(SkillsRepo, "design"), new GitTracking("main", "origin/main", 0, 1), incoming: incoming);
+        var vm = await Scanned();
+        Select(vm, "design");
+        var card = vm.Card!;
+        card.ShowIncomingCommand.Execute(null);
+        await WaitUntil(() => card.Comparison.Summary.Length > 0);
+
+        Report(TestData.Global, "design", new SkillLocation(SkillsRepo, "design"));
+        await vm.CheckCardForUpdatesCommand.ExecuteAsync(null);
+        await WaitUntil(() => !card.HasComparison);
+
+        card.SelectedTab.Should().Be(0);
+        card.Comparison.Rows.Should().BeEmpty();
+        card.Comparison.Summary.Should().BeEmpty();
+        card.Comparison.IsLoading.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task When_counting_fails_a_skills_repository_shows_its_whole_behind_count_and_a_project_none()
+    {
+        _git.Checked[SkillsRepo.Root] = new GitTracking("main", "origin/main", 0, 2);
+        _git.Checked[AppRepo.Root] = new GitTracking("main", "origin/main", 0, 9);
+        _git.IncomingFailure = new GitException("git log failed");
+        var vm = await Scanned();
+
+        await vm.CheckAllForUpdatesCommand.ExecuteAsync(null);
+
+        vm.Updates.StateOf(SkillsRepo).Should().BeOfType<CheckedRepo>();
+        vm.VisibleSkills.Single(s => s.Name == "design").Incoming.Should().Be(2);
+        vm.VisibleSkills.Single(s => s.Name == "deploy").Incoming.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task A_project_skill_untouched_by_the_new_commits_says_so()
+    {
+        var incoming = new SkillIncoming(0, [], ".claude/skills/deploy/SKILL.md", "x", "x");
+        Report(TestData.Project, "deploy", new SkillLocation(AppRepo, ".claude/skills/deploy"), new GitTracking("main", "origin/main", 0, 5), incoming: incoming);
+        var vm = await Scanned();
+
+        Select(vm, "deploy");
+
+        vm.Card!.Git.IncomingTitle.Should().Be("None of the 5 new commits upstream change this skill");
+        vm.Card.Git.CanShowIncoming.Should().BeFalse();
+        vm.Card.HasComparison.Should().BeFalse();
     }
 
     [Fact]
@@ -212,7 +299,7 @@ public class GitViewModelTests
 
         await vm.RescanCommand.ExecuteAsync(null);
 
-        await WaitUntil(() => vm.VisibleSkills.Single(s => s.Name == "design").Behind == 2);
+        await WaitUntil(() => vm.VisibleSkills.Single(s => s.Name == "design").Incoming == 2);
     }
 
     [Fact]

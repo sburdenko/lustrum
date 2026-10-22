@@ -31,8 +31,24 @@ public sealed record UpdatingRepo : RepoState
     public override string Note => "Updating…";
 }
 
-public sealed record CheckedRepo(GitTracking Tracking, DateTimeOffset At) : RepoState
+/// <summary>
+/// A fetched repository. Incoming maps a skill's relative path to the upstream commits that touch it; it is null when
+/// the counts could not be taken.
+/// </summary>
+public sealed record CheckedRepo(GitTracking Tracking, DateTimeOffset At, IReadOnlyDictionary<string, int>? Incoming = null) : RepoState
 {
+    /// <summary>
+    /// Commits that touch the skill. Without a count for it, a skills repository falls back to its whole behind count,
+    /// which is what Update would pull, and a project repository to none, since its commits mostly concern other files.
+    /// </summary>
+    public int IncomingFor(SkillLocation location) =>
+        Incoming?.TryGetValue(location.RelativePath, out var count) == true
+            ? count
+            : location.Repository.Role == RepositoryRole.SkillsOnly ? Tracking.Behind : 0;
+
+    public bool HasCountsFor(IEnumerable<string> relativePaths) =>
+        Tracking.Behind == 0 || (Incoming is { } counts && relativePaths.All(counts.ContainsKey));
+
     public override string Note => $"Checked for updates at {At.ToLocalTime():HH:mm}";
 }
 
