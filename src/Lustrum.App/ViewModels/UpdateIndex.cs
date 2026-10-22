@@ -5,11 +5,11 @@ using Lustrum.Core.Models;
 namespace Lustrum.App.ViewModels;
 
 public sealed record UpdateIndex(
-    ImmutableDictionary<string, SkillRepository> RepositoryBySkill,
+    ImmutableDictionary<string, SkillLocation> LocationBySkill,
     ImmutableDictionary<string, RepoState> States)
 {
     public static UpdateIndex Empty { get; } = new(
-        ImmutableDictionary<string, SkillRepository>.Empty,
+        ImmutableDictionary<string, SkillLocation>.Empty,
         ImmutableDictionary<string, RepoState>.Empty.WithComparers(StringComparer.Ordinal));
 
     public bool HasChecked => States.Values.Any(s => s is CheckedRepo);
@@ -19,18 +19,19 @@ public sealed record UpdateIndex(
     public RepoState StateOf(SkillRepository repository) => States.GetValueOrDefault(repository.Root, RepoState.NotChecked);
 
     /// <summary>
-    /// Commits a skill could pull. Only skills repositories count: a project repository being behind says nothing
-    /// about the skill itself, so its count stays on the card.
+    /// Commits of the last fetched upstream that touch the skill's own folder or file, so a skill in a large
+    /// repository is not reported as changed because something else in it moved.
     /// </summary>
-    public int Behind(Skill skill) =>
-        RepositoryBySkill.TryGetValue(skill.Id, out var repository)
-        && repository.Role == RepositoryRole.SkillsOnly
-        && StateOf(repository) is CheckedRepo done
-            ? done.Tracking.Behind
+    public int Incoming(Skill skill) =>
+        LocationBySkill.TryGetValue(skill.Id, out var location) && StateOf(location.Repository) is CheckedRepo done
+            ? done.IncomingFor(location)
             : 0;
+
+    public IReadOnlyList<string> PathsIn(SkillRepository repository) =>
+        LocationBySkill.Values.Where(l => l.Repository.Root == repository.Root).Select(l => l.RelativePath).Distinct(StringComparer.Ordinal).ToList();
 
     public UpdateIndex With(SkillRepository repository, RepoState state) => this with { States = States.SetItem(repository.Root, state) };
 
-    public UpdateIndex Mapping(Skill skill, SkillRepository repository) =>
-        this with { RepositoryBySkill = RepositoryBySkill.SetItem(skill.Id, repository) };
+    public UpdateIndex Mapping(Skill skill, SkillLocation location) =>
+        this with { LocationBySkill = LocationBySkill.SetItem(skill.Id, location) };
 }

@@ -68,10 +68,10 @@ public sealed class ComparisonViewModelTests : IDisposable
         var card = vm.Card!;
 
         card.CompareWithCommand.Execute(card.Conflicts.Single());
-        await Loaded(card.Comparison!);
+        await Loaded(card.Comparison);
 
         card.SelectedTab.Should().Be(SkillCardViewModel.CompareTab);
-        card.Comparison!.Target!.Label.Should().Be("app");
+        card.Comparison.Target!.Label.Should().Be("app");
         card.Comparison.Summary.Should().Be("1 line only in this copy, 2 lines only in app");
         card.Comparison.Rows.Select(r => r.Prefix + r.Text).Should().Equal(" same", "-mine", "+theirs", "+extra");
     }
@@ -83,9 +83,9 @@ public sealed class ComparisonViewModelTests : IDisposable
         var card = vm.Card!;
 
         card.SelectedTab = SkillCardViewModel.CompareTab;
-        await Loaded(card.Comparison!);
+        await Loaded(card.Comparison);
 
-        card.Comparison!.Target.Should().NotBeNull();
+        card.Comparison.Target.Should().NotBeNull();
         card.Comparison.Rows.Should().HaveCount(2);
     }
 
@@ -96,9 +96,9 @@ public sealed class ComparisonViewModelTests : IDisposable
         var card = vm.Card!;
 
         card.CompareWithCommand.Execute(card.Conflicts.Single());
-        await Loaded(card.Comparison!);
+        await Loaded(card.Comparison);
 
-        card.Comparison!.Summary.Should().Be("Identical to the copy in app");
+        card.Comparison.Summary.Should().Be("Identical to the copy in app");
     }
 
     [Fact]
@@ -109,9 +109,9 @@ public sealed class ComparisonViewModelTests : IDisposable
         System.IO.File.Delete(Path.Combine(_dir, "project.md"));
 
         card.CompareWithCommand.Execute(card.Conflicts.Single());
-        await Loaded(card.Comparison!);
+        await Loaded(card.Comparison);
 
-        card.Comparison!.Summary.Should().StartWith("Could not compare:");
+        card.Comparison.Summary.Should().StartWith("Could not compare:");
         card.Comparison.Rows.Should().BeEmpty();
     }
 
@@ -141,12 +141,12 @@ public sealed class ComparisonViewModelTests : IDisposable
     public async Task Unexpected_read_errors_are_reported_and_old_rows_cleared()
     {
         var vm = await Scanned("a\n", "b\n");
-        var comparison = vm.Card!.Comparison!;
+        var comparison = vm.Card!.Comparison;
         vm.Card.CompareWithCommand.Execute(vm.Card.Conflicts.Single());
         await Loaded(comparison);
         comparison.Rows.Should().NotBeEmpty();
 
-        var broken = new CompareTarget("broken", TestData.Skill(TestData.Project, "review") with { Path = "bad\0path" });
+        var broken = new SkillCompareTarget("broken", TestData.Skill(TestData.Project, "review") with { Path = "bad\0path" });
         comparison.Target = broken;
         await Loaded(comparison);
 
@@ -162,9 +162,9 @@ public sealed class ComparisonViewModelTests : IDisposable
         var vm = await Scanned(left, right);
 
         vm.Card!.CompareWithCommand.Execute(vm.Card.Conflicts.Single());
-        await Loaded(vm.Card.Comparison!);
+        await Loaded(vm.Card.Comparison);
 
-        var rows = vm.Card.Comparison!.Rows;
+        var rows = vm.Card.Comparison.Rows;
         rows.Should().HaveCount(ComparisonViewModel.MaxRows + 1);
         rows[^1].Text.Should().Contain("more lines not shown");
     }
@@ -175,18 +175,18 @@ public sealed class ComparisonViewModelTests : IDisposable
         var vm = await Scanned("a\n", "b\n");
         var card = vm.Card!;
         card.CompareWithCommand.Execute(card.Conflicts.Single());
-        await Loaded(card.Comparison!);
+        await Loaded(card.Comparison);
 
         System.IO.File.WriteAllText(Path.Combine(_dir, "project.md"), "a\n");
         card.CompareWithCommand.Execute(card.Conflicts.Single());
         await Task.Delay(100);
-        await Loaded(card.Comparison!);
+        await Loaded(card.Comparison);
 
-        card.Comparison!.Summary.Should().Be("Identical to the copy in app");
+        card.Comparison.Summary.Should().Be("Identical to the copy in app");
     }
 
     [Fact]
-    public async Task Skill_without_conflicts_has_no_comparison()
+    public async Task Skill_without_conflicts_has_nothing_to_compare()
     {
         var vm = await Scanned("a\n", "b\n");
         vm.SelectedSkill = null;
@@ -194,6 +194,7 @@ public sealed class ComparisonViewModelTests : IDisposable
 
         vm.SelectedSkill = new SkillItemViewModel(TestData.Skill(TestData.Global, "solo"));
 
-        vm.Card!.Comparison.Should().BeNull();
+        vm.Card!.HasComparison.Should().BeFalse();
+        vm.Card.Comparison.Targets.Should().BeEmpty();
     }
 }

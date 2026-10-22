@@ -58,7 +58,7 @@ public static class EffectiveSetBuilder
     private static EffectiveEntry Active(Skill skill, IReadOnlyList<Skill> overrides) =>
         new(skill, Availability.Active, null, overrides);
 
-    private static int Rank(Skill skill) => (skill.Kind == SkillKind.Command ? 10 : 0) + skill.Source.Kind switch
+    internal static int Rank(Skill skill) => (skill.Kind == SkillKind.Command ? 10 : 0) + skill.Source.Kind switch
     {
         SourceKind.Managed => 0,
         SourceKind.Global => 1,

@@ -7,9 +7,6 @@ namespace Lustrum.Cli;
 
 internal static class DiffCommand
 {
-    private const int ReadError = 1;
-    private const int UsageError = 2;
-
     public static Command Create()
     {
         var name = new Argument<string>("name") { Description = "Skill or command name, with plugin prefix if it has one" };
@@ -28,7 +25,7 @@ internal static class DiffCommand
         if (copies.Count == 0)
         {
             await Console.Error.WriteLineAsync($"No skill named '{wanted}'.");
-            return UsageError;
+            return ExitCodes.Usage;
         }
 
         var report = DiffReport.Render(copies, SkillBodyReader.ReadText);
@@ -42,6 +39,6 @@ internal static class DiffCommand
             await Console.Error.WriteLineAsync(error);
         }
 
-        return report.Failed ? ReadError : 0;
+        return report.Failed ? ExitCodes.Found : 0;
     }
 }

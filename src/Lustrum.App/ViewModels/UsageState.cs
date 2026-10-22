@@ -11,6 +11,12 @@ public abstract record UsageState
 
     public virtual bool CanJudgeUnused => false;
 
+    /// <summary>The recorded uses of this copy; for a name several copies share, an estimate.</summary>
+    public virtual SkillUsage? UsageFor(Skill skill) => null;
+
+    /// <summary>Whether no recorded use ran this copy; meaningful only when <see cref="CanJudgeUnused"/>.</summary>
+    public virtual bool IsUnused(Skill skill) => UsageFor(skill) is null;
+
     public abstract string Status { get; }
 
     public abstract string Describe(Skill skill);
@@ -30,9 +36,14 @@ public sealed record FailedUsage(string Reason) : UsageState
     public override string Describe(Skill skill) => "Usage unknown: Claude Code transcripts could not be read";
 }
 
-public sealed record ReadyUsage(UsageReport Value, DateTimeOffset At) : UsageState
+/// <summary>Usage read from the transcripts; Copies splits shared names among their copies once a scan is known.</summary>
+public sealed record ReadyUsage(UsageReport Value, DateTimeOffset At, CopyUsage? Copies = null) : UsageState
 {
     public override UsageReport? Report => Value;
+
+    public override SkillUsage? UsageFor(Skill skill) => Copies is { } copies ? copies.For(skill) : Value.For(skill.FullName);
+
+    public override bool IsUnused(Skill skill) => Copies is { } copies ? copies.IsUnused(skill) : base.IsUnused(skill);
 
     public override bool CanJudgeUnused => Value.TranscriptCount > 0;
 
@@ -58,12 +69,32 @@ public sealed record ReadyUsage(UsageReport Value, DateTimeOffset At) : UsageSta
             return "Usage unknown: no Claude Code transcripts found";
         }
 
-        if (Value.For(skill.FullName) is not { } usage)
+        if (Copies is { } copies && copies.IsEstimate(skill))
+        {
+            return Shared(skill, copies);
+        }
+
+        if (UsageFor(skill) is not { } usage)
         {
             return "No recorded use in Claude Code transcripts";
         }
 
         var times = usage.Count == 1 ? "time" : "times";
         return $"Used {usage.Count} {times} ({usage.ByModel} by Claude, {usage.ByUser} by you), last on {usage.LastUsed.ToLocalTime():d MMM yyyy}";
+    }
+
+    private static string Shared(Skill skill, CopyUsage copies)
+    {
+        if (copies.ForName(skill) is not { } all)
+        {
+            return $"No recorded use of {skill.InvocationName} in Claude Code transcripts";
+        }
+
+        var uses = all.Count == 1 ? "use" : "uses";
+        var share = copies.For(skill) is { } mine
+            ? $"About {mine.Count} of the {all.Count} {uses} of {skill.InvocationName} ran this copy, last on {mine.LastUsed.ToLocalTime():d MMM yyyy}"
+            : $"None of the {all.Count} {uses} of {skill.InvocationName} ran this copy";
+        var open = copies.Unattributed(skill) is var count and > 0 ? $"; {count} could not be tied to one copy" : string.Empty;
+        return $"{share}{open}; an estimate from the folders the sessions ran in";
     }
 }

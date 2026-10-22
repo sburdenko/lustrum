@@ -6,6 +6,7 @@ namespace Lustrum.Core.Git;
 public sealed class GitCli(string executable = "git") : IGitClient
 {
     private const char Separator = '\u001f';
+    private const char CommitSeparator = '\u001e';
     private static readonly TimeSpan LocalTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan NetworkTimeout = TimeSpan.FromSeconds(90);
 
@@ -74,6 +75,45 @@ public sealed class GitCli(string executable = "git") : IGitClient
         return diff.Succeeded ? diff.Stdout.Split('\0', StringSplitOptions.RemoveEmptyEntries) : throw Failed("diff", diff);
     }
 
+    public async Task<IReadOnlyList<IReadOnlyList<string>>> IncomingCommitFilesAsync(string root, CancellationToken cancellationToken)
+    {
+        var log = await RunAsync(root, ["log", "--format=%x1e", "--name-only", "-z", "--no-renames", "HEAD..@{u}"], cancellationToken).ConfigureAwait(false);
+        if (!log.Succeeded)
+        {
+            throw Failed("log", log);
+        }
+
+        return log.Stdout
+            .Split(CommitSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Select(commit => (IReadOnlyList<string>)commit.Split('\0').Select(f => f.Trim('\n')).Where(f => f.Length > 0).ToList())
+            .ToList();
+    }
+
+    public async Task<string> MergeBaseAsync(string root, CancellationToken cancellationToken)
+    {
+        var mergeBase = await RunAsync(root, ["merge-base", "HEAD", "@{u}"], cancellationToken).ConfigureAwait(false);
+        return mergeBase.Succeeded ? mergeBase.Stdout.Trim() : throw Failed("merge-base", mergeBase);
+    }
+
+    public async Task<IReadOnlyList<GitChange>> IncomingChangesAsync(string root, string relativePath, CancellationToken cancellationToken)
+    {
+        var diff = await RunAsync(root, ["diff", "--name-status", "-z", "--no-renames", "HEAD...@{u}", "--", Literal(relativePath)], cancellationToken).ConfigureAwait(false);
+        return diff.Succeeded ? ParseNameStatus(diff.Stdout) : throw Failed("diff", diff);
+    }
+
+    public async Task<string?> ShowAsync(string root, string revision, string relativeFile, CancellationToken cancellationToken)
+    {
+        var show = await RunAsync(root, ["show", $"{revision}:{relativeFile}"], cancellationToken).ConfigureAwait(false);
+        if (show.Succeeded)
+        {
+            return show.Stdout;
+        }
+
+        return show.Stderr.Contains("does not exist", StringComparison.Ordinal) || show.Stderr.Contains("exists on disk, but not in", StringComparison.Ordinal)
+            ? null
+            : throw Failed("show", show);
+    }
+
     public async Task FetchAsync(string root, CancellationToken cancellationToken)
     {
         var fetch = await _git.RunAsync(root, ["fetch", "--quiet", "--no-recurse-submodules"], NetworkTimeout, cancellationToken).ConfigureAwait(false);
@@ -96,6 +136,24 @@ public sealed class GitCli(string executable = "git") : IGitClient
         _git.RunAsync(root, arguments, LocalTimeout, cancellationToken);
 
     private static string Literal(string relativePath) => ":(literal)" + relativePath;
+
+    private static List<GitChange> ParseNameStatus(string output)
+    {
+        var fields = output.Split('\0', StringSplitOptions.RemoveEmptyEntries);
+        var changes = new List<GitChange>();
+        for (var i = 0; i + 1 < fields.Length; i += 2)
+        {
+            var kind = fields[i][0] switch
+            {
+                'A' => GitChangeKind.Added,
+                'D' => GitChangeKind.Deleted,
+                _ => GitChangeKind.Modified,
+            };
+            changes.Add(new GitChange(fields[i + 1], kind));
+        }
+
+        return changes;
+    }
 
     private static int ParseCount(string[] parts, int index) =>
         parts.Length > index && int.TryParse(parts[index], NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : 0;

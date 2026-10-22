@@ -7,10 +7,12 @@ using Lustrum.Core.Problems;
 
 namespace Lustrum.Cli;
 
-/// <summary>Prints every problem the window's Problems list shows; exits with 1 when there is any, for scripts and CI.</summary>
+/// <summary>
+/// Prints every problem the window's Problems list shows, or those of the skills in one folder; exits with 1 when
+/// there is any, for scripts and CI.
+/// </summary>
 internal static class ProblemsCommand
 {
-    private const int Found = 1;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -22,20 +24,39 @@ internal static class ProblemsCommand
     public static Command Create()
     {
         var json = new Option<bool>("--json") { Description = "Emit machine-readable JSON" };
+        var folder = new Argument<string?>("folder")
+        {
+            Arity = ArgumentArity.ZeroOrOne,
+            Description = "Check only the skills and commands in this folder, such as a repository in CI: its .claude folders, plugins, skills/ collections, or the folder itself when it is one skill",
+        };
         var command = new Command("problems", "List broken skills, missing linked files, allowed-tools issues, long descriptions and missing projects");
         command.Options.Add(json);
-        command.SetAction(async (parseResult, cancellationToken) => await RunAsync(parseResult.GetValue(json), cancellationToken));
+        command.Arguments.Add(folder);
+        command.SetAction(async (parseResult, cancellationToken) =>
+            await RunAsync(parseResult.GetValue(folder), parseResult.GetValue(json), cancellationToken));
         return command;
     }
 
-    private static async Task<int> RunAsync(bool asJson, CancellationToken cancellationToken)
+    private static async Task<int> RunAsync(string? folder, bool asJson, CancellationToken cancellationToken)
     {
-        var scan = await CliScan.RunAsync(null, cancellationToken);
+        if (folder is not null && !Directory.Exists(folder))
+        {
+            await Console.Error.WriteLineAsync($"No folder at '{folder}'.");
+            return ExitCodes.Usage;
+        }
+
+        var scan = folder is null ? await CliScan.RunAsync(null, cancellationToken) : await CliScan.RunFolderAsync(folder, cancellationToken);
+        if (folder is not null && scan.Skills.Count == 0)
+        {
+            await Console.Error.WriteLineAsync($"No skills or commands found in '{folder}'.");
+            return ExitCodes.Usage;
+        }
+
         var problems = ProblemCollector.Collect(scan);
         Console.WriteLine(asJson
             ? JsonSerializer.Serialize(problems.Select(p => new { p.Kind, p.Subject, Message = Message(p), p.Path }), JsonOptions)
             : Render(problems));
-        return problems.Count == 0 ? 0 : Found;
+        return problems.Count == 0 ? 0 : ExitCodes.Found;
     }
 
     public static string Render(IReadOnlyList<Problem> problems)

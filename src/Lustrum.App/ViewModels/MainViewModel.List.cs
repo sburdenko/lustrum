@@ -171,7 +171,7 @@ public sealed partial class MainViewModel
     }
 
     private SkillItemViewModel Row(Skill skill) =>
-        new(skill, _effective?.Find(skill.Id), _missing?.Find(skill.Id), _updates.Behind(skill), HomeVisibility(skill))
+        new(skill, _effective?.Find(skill.Id), _missing?.Find(skill.Id), _updates.Incoming(skill), HomeVisibility(skill))
         {
             Number = _numbers.GetValueOrDefault(skill.Id),
             Copies = _copies.GetValueOrDefault(skill.ConflictKey, 1),
@@ -243,7 +243,7 @@ public sealed partial class MainViewModel
             .OrderByDescending(ListedChars)
             .ThenBy(s => s.FullName, StringComparer.OrdinalIgnoreCase),
         SortMode.LastUsed => skills
-            .OrderByDescending(s => Usage?.For(s.FullName)?.LastUsed ?? DateTimeOffset.MinValue)
+            .OrderByDescending(s => UsageState.UsageFor(s)?.LastUsed ?? DateTimeOffset.MinValue)
             .ThenBy(s => s.FullName, StringComparer.OrdinalIgnoreCase),
         _ => skills,
     };

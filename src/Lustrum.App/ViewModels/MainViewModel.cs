@@ -138,6 +138,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         _result = result;
         IndexResult(result);
+        ReattributeUsage(result);
         Card = null;
         RebuildTree();
         Summary = BuildSummary(result);

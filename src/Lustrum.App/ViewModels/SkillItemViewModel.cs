@@ -12,11 +12,11 @@ public sealed class SkillItemViewModel : IListRow
         Skill skill,
         EffectiveEntry? entry = null,
         MissingEntry? missing = null,
-        int behind = 0,
+        int incoming = 0,
         SkillVisibility visibility = SkillVisibility.On)
     {
         Skill = skill;
-        Behind = behind;
+        Incoming = incoming;
         Entry = entry;
         IsShadowed = entry?.Availability == Availability.Shadowed;
         IsDisabled = (entry, missing) switch
@@ -77,7 +77,7 @@ public sealed class SkillItemViewModel : IListRow
 
     private CheckRow? FirstCheck => CheckRow.For(Skill).FirstOrDefault();
 
-    public string Status => string.Join(" · ", new[] { AvailabilityLabel, HasUpdate ? $"↓{Behind}" : null }.OfType<string>());
+    public string Status => string.Join(" · ", new[] { AvailabilityLabel, HasUpdate ? $"↓{Incoming}" : null }.OfType<string>());
 
     public bool HasStatus => Status.Length > 0;
 
@@ -91,11 +91,12 @@ public sealed class SkillItemViewModel : IListRow
 
     public bool HasAvailabilityLabel => AvailabilityLabel is not null;
 
-    public int Behind { get; }
+    /// <summary>Commits of the fetched upstream that change this skill.</summary>
+    public int Incoming { get; }
 
-    public bool HasUpdate => Behind > 0;
+    public bool HasUpdate => Incoming > 0;
 
-    public string UpdateHint => Behind == 1 ? "1 new commit upstream" : $"{Behind} new commits upstream";
+    public string UpdateHint => Incoming == 1 ? "1 new commit upstream changes this skill" : $"{Incoming} new commits upstream change this skill";
 
     public double RowOpacity => IsShadowed || IsDisabled ? 0.5 : 1.0;
 

@@ -60,7 +60,7 @@ public sealed partial class MainViewModel
             Checks = CheckRow.For(item.Skill),
         };
         card.ApplyUsage(UsageState);
-        card.SelectedTab = _cardTab == SkillCardViewModel.CompareTab && !card.HasConflicts ? 0 : _cardTab;
+        card.SelectedTab = _cardTab == SkillCardViewModel.CompareTab && !card.HasComparison ? 0 : _cardTab;
         card.PropertyChanged += (_, e) =>
         {
             if (ReferenceEquals(Card, card) && e.PropertyName == nameof(SkillCardViewModel.SelectedTab) && card.SelectedTab >= 0)

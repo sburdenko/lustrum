@@ -124,6 +124,104 @@ public class SkillGitTests : IDisposable
     }
 
     [Fact]
+    public async Task Incoming_commits_are_counted_per_skill_folder()
+    {
+        var (remote, publisher) = _sandbox.Published("tool/SKILL.md");
+        _sandbox.Publish(publisher, "other/SKILL.md", GitSandbox.Skill("other"), "Add other");
+        var skills = _sandbox.Clone(remote, "home/.claude/skills");
+        _sandbox.Publish(publisher, "tool/SKILL.md", GitSandbox.Skill("second"), "Improve tool");
+        _sandbox.Publish(publisher, "tool/scripts/run.sh", "echo", "Add script");
+        var skill = GitSandbox.SkillAt(Global(_sandbox.Path("home/.claude")), Path.Combine(skills, "tool", "SKILL.md"));
+        var repository = _git.Locate(skill)!.Repository;
+
+        var tracking = await _git.CheckForUpdatesAsync(repository, default);
+        var counts = await _git.IncomingCommitsAsync(repository, ["tool", "other"], default);
+
+        tracking.Behind.Should().Be(2);
+        counts.Should().BeEquivalentTo(new Dictionary<string, int> { ["tool"] = 2, ["other"] = 0 });
+    }
+
+    [Fact]
+    public async Task Inspecting_a_skill_behind_its_upstream_shows_what_the_update_brings()
+    {
+        var (remote, publisher) = _sandbox.Published("tool/SKILL.md");
+        _sandbox.Publish(publisher, "other/SKILL.md", GitSandbox.Skill("other"), "Add other");
+        var skills = _sandbox.Clone(remote, "home/.claude/skills");
+        _sandbox.Publish(publisher, "tool/SKILL.md", GitSandbox.Skill("second"), "Improve tool");
+        _sandbox.Publish(publisher, "tool/scripts/run.sh", "echo", "Add script");
+        _sandbox.Publish(publisher, "other/SKILL.md", GitSandbox.Skill("other two"), "Improve other");
+        var tool = GitSandbox.SkillAt(Global(_sandbox.Path("home/.claude")), Path.Combine(skills, "tool", "SKILL.md"));
+        await _git.CheckForUpdatesAsync(_git.Locate(tool)!.Repository, default);
+
+        var incoming = (await _git.InspectAsync(tool, default))!.Incoming!;
+
+        incoming.Commits.Should().Be(2);
+        incoming.Files.Should().BeEquivalentTo([new GitChange("tool/SKILL.md", GitChangeKind.Modified), new GitChange("tool/scripts/run.sh", GitChangeKind.Added)]);
+        incoming.MainFile.Should().Be("tool/SKILL.md");
+        incoming.Before.Should().Contain("name: first");
+        incoming.After.Should().Contain("name: second");
+    }
+
+    [Fact]
+    public async Task Local_commits_are_not_shown_as_coming_in()
+    {
+        var (remote, publisher) = _sandbox.Published("tool/SKILL.md");
+        var skills = _sandbox.Clone(remote, "home/.claude/skills");
+        _sandbox.Publish(publisher, "tool/SKILL.md", GitSandbox.Skill("theirs"), "Improve upstream");
+        _sandbox.Commit(skills, "tool/notes.md", "mine", "Add local notes");
+        _sandbox.Commit(skills, "other/SKILL.md", GitSandbox.Skill("other"), "Add local skill");
+        var tool = GitSandbox.SkillAt(Global(_sandbox.Path("home/.claude")), Path.Combine(skills, "tool", "SKILL.md"));
+        var repository = _git.Locate(tool)!.Repository;
+        await _git.CheckForUpdatesAsync(repository, default);
+
+        var incoming = (await _git.InspectAsync(tool, default))!.Incoming!;
+        var counts = await _git.IncomingCommitsAsync(repository, ["tool", "other"], default);
+
+        incoming.Files.Should().Equal(new GitChange("tool/SKILL.md", GitChangeKind.Modified));
+        incoming.Before.Should().Contain("name: first");
+        incoming.After.Should().Contain("name: theirs");
+        counts.Should().BeEquivalentTo(new Dictionary<string, int> { ["tool"] = 1, ["other"] = 0 });
+    }
+
+    [Fact]
+    public async Task Paths_with_spaces_are_followed()
+    {
+        var (remote, publisher) = _sandbox.Published("my tool/SKILL.md");
+        var skills = _sandbox.Clone(remote, "home/.claude/skills");
+        _sandbox.Publish(publisher, "my tool/SKILL.md", GitSandbox.Skill("second"), "Improve");
+        var tool = GitSandbox.SkillAt(Global(_sandbox.Path("home/.claude")), Path.Combine(skills, "my tool", "SKILL.md"));
+        await _git.CheckForUpdatesAsync(_git.Locate(tool)!.Repository, default);
+
+        var incoming = (await _git.InspectAsync(tool, default))!.Incoming!;
+
+        incoming.Commits.Should().Be(1);
+        incoming.After.Should().Contain("name: second");
+    }
+
+    [Fact]
+    public async Task A_skill_that_is_the_whole_repository_counts_every_incoming_commit()
+    {
+        var (skill, publisher, _) = ClonedSkill();
+        _sandbox.Publish(publisher, "SKILL.md", GitSandbox.Skill("second"), "Improve");
+        _sandbox.Publish(publisher, "scripts/run.sh", "echo", "Add script");
+        await _git.CheckForUpdatesAsync(_git.Locate(skill)!.Repository, default);
+
+        var incoming = (await _git.InspectAsync(skill, default))!.Incoming!;
+
+        incoming.MainFile.Should().Be("SKILL.md");
+        incoming.Commits.Should().Be(2);
+        incoming.Files.Select(f => f.Path).Should().BeEquivalentTo("SKILL.md", "scripts/run.sh");
+    }
+
+    [Fact]
+    public async Task An_up_to_date_skill_has_nothing_incoming()
+    {
+        var (skill, _, _) = ClonedSkill();
+
+        (await _git.InspectAsync(skill, default))!.Incoming.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Checking_a_repository_without_upstream_does_not_fetch()
     {
         var repo = _sandbox.Init("home/.claude/skills");

@@ -20,12 +20,12 @@ public sealed record UnusedChip : ChipFilter
 {
     public override bool IsAvailable(ChipContext context) => context.Usage.CanJudgeUnused;
 
-    public override bool Matches(Skill skill, ChipContext context) => context.Usage.Report?.For(skill.FullName) is null;
+    public override bool Matches(Skill skill, ChipContext context) => context.Usage.IsUnused(skill);
 }
 
 public sealed record UpdatesChip : ChipFilter
 {
     public override bool IsAvailable(ChipContext context) => context.Updates.HasChecked;
 
-    public override bool Matches(Skill skill, ChipContext context) => context.Updates.Behind(skill) > 0;
+    public override bool Matches(Skill skill, ChipContext context) => context.Updates.Incoming(skill) > 0;
 }

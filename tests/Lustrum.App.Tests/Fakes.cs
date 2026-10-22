@@ -86,6 +86,13 @@ internal sealed class FakeSkillGit : ISkillGit
 
     public Dictionary<string, GitTracking> Checked { get; } = [];
 
+    /// <summary>Incoming commits per relative path; a path not listed gets the repository's whole behind count.</summary>
+    public Dictionary<string, int> IncomingByPath { get; } = [];
+
+    public List<string> CountedPaths { get; } = [];
+
+    public Exception? IncomingFailure { get; set; }
+
     public Exception? InspectFailure { get; set; }
 
     public Exception? CheckFailure { get; set; }
@@ -125,6 +132,20 @@ internal sealed class FakeSkillGit : ISkillGit
         }
 
         return Task.FromResult(tracking);
+    }
+
+    public Task<IReadOnlyDictionary<string, int>> IncomingCommitsAsync(
+        SkillRepository repository, IReadOnlyCollection<string> relativePaths, CancellationToken cancellationToken)
+    {
+        CountedPaths.AddRange(relativePaths);
+        if (IncomingFailure is { } failure)
+        {
+            return Task.FromException<IReadOnlyDictionary<string, int>>(failure);
+        }
+
+        var behind = Checked.GetValueOrDefault(repository.Root)?.Behind ?? 0;
+        IReadOnlyDictionary<string, int> counts = relativePaths.ToDictionary(p => p, p => IncomingByPath.GetValueOrDefault(p, behind));
+        return Task.FromResult(counts);
     }
 
     public Task<GitTracking> UpdateAsync(SkillRepository repository, CancellationToken cancellationToken)

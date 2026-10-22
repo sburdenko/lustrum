@@ -85,7 +85,15 @@ public sealed partial class SkillCardViewModel : ObservableObject
         Conflicts = sameNameElsewhere
             .Select(s => new ConflictEntry(SkillItemViewModel.SourceLabelFor(s.Source), s.Path, s))
             .ToList();
-        Comparison = sameNameElsewhere.Count > 0 ? new ComparisonViewModel(skill, sameNameElsewhere) : null;
+        Comparison = new ComparisonViewModel(skill, sameNameElsewhere);
+        Comparison.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ComparisonViewModel.HasTargets))
+            {
+                OnPropertyChanged(nameof(HasComparison));
+                EnsureCompareTarget();
+            }
+        };
         ModifiedText = skill.Modified == DateTimeOffset.MinValue ? "—" : skill.Modified.ToLocalTime().ToString("d MMM yyyy, HH:mm");
         SizeText = FormatSize(skill.SizeBytes);
     }
@@ -176,7 +184,9 @@ public sealed partial class SkillCardViewModel : ObservableObject
 
     public string ConflictsTitle => Conflicts.Count == 1 ? "SAME NAME · 1 OTHER COPY" : $"SAME NAME · {Conflicts.Count} OTHER COPIES";
 
-    public ComparisonViewModel? Comparison { get; }
+    public ComparisonViewModel Comparison { get; }
+
+    public bool HasComparison => Comparison.HasTargets;
 
     public bool ShowHealth => Skill.Health != CoreHealth.Ok;
 
@@ -206,19 +216,29 @@ public sealed partial class SkillCardViewModel : ObservableObject
 
     public GitCardState GitState { get; private set; } = GitCardState.Hidden;
 
-    public SkillRepository? GitRepository => (GitState as ReadyGit)?.Report.Repository;
+    public SkillRepository? GitRepository => GitLocation?.Repository;
+
+    public SkillLocation? GitLocation => (GitState as ReadyGit)?.Report.Location;
 
     public string SizeText { get; }
 
     [RelayCommand]
     private void CompareWith(ConflictEntry entry)
     {
-        if (Comparison is null)
-        {
-            return;
-        }
+        Open(Comparison.Targets.OfType<SkillCompareTarget>().First(t => t.Skill.Id == entry.Skill.Id));
+    }
 
-        var target = Comparison.Targets.First(t => t.Skill.Id == entry.Skill.Id);
+    [RelayCommand]
+    private void ShowIncoming()
+    {
+        if (Comparison.Targets.OfType<IncomingCompareTarget>().FirstOrDefault() is { } incoming)
+        {
+            Open(incoming);
+        }
+    }
+
+    private void Open(CompareTarget target)
+    {
         if (Comparison.Target == target)
         {
             Comparison.Reload();
@@ -231,9 +251,21 @@ public sealed partial class SkillCardViewModel : ObservableObject
         SelectedTab = CompareTab;
     }
 
-    partial void OnSelectedTabChanged(int value)
+    partial void OnSelectedTabChanged(int value) => EnsureCompareTarget();
+
+    // The COMPARE tab always shows something: the first target once one exists, or OVERVIEW when the last one goes.
+    private void EnsureCompareTarget()
     {
-        if (value == CompareTab && Comparison is { Target: null, Targets.Count: > 0 })
+        if (SelectedTab != CompareTab)
+        {
+            return;
+        }
+
+        if (!Comparison.HasTargets)
+        {
+            SelectedTab = 0;
+        }
+        else if (Comparison.Target is null)
         {
             Comparison.Target = Comparison.Targets[0];
         }
@@ -244,7 +276,7 @@ public sealed partial class SkillCardViewModel : ObservableObject
     public void ApplyUsage(UsageState state, DateOnly today, TimeZoneInfo zone)
     {
         UsageText = state.Describe(Skill);
-        var usage = state.Report?.For(Skill.FullName);
+        var usage = state.UsageFor(Skill);
         UsageStats = Stats(usage);
         UsageDays = usage is null
             ? EmptyDays
@@ -280,6 +312,8 @@ public sealed partial class SkillCardViewModel : ObservableObject
     {
         GitState = state;
         Git = GitSection.From(state, repo);
+        var report = (state as ReadyGit)?.Report;
+        Comparison.ShowIncoming(report?.Incoming is { Files.Count: > 0 } incoming ? incoming : null, report?.Tracking.Upstream);
     }
 
     private static string? NoteFor(EffectiveEntry? entry, string? project)
