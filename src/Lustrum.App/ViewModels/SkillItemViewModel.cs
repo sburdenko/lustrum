@@ -49,6 +49,13 @@ public sealed class SkillItemViewModel : IListRow
 
     public string NumberText => Number.ToString("000");
 
+    /// <summary>Estimated tokens the skill takes in Claude's skill list; set in the Effective view only.</summary>
+    public int? ListedTokens { get; init; }
+
+    public string CostText => ListedTokens is { } tokens ? $"≈{tokens}" : string.Empty;
+
+    public bool HasCost => ListedTokens is not null;
+
     public string Mark => Skill.Health switch
     {
         CoreHealth.Ok => Copies > 1 ? $"×{Copies}" : string.Empty,

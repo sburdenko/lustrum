@@ -132,8 +132,14 @@ public static partial class FrontmatterParser
         var depth = 0;
         foreach (var ch in text)
         {
+            if (ch == '(' && depth == 0 && current.Length == 0 && items.Count > 0)
+            {
+                current.Append(items[^1]);
+                items.RemoveAt(items.Count - 1);
+            }
+
             depth += ch == '(' ? 1 : ch == ')' ? -1 : 0;
-            if (ch == ',' && depth == 0)
+            if ((ch == ',' || char.IsWhiteSpace(ch)) && depth == 0)
             {
                 Flush(items, current);
                 continue;

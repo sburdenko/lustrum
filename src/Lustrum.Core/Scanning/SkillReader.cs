@@ -1,3 +1,4 @@
+using Lustrum.Core.Linting;
 using Lustrum.Core.Models;
 using Lustrum.Core.Parsing;
 
@@ -73,9 +74,23 @@ internal static class SkillReader
             : fallbackName;
         var description = ResolveDescription(parsed, kind);
         var health = Evaluate(kind, parsed, description);
-        var skill = Create(source, kind, path, name, description, parsed, info.Length, info.LastWriteTimeUtc, health);
+        var skill = Create(source, kind, path, name, description, parsed, info.Length, info.LastWriteTimeUtc, health) with
+        {
+            Findings = Lint(kind, path, parsed),
+        };
         var issue = parsed.State == FrontmatterState.Invalid ? new ScanIssue(path, parsed.Error ?? "Invalid frontmatter") : null;
         return (skill, issue);
+    }
+
+    private static IReadOnlyList<SkillFinding> Lint(SkillKind kind, string path, FrontmatterResult parsed)
+    {
+        if (parsed.State == FrontmatterState.Invalid)
+        {
+            return [];
+        }
+
+        var links = kind == SkillKind.Skill ? ReferenceLinter.Lint(parsed.Body, Path.GetDirectoryName(path)!) : [];
+        return [.. links, .. ToolLinter.Lint(parsed.AllowedTools)];
     }
 
     private static string? ResolveDescription(FrontmatterResult parsed, SkillKind kind)

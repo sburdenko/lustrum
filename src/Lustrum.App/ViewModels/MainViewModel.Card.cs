@@ -51,10 +51,13 @@ public sealed partial class MainViewModel
             .ToList() ?? [];
 
         var project = _effective?.Project ?? _missing?.Project;
-        var card = new SkillCardViewModel(item.Skill, others, _effective?.Find(item.Skill.Id), project?.DisplayName, _missing?.Find(item.Skill.Id))
+        var entry = _effective?.Find(item.Skill.Id);
+        var card = new SkillCardViewModel(item.Skill, others, entry, project?.DisplayName, _missing?.Find(item.Skill.Id))
         {
             Number = _numbers.GetValueOrDefault(item.Skill.Id),
             Issue = IssueFor(item.Skill),
+            Context = ContextPanel.For(item.Skill, entry, entry?.VisibilityValue ?? HomeVisibility(item.Skill)),
+            Checks = CheckRow.For(item.Skill),
         };
         card.ApplyUsage(UsageState);
         card.SelectedTab = _cardTab == SkillCardViewModel.CompareTab && !card.HasConflicts ? 0 : _cardTab;

@@ -96,6 +96,12 @@ public sealed partial class SkillCardViewModel : ObservableObject
 
     public string? Issue { get; init; }
 
+    public ContextPanel? Context { get; init; }
+
+    public IReadOnlyList<CheckRow> Checks { get; init; } = [];
+
+    public bool HasChecks => Checks.Count > 0;
+
     public bool HasIssue => Issue is not null;
 
     public string HeaderLine

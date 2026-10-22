@@ -77,10 +77,11 @@ internal sealed partial class DemoHome : IDisposable
             "allowed-tools: Read, Grep, Bash(git:*)\n", CodeReviewBody, false, "checklists/security.md", "checklists/performance.md", "scripts/diff-stats.sh");
         Skill(Claude, "release-notes", "Draft release notes from merged pull requests since the last tag.",
             "allowed-tools: Bash(git:*), Bash(gh:*)\n", null, false, "templates/notes.md");
-        Skill(Claude, "sql-helper", "Write and explain SQL, check query plans and suggest indexes.");
+        Skill(Claude, "sql-helper", "Write and explain SQL, check query plans and suggest indexes.", "allowed-tools: Read, Grpe, Bash\n");
         Skill(Claude, "sb-daily-notes", "Capture the day as short structured notes and carry open items forward.");
         Skill(Claude, "sb-meeting-prep", "Prepare an agenda and talking points from the attendee list and previous notes.");
-        Skill(Claude, "pdf-forms", "Fill and flatten PDF forms from structured data.", "license: MIT\nversion: 1.2.0\n");
+        Skill(Claude, "pdf-forms", "Fill and flatten PDF forms from structured data.", "license: MIT\nversion: 1.2.0\n",
+            "# pdf-forms\n\nMap the fields with `scripts/fields.py`, then fill them as described in [the field guide](references/fields.md).\n", false, "scripts/fields.py");
         Skill(Claude, "brand-voice", "Rewrite copy in the house tone of voice. " + string.Concat(Enumerable.Repeat("Applies the style guide, banned phrases and examples. ", 30)));
         Write(Path.Combine(Claude, "skills", "legacy-import", "SKILL.md"), "Imports old markdown notes.\nNo frontmatter here.\n");
         Write(Path.Combine(Claude, "skills", "broken-yaml", "SKILL.md"), "---\nname: [oops\ndescription: unclosed flow sequence\n---\nbody\n");

@@ -1,3 +1,4 @@
+using Lustrum.Core.Linting;
 using Lustrum.Core.Models;
 
 namespace Lustrum.Core.Problems;
@@ -13,6 +14,7 @@ public static class ProblemCollector
 
         return BrokenSkills(scan, issuesByPath)
             .Concat(LongDescriptions(scan))
+            .Concat(Findings(scan))
             .Concat(MissingProjects(scan))
             .Concat(ReadIssues(scan, skillPaths))
             .ToList();
@@ -29,6 +31,18 @@ public static class ProblemCollector
             .Where(s => s.Health == Health.DescriptionTooLong)
             .OrderBy(s => s.FullName, StringComparer.OrdinalIgnoreCase)
             .Select(s => new Problem(ProblemKind.LongDescription, s.InvocationName, s.Path, $"{s.Description?.Length ?? 0} characters", s));
+
+    private static IEnumerable<Problem> Findings(ScanResult scan) =>
+        scan.Skills
+            .OrderBy(s => s.FullName, StringComparer.OrdinalIgnoreCase)
+            .SelectMany(s => s.Findings.Select(f => new Problem(KindOf(f.Kind), s.InvocationName, s.Path, f.Message, s)));
+
+    public static ProblemKind KindOf(FindingKind kind) => kind switch
+    {
+        FindingKind.MissingFile => ProblemKind.MissingReference,
+        FindingKind.BroadTool => ProblemKind.BroadPermission,
+        _ => ProblemKind.ToolEntry,
+    };
 
     private static IEnumerable<Problem> MissingProjects(ScanResult scan) =>
         scan.Sources

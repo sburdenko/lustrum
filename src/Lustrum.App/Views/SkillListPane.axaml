@@ -33,6 +33,10 @@
               </ComboBox.ItemTemplate>
             </ComboBox>
           </StackPanel>
+          <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Budget.Text, FallbackValue=''}" IsVisible="{Binding HasBudget}"
+                     Classes="mono b" FontSize="10.5" HorizontalAlignment="Right" VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis" Margin="230,0,0,0"
+                     ToolTip.Tip="{Binding Budget.Tip, FallbackValue=''}" />
           <ListBox Grid.Row="1" Grid.ColumnSpan="2" Classes="segments" SelectionMode="AlwaysSelected"
                    ItemsSource="{Binding ProjectViews}" SelectedItem="{Binding SelectedProjectView}"
                    IsVisible="{Binding CanChooseProjectView}" HorizontalAlignment="Left">
@@ -69,7 +73,7 @@
           </DataTemplate>
           <DataTemplate DataType="vm:SkillItemViewModel">
             <Border BorderBrush="{DynamicResource LxRule2Brush}" BorderThickness="0,0,0,1" Padding="16,0" Height="30">
-              <Grid ColumnDefinitions="34,220,*,Auto,104,44" ColumnSpacing="12" Opacity="{Binding RowOpacity}">
+              <Grid ColumnDefinitions="34,220,*,Auto,Auto,104,44" ColumnSpacing="12" Opacity="{Binding RowOpacity}">
                 <TextBlock Classes="mono mute2 no m" Text="{Binding NumberText}" FontSize="11"
                            VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Classes="mono b" FontSize="12.5" VerticalAlignment="Center"
@@ -81,9 +85,11 @@
                 <TextBlock Grid.Column="3" Text="{Binding Status}" Classes="mono mute m" FontSize="10.5"
                            VerticalAlignment="Center" MaxWidth="170" TextTrimming="CharacterEllipsis"
                            IsVisible="{Binding HasStatus}" ToolTip.Tip="{Binding UpdateHint}" />
-                <TextBlock Grid.Column="4" Text="{Binding SourceLabel}" Classes="mono" FontSize="11" Opacity="0.65"
+                <TextBlock Grid.Column="4" Text="{Binding CostText}" Classes="mono m" FontSize="10.5" VerticalAlignment="Center"
+                           IsVisible="{Binding HasCost}" ToolTip.Tip="Estimated tokens this skill takes in Claude's skill list" />
+                <TextBlock Grid.Column="5" Text="{Binding SourceLabel}" Classes="mono" FontSize="11" Opacity="0.65"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                <Border Grid.Column="5" Classes="badge" IsVisible="{Binding HasMark}" MinWidth="40"
+                <Border Grid.Column="6" Classes="badge" IsVisible="{Binding HasMark}" MinWidth="40"
                         Classes.err="{Binding IsMarkError}" Classes.warn="{Binding IsMarkWarning}" Classes.quiet="{Binding IsMarkQuiet}"
                         ToolTip.Tip="{Binding Health.Text}">
                   <TextBlock Text="{Binding Mark}" HorizontalAlignment="Center" />

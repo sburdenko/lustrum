@@ -161,7 +161,7 @@ public class IndexLayoutTests
         vm.CliCommand.Should().Be("list --source global");
 
         vm.SelectSection("!");
-        vm.CliCommand.Should().Be("list --broken");
+        vm.CliCommand.Should().Be("problems");
 
         vm.SelectNodeCommand.Execute(Node(vm, "app"));
         vm.SelectedProjectView = vm.ProjectViews.Single(v => v.View == ProjectView.Missing);

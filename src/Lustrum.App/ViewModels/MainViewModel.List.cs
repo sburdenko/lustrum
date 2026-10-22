@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Lustrum.Core.Budget;
 using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Effective;
 using Lustrum.Core.Indexing;
@@ -15,6 +16,7 @@ public sealed partial class MainViewModel
         new(SortMode.Source, "By source"),
         new(SortMode.Modified, "By date"),
         new(SortMode.LastUsed, "By last use"),
+        new(SortMode.ContextCost, "By context cost"),
     ];
 
     private bool _isRefreshingList;
@@ -35,6 +37,12 @@ public sealed partial class MainViewModel
 
     [ObservableProperty]
     private IReadOnlyList<IListRow> _listRows = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBudget))]
+    private BudgetBanner? _budget;
+
+    public bool HasBudget => Budget is not null;
 
     private Dictionary<string, int> _numbers = new(StringComparer.Ordinal);
     private Dictionary<string, int> _copies = new(StringComparer.Ordinal);
@@ -91,6 +99,7 @@ public sealed partial class MainViewModel
         var context = project is not null && ActiveView != ProjectView.Own ? ContextFor(project) : null;
         _effective = ActiveView == ProjectView.Effective && context is not null ? EffectiveSetBuilder.Build(_result, context) : null;
         _missing = ActiveView == ProjectView.Missing && context is not null ? MissingSetBuilder.Build(_result, context) : null;
+        Budget = _effective is null ? null : new BudgetBanner(ContextBudget.Summarize(_effective));
         var scope = ActiveScope(context);
         var found = SkillIndex.Search(_result.Skills, new SkillQuery(scope, SearchText)).Where(MatchesChips).ToList();
         var withBody = WithBodyMatches(found, scope);
@@ -166,7 +175,11 @@ public sealed partial class MainViewModel
         {
             Number = _numbers.GetValueOrDefault(skill.Id),
             Copies = _copies.GetValueOrDefault(skill.ConflictKey, 1),
+            ListedTokens = _effective?.Find(skill.Id) is { } entry ? ContextBudget.Tokens(ContextBudget.ListedChars(entry)) : null,
         };
+
+    private int ListedChars(Skill skill) =>
+        _effective?.Find(skill.Id) is { } entry ? ContextBudget.ListedChars(entry) : ContextBudget.ListedChars(skill, HomeVisibility(skill));
 
     private bool IsGrouped(SkillScope scope) =>
         SearchText.Trim().Length == 0
@@ -226,6 +239,9 @@ public sealed partial class MainViewModel
             .ThenBy(s => s.Source.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(s => s.FullName, StringComparer.OrdinalIgnoreCase),
         SortMode.Modified => skills.OrderByDescending(s => s.Modified),
+        SortMode.ContextCost => skills
+            .OrderByDescending(ListedChars)
+            .ThenBy(s => s.FullName, StringComparer.OrdinalIgnoreCase),
         SortMode.LastUsed => skills
             .OrderByDescending(s => Usage?.For(s.FullName)?.LastUsed ?? DateTimeOffset.MinValue)
             .ThenBy(s => s.FullName, StringComparer.OrdinalIgnoreCase),

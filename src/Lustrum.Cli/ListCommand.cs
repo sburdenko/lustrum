@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Lustrum.Core.Budget;
 using Lustrum.Core.ClaudeSettings;
 using Lustrum.Core.Effective;
 using Lustrum.Core.Models;
@@ -32,6 +33,7 @@ internal static class ListCommand
         var usage = new Option<bool>("--usage") { Description = "Add how often and when each skill was used, read from Claude Code transcripts" };
         var unused = new Option<bool>("--unused") { Description = "Only skills with no recorded use in Claude Code transcripts" };
         var missing = new Option<bool>("--missing") { Description = "With --project: skills on this machine that the project does not load" };
+        var budget = new Option<bool>("--budget") { Description = "With --project: estimated tokens each skill takes in Claude's skill list, and the total" };
         var project = new Option<string?>("--project")
         {
             Description = "Show what Claude Code loads in this project folder: its skills and those of its parent folders, managed and global skills, enabled plugins, and on demand the skills of folders below it",
@@ -45,6 +47,7 @@ internal static class ListCommand
         command.Options.Add(usage);
         command.Options.Add(unused);
         command.Options.Add(missing);
+        command.Options.Add(budget);
         command.SetAction(async (parseResult, cancellationToken) =>
             await RunAsync(
                 new ListRequest(
@@ -54,7 +57,8 @@ internal static class ListCommand
                     parseResult.GetValue(project),
                     parseResult.GetValue(usage),
                     parseResult.GetValue(unused),
-                    parseResult.GetValue(missing)),
+                    parseResult.GetValue(missing),
+                    parseResult.GetValue(budget)),
                 cancellationToken));
         return command;
     }
@@ -73,9 +77,9 @@ internal static class ListCommand
             kind = parsed;
         }
 
-        if (request.Missing && request.Project is null)
+        if ((request.Missing || request.Budget) && request.Project is null)
         {
-            await Console.Error.WriteLineAsync("--missing needs --project <folder>.");
+            await Console.Error.WriteLineAsync($"{(request.Missing ? "--missing" : "--budget")} needs --project <folder>.");
             return UsageError;
         }
 
@@ -117,9 +121,23 @@ internal static class ListCommand
             return 0;
         }
 
-        var entries = EffectiveSetBuilder.Build(scan, target).Entries.Where(e => included.Contains(e.Skill.Id)).ToList();
-        var table = request.WithUsage && report is not null ? SkillTable.Render(entries, report) : SkillTable.Render(entries);
-        Console.WriteLine(request.AsJson ? JsonSerializer.Serialize(entries.Select(e => ToJson(e, report)), JsonOptions) : table);
+        var set = EffectiveSetBuilder.Build(scan, target);
+        var entries = set.Entries.Where(e => included.Contains(e.Skill.Id)).ToList();
+        if (request.AsJson)
+        {
+            Console.WriteLine(JsonSerializer.Serialize(entries.Select(e => ToJson(e, report)), JsonOptions));
+            return 0;
+        }
+
+        if (request.Budget)
+        {
+            Console.WriteLine(SkillTable.RenderBudget(entries));
+            Console.WriteLine();
+            Console.WriteLine(SkillTable.BudgetLine(ContextBudget.Summarize(set)));
+            return 0;
+        }
+
+        Console.WriteLine(request.WithUsage && report is not null ? SkillTable.Render(entries, report) : SkillTable.Render(entries));
         return 0;
     }
 
@@ -193,7 +211,8 @@ internal static class ListCommand
         Overrides = entry.Overrides.Select(o => o.Id).ToList(),
         Visibility = entry.VisibilityValue.ToSetting(),
         entry.LoadsUnder,
+        ListedChars = ContextBudget.ListedChars(entry),
     };
 
-    private sealed record ListRequest(bool AsJson, string? Source, bool BrokenOnly, string? Project, bool WithUsage, bool UnusedOnly, bool Missing);
+    private sealed record ListRequest(bool AsJson, string? Source, bool BrokenOnly, string? Project, bool WithUsage, bool UnusedOnly, bool Missing, bool Budget);
 }
